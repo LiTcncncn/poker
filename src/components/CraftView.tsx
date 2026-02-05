@@ -34,13 +34,13 @@ export const CraftView: React.FC<CraftViewProps> = ({
   }, {} as Record<string, CardType[]>);
 
   const duplicateBlueCards = Object.values(blueCardGroups)
-    .filter(group => group.length >= 2)
+    .filter(group => group.length >= 3)
     .flat();
 
   const handleCardClick = (cardId: string) => {
     if (craftedCard) return; // 已合成，不能再选择
 
-    const maxSelection = craftMode === 'blue' ? 10 : 2;
+    const maxSelection = craftMode === 'blue' ? 10 : 3;
     
     if (selectedCards.includes(cardId)) {
       setSelectedCards(selectedCards.filter(id => id !== cardId));
@@ -59,7 +59,7 @@ export const CraftView: React.FC<CraftViewProps> = ({
         result = onCraftBlue(selectedCards);
       }
     } else {
-      if (selectedCards.length === 2) {
+      if (selectedCards.length === 3) {
         result = onCraftPurple(selectedCards);
       }
     }
@@ -77,7 +77,7 @@ export const CraftView: React.FC<CraftViewProps> = ({
 
   const canCraft = craftMode === 'blue' 
     ? selectedCards.length === 10
-    : selectedCards.length === 2;
+    : selectedCards.length === 3;
 
   const availableCards = craftMode === 'blue' ? greenCards : duplicateBlueCards;
 
@@ -134,7 +134,7 @@ export const CraftView: React.FC<CraftViewProps> = ({
               )}
             >
               <div className="text-lg">合成紫卡</div>
-              <div className="text-sm opacity-80 mt-1">2 张相同蓝卡 → 1 张紫卡</div>
+              <div className="text-sm opacity-80 mt-1">3 张相同蓝卡 → 1 张紫卡</div>
             </button>
           </div>
 
@@ -144,7 +144,7 @@ export const CraftView: React.FC<CraftViewProps> = ({
             <div>
               {craftMode === 'blue' 
                 ? '选择任意 10 张绿色品质卡牌进行合成，将随机获得 1 张蓝色品质卡牌。'
-                : '选择 2 张完全相同的蓝色品质卡牌（花色、数值、效果都相同）进行合成，将随机获得 1 张紫色品质卡牌。'
+                : '选择 3 张完全相同的蓝色品质卡牌（花色、数值、效果都相同）进行合成，将随机获得 1 张紫色品质卡牌。'
               }
             </div>
           </div>
@@ -159,7 +159,7 @@ export const CraftView: React.FC<CraftViewProps> = ({
                 "ml-2 font-bold",
                 canCraft ? "text-green-400" : "text-yellow-400"
               )}>
-                {selectedCards.length} / {craftMode === 'blue' ? 10 : 2}
+                {selectedCards.length} / {craftMode === 'blue' ? 10 : 3}
               </span>
             </div>
             <div className="flex gap-3">
@@ -201,7 +201,7 @@ export const CraftView: React.FC<CraftViewProps> = ({
               <p className="text-sm mt-2">
                 {craftMode === 'blue' 
                   ? '通过抽卡获取更多绿色卡牌'
-                  : '需要 2 张完全相同的蓝色卡牌才能合成'
+                  : '需要 3 张完全相同的蓝色卡牌才能合成'
                 }
               </p>
             </div>

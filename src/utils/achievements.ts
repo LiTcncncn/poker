@@ -51,7 +51,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   // 牌型成就 - 使用增量值
   one_pair: {
     achievementType: 'one_pair',
-    reward: 50,
+    reward: 30,
     // 100档：前50档（1,9,10×28,20×20），后50档（30×50）
     incrementalThresholds: [
       1, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 
@@ -66,7 +66,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   two_pairs: {
     achievementType: 'two_pairs',
-    reward: 50,
+    reward: 30,
     // 80档：前30档（1,7,8×28），后50档（20×50）
     incrementalThresholds: [
       1, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 
@@ -80,7 +80,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   three_of_a_kind: {
     achievementType: 'three_of_a_kind',
-    reward: 100,
+    reward: 60,
     // 80档：前30档（1,4,5×28），后50档（15×50）
     incrementalThresholds: [
       1, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 
@@ -94,7 +94,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   straight: {
     achievementType: 'straight',
-    reward: 200,
+    reward: 120,
     // 80档：前30档（1,2,3×28），后50档（15×50）
     incrementalThresholds: [
       1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 
@@ -108,7 +108,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   flush: {
     achievementType: 'flush',
-    reward: 200,
+    reward: 120,
     // 80档：前30档（1,2,3×28），后50档（15×50）
     incrementalThresholds: [
       1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 
@@ -122,7 +122,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   full_house: {
     achievementType: 'full_house',
-    reward: 300,
+    reward: 180,
     // 80档：前30档（1,2,3×28），后50档（15×50）
     incrementalThresholds: [
       1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 
@@ -136,7 +136,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   four_of_a_kind: {
     achievementType: 'four_of_a_kind',
-    reward: 500,
+    reward: 300,
     // 80档：前30档（1,1,2×28），后50档（15×50）
     incrementalThresholds: [
       1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 
@@ -150,7 +150,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   straight_flush: {
     achievementType: 'straight_flush',
-    reward: 1000,
+    reward: 600,
     // 80档：前30档（1×30），后50档（10×50）
     incrementalThresholds: [
       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
@@ -164,7 +164,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   royal_flush: {
     achievementType: 'royal_flush',
-    reward: 2000, // 奖励改为2000钻
+    reward: 1200, // 奖励改为1200钻（原2000的60%）
     // 80档：前30档（1×30），后50档（5×50）
     incrementalThresholds: [
       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
@@ -180,46 +180,46 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   // 新成就类型
   super_card_count: {
     achievementType: 'super_card_count',
-    reward: 1000,
+    reward: 600,
     incrementalThresholds: [13, 13, 13, 13], // 4档：每个花色的A-K完成（13张），4个花色共52张
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   blue_card_count: {
     achievementType: 'blue_card_count',
-    reward: 50,
+    reward: 30,
     incrementalThresholds: generateProgressiveFixedIncremental([1, 4, 5], 10, 20), // 1, 4, 5, 10, 10, 10...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   purple_card_count: {
     achievementType: 'purple_card_count',
-    reward: 100,
+    reward: 60,
     incrementalThresholds: generateProgressiveFixedIncremental([1, 2, 2], 5, 20), // 1, 2, 2, 5, 5, 5...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   green_card_count: {
     achievementType: 'green_card_count',
-    reward: 50,
+    reward: 30,
     incrementalThresholds: generateProgressiveFixedIncremental([1, 4, 5, 0], 20, 20), // 1, 4, 5, 0, 20, 20, 20...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   craft_blue_count: {
     achievementType: 'craft_blue_count',
-    reward: 50,
+    reward: 30,
     incrementalThresholds: generateProgressiveFixedIncremental([1, 2, 2], 5, 20), // 1, 2, 2, 5, 5, 5...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   craft_purple_count: {
     achievementType: 'craft_purple_count',
-    reward: 100,
+    reward: 60,
     incrementalThresholds: generateProgressiveFixedIncremental([1, 1, 1], 3, 20), // 1, 1, 1, 3, 3, 3...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   max_single_round_earnings: {
     achievementType: 'max_single_round_earnings',
     reward: (threshold: number) => {
-      if (threshold >= 2300) return 300;
-      if (threshold >= 1200) return 150;
-      return 50;
+      if (threshold >= 2300) return 180;
+      if (threshold >= 1200) return 90;
+      return 30;
     },
     // 最大值型成就保持累计值（因为它是最大值，不是累积）
     incrementalThresholds: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 200, 200, 200, 200, 200, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 500, 500, 500, 500, 500],

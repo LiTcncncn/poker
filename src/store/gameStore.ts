@@ -487,13 +487,13 @@ export const useGameStore = create<GameState>()(
       }
     }
 
-    // Joker 生成逻辑：10% 概率将其中一张牌替换为 Joker（测试用，后续可调整）
+    // Joker 生成逻辑：5% 概率将其中一张牌替换为 Joker（测试用，后续可调整）
     // 限制：手牌中最多只能有一张 Joker
     // 解锁条件：需要先解锁超级牌 ♠️2 (super_spades_2)
     const { jokerEnabled, superCardUnlockedIds } = get();
     const hasJoker = hand.some(card => card.isJoker);
     const hasUnlockedSpades2 = superCardUnlockedIds.includes('super_spades_2');
-    if (jokerEnabled && hasUnlockedSpades2 && hand.length > 0 && !hasJoker && Math.random() < 0.1) {
+    if (jokerEnabled && hasUnlockedSpades2 && hand.length > 0 && !hasJoker && Math.random() < 0.05) {
       // 随机选择一张牌替换为 Joker
       const replaceIndex = Math.floor(Math.random() * hand.length);
       const jokerCard: Card = {
@@ -625,7 +625,7 @@ export const useGameStore = create<GameState>()(
      // 保底逻辑：30 抽必出紫卡
      const isGuaranteedPurple = drawsSincePurple >= 29;
 
-     // 抽卡逻辑：85% 绿色，13% 蓝色，2% 紫色
+     // 抽卡逻辑：85% 绿色，14% 蓝色，1% 紫色
      let quality: CardQuality;
      if (isGuaranteedPurple) {
          quality = 'purple';
@@ -633,7 +633,7 @@ export const useGameStore = create<GameState>()(
          const qualityRoll = Math.random();
          if (qualityRoll < 0.85) {
              quality = 'green';
-         } else if (qualityRoll < 0.98) {
+         } else if (qualityRoll < 0.99) {
              quality = 'blue';
          } else {
              quality = 'purple';
@@ -641,7 +641,10 @@ export const useGameStore = create<GameState>()(
      }
      
      const suits: Suit[] = ['spades', 'hearts', 'clubs', 'diamonds'];
-     const ranks: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+     // 绿色品质只生成 2-10，不包含 J(11)、Q(12)、K(13)、A(14)
+     const allRanks: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+     const greenRanks: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+     const ranks = quality === 'green' ? greenRanks : allRanks;
      
      const randomSuit = suits[Math.floor(Math.random() * suits.length)];
      const randomRank = ranks[Math.floor(Math.random() * ranks.length)];
@@ -734,9 +737,9 @@ export const useGameStore = create<GameState>()(
                 newCard.effects.push({ type: 'high_score' as const, value: 10 });
             }
         } else if (purpleRoll < 0.5) {
-            // 紫色倍数牌 +10（只允许 9-A）
+            // 紫色倍数牌 +8（只允许 9-A）
             if (isHighRank) {
-                newCard.effects.push({ type: 'multiplier' as const, value: 10 });
+                newCard.effects.push({ type: 'multiplier' as const, value: 8 });
             } else {
                 // 小牌不允许倍数效果，改为跨数值+倍数（只允许 8-10 和 JQK）
                 const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
@@ -745,7 +748,7 @@ export const useGameStore = create<GameState>()(
                     targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
                 }
                 newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-                newCard.effects.push({ type: 'multiplier' as const, value: 6 });
+                newCard.effects.push({ type: 'multiplier' as const, value: 4 });
             }
         } else {
             // 紫色组合效果
@@ -777,12 +780,12 @@ export const useGameStore = create<GameState>()(
                 newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
                 newCard.effects.push({ type: 'high_score' as const, value: 10 });
             } else if (comboRoll < 0.75) {
-                // 双花+倍数(+6)（只允许 9-A）
+                // 双花+倍数(+4)（只允许 9-A）
                 if (isHighRank) {
                     const otherSuits = suits.filter(s => s !== newCard.suit);
                     const secondSuit = otherSuits[Math.floor(Math.random() * otherSuits.length)];
                     newCard.effects.push({ type: 'double_suit' as const, suits: [newCard.suit, secondSuit] });
-                    newCard.effects.push({ type: 'multiplier' as const, value: 6 });
+                    newCard.effects.push({ type: 'multiplier' as const, value: 4 });
                 } else {
                     // 小牌不允许双花+倍数，改为跨数值+倍数（只允许 8-10 和 JQK）
                     const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
@@ -791,17 +794,17 @@ export const useGameStore = create<GameState>()(
                         targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
                     }
                     newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-                    newCard.effects.push({ type: 'multiplier' as const, value: 6 });
+                    newCard.effects.push({ type: 'multiplier' as const, value: 4 });
                 }
             } else {
-                // 跨数值+倍数(+6)（不允许 234 和 567）
+                // 跨数值+倍数(+4)（不允许 234 和 567）
                 const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
                 let targetGroup = allowedGroups.find(g => g.includes(newCard.rank));
                 if (!targetGroup) {
                     targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
                 }
                 newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-                newCard.effects.push({ type: 'multiplier' as const, value: 6 });
+                newCard.effects.push({ type: 'multiplier' as const, value: 4 });
             }
         }
         }
@@ -1030,24 +1033,26 @@ export const useGameStore = create<GameState>()(
      const { activeDeck, reserveDeck } = get();
      const allCards = [...activeDeck.filter((c): c is Card => c !== null), ...reserveDeck];
      
-     // 验证：必须选择 2 张蓝色品质卡牌
-     if (selectedBlueIds.length !== 2) return null;
+     // 验证：必须选择 3 张蓝色品质卡牌
+     if (selectedBlueIds.length !== 3) return null;
      
      const selectedCards = allCards.filter(card => selectedBlueIds.includes(card.id));
-     if (selectedCards.length !== 2) return null;
+     if (selectedCards.length !== 3) return null;
      
-     const [card1, card2] = selectedCards;
+     const [card1, card2, card3] = selectedCards;
      
      // 验证：必须是蓝色品质
-     if (card1.quality !== 'blue' || card2.quality !== 'blue') return null;
+     if (card1.quality !== 'blue' || card2.quality !== 'blue' || card3.quality !== 'blue') return null;
      
      // 验证：必须完全一样（花色、数值、效果）
-     const isSame = card1.suit === card2.suit 
-                 && card1.rank === card2.rank
-                 && card1.effects.length === card2.effects.length
+     const isSame = card1.suit === card2.suit && card2.suit === card3.suit
+                 && card1.rank === card2.rank && card2.rank === card3.rank
+                 && card1.effects.length === card2.effects.length && card2.effects.length === card3.effects.length
                  && card1.effects.every((e1, idx) => {
                      const e2 = card2.effects[idx];
-                     return e1.type === e2.type && e1.value === e2.value;
+                     const e3 = card3.effects[idx];
+                     return e1.type === e2.type && e2.type === e3.type 
+                         && e1.value === e2.value && e2.value === e3.value;
                  });
      
      if (!isSame) return null;
@@ -1095,9 +1100,9 @@ export const useGameStore = create<GameState>()(
             newCard.effects.push({ type: 'high_score' as const, value: 10 });
         }
     } else if (purpleRoll < 0.5) {
-        // 紫色倍数牌 +10（只允许 9-A）
+        // 紫色倍数牌 +8（只允许 9-A）
         if (isHighRank) {
-            newCard.effects.push({ type: 'multiplier' as const, value: 10 });
+            newCard.effects.push({ type: 'multiplier' as const, value: 8 });
         } else {
             // 小牌不允许倍数效果，改为跨数值+倍数（只允许 8-10 和 JQK）
             const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
@@ -1106,7 +1111,7 @@ export const useGameStore = create<GameState>()(
                 targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
             }
             newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-            newCard.effects.push({ type: 'multiplier' as const, value: 6 });
+            newCard.effects.push({ type: 'multiplier' as const, value: 4 });
         }
     } else {
         // 紫色组合效果
@@ -1138,12 +1143,12 @@ export const useGameStore = create<GameState>()(
             newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
             newCard.effects.push({ type: 'high_score' as const, value: 10 });
         } else if (comboRoll < 0.75) {
-            // 双花+倍数(+6)（只允许 9-A）
+            // 双花+倍数(+4)（只允许 9-A）
             if (isHighRank) {
                 const otherSuits = suits.filter(s => s !== newCard.suit);
                 const secondSuit = otherSuits[Math.floor(Math.random() * otherSuits.length)];
                 newCard.effects.push({ type: 'double_suit' as const, suits: [newCard.suit, secondSuit] });
-                newCard.effects.push({ type: 'multiplier' as const, value: 6 });
+                newCard.effects.push({ type: 'multiplier' as const, value: 4 });
             } else {
                 // 小牌不允许双花+倍数，改为跨数值+倍数（只允许 8-10 和 JQK）
                 const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
@@ -1152,17 +1157,17 @@ export const useGameStore = create<GameState>()(
                     targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
                 }
                 newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-                newCard.effects.push({ type: 'multiplier' as const, value: 6 });
+                newCard.effects.push({ type: 'multiplier' as const, value: 4 });
             }
         } else {
-            // 跨数值+倍数(+6)（不允许 234 和 567）
+            // 跨数值+倍数(+4)（不允许 234 和 567）
             const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
             let targetGroup = allowedGroups.find(g => g.includes(newCard.rank));
             if (!targetGroup) {
                 targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
             }
             newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-            newCard.effects.push({ type: 'multiplier' as const, value: 6 });
+            newCard.effects.push({ type: 'multiplier' as const, value: 4 });
         }
     }
     }
@@ -1494,10 +1499,11 @@ export const useGameStore = create<GameState>()(
       const newActiveDeck = state.activeDeck.map((card, index) => {
         if (index < 52 && card && card.suit === suit && card.rank === rank && card.quality === 'white') {
           // 保留原ID，只修改属性
+          // 超级牌+15，能力介于蓝卡和紫卡之间
           return {
             ...card,
             quality: 'super' as CardQuality,
-            baseValue: card.baseValue + 30,
+            baseValue: card.baseValue + 15,
           };
         }
         return card;
@@ -1506,10 +1512,11 @@ export const useGameStore = create<GameState>()(
       // 替换手牌中对应的白色牌
       const newCurrentHand = state.currentHand.map(card => {
         if (card.suit === suit && card.rank === rank && card.quality === 'white') {
+          // 超级牌+15，能力介于蓝卡和紫卡之间
           return {
             ...card,
             quality: 'super' as CardQuality,
-            baseValue: card.baseValue + 30,
+            baseValue: card.baseValue + 15,
           };
         }
         return card;
@@ -1799,13 +1806,13 @@ export const useGameStore = create<GameState>()(
       deckCopy.splice(randomIndex, 1);
     }
 
-    // Joker 生成逻辑：10% 概率将其中一张牌替换为 Joker（测试用，后续可调整）
+    // Joker 生成逻辑：5% 概率将其中一张牌替换为 Joker（测试用，后续可调整）
     // 限制：手牌中最多只能有一张 Joker
     // 解锁条件：需要先解锁超级牌 ♠️2 (super_spades_2)
     const { jokerEnabled, superCardUnlockedIds } = get();
     const hasJoker = hand.some(card => card.isJoker);
     const hasUnlockedSpades2 = superCardUnlockedIds.includes('super_spades_2');
-    if (jokerEnabled && hasUnlockedSpades2 && hand.length > 0 && !hasJoker && Math.random() < 0.1) {
+    if (jokerEnabled && hasUnlockedSpades2 && hand.length > 0 && !hasJoker && Math.random() < 0.05) {
       // 随机选择一张牌替换为 Joker
       const replaceIndex = Math.floor(Math.random() * hand.length);
       const jokerCard: Card = {
@@ -1911,13 +1918,13 @@ export const useGameStore = create<GameState>()(
       }
     }
 
-    // Joker 生成逻辑：10% 概率将其中一张牌替换为 Joker（测试用，后续可调整）
+    // Joker 生成逻辑：5% 概率将其中一张牌替换为 Joker（测试用，后续可调整）
     // 限制：手牌中最多只能有一张 Joker（包括初始手牌中可能已有的 Joker）
     // 解锁条件：需要先解锁超级牌 ♠️2 (super_spades_2)
     const { jokerEnabled, superCardUnlockedIds } = get();
     const hasJoker = finalHand.some(card => card.isJoker);
     const hasUnlockedSpades2 = superCardUnlockedIds.includes('super_spades_2');
-    if (jokerEnabled && hasUnlockedSpades2 && finalHand.length > 0 && !hasJoker && Math.random() < 0.1) {
+    if (jokerEnabled && hasUnlockedSpades2 && finalHand.length > 0 && !hasJoker && Math.random() < 0.05) {
       // 随机选择一张牌替换为 Joker（不能是已 Hold 的牌）
       const replaceableIndices: number[] = [];
       for (let i = 0; i < 5; i++) {

@@ -5,10 +5,10 @@ const HAND_MULTIPLIERS: Record<HandType, number> = {
   high_card: 1,
   one_pair: 2,
   two_pairs: 3,
-  three_of_a_kind: 5,
-  straight: 10,
-  flush: 15,
-  full_house: 20,
+  three_of_a_kind: 3,
+  straight: 5,
+  flush: 7,
+  full_house: 10,
   four_of_a_kind: 30,
   five_of_a_kind: 200,  // 5条
   six_of_a_kind: 300,   // 6条
