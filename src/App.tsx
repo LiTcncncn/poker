@@ -107,7 +107,6 @@ function App() {
     superCardUnlockedCount,
     craftBlueCount,
     craftPurpleCount,
-    maxSingleRoundEarnings,
     // Video Poker 模式
     isVideoPokerMode,
     vpokerHeldCards,
@@ -742,14 +741,14 @@ function App() {
             {/* 成就 */}
             <button
               onClick={() => {
-                if (tutorialStage === 'complete' || unlockedCardSlots === 5) {
+                if (tutorialStage === 'complete') {
                   setShowAchievements(true);
                 }
               }}
-              disabled={tutorialStage !== 'complete' && unlockedCardSlots !== 5}
+              disabled={tutorialStage !== 'complete'}
               className={clsx(
                 "flex flex-col items-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg transition-colors relative",
-                (tutorialStage === 'complete' || unlockedCardSlots === 5)
+                tutorialStage === 'complete'
                   ? "hover:bg-slate-700 cursor-pointer"
                   : "opacity-50 cursor-not-allowed"
               )}
@@ -757,14 +756,13 @@ function App() {
             >
               <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400" />
               <span className="text-xs sm:text-sm text-slate-300">成就</span>
-              {(tutorialStage === 'complete' || unlockedCardSlots === 5) && hasClaimableAchievements(achievements, stats, {
+              {tutorialStage === 'complete' && hasClaimableAchievements(achievements, stats, {
                 blueCardCount,
                 purpleCardCount,
                 greenCardCount,
                 superCardCount: superCardUnlockedCount,
                 craftBlueCount,
-                craftPurpleCount,
-                maxSingleRoundEarnings
+                craftPurpleCount
               }) && (
                 <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full animate-pulse" />
               )}
@@ -847,8 +845,7 @@ function App() {
             greenCardCount,
             superCardCount: superCardUnlockedCount,
             craftBlueCount,
-            craftPurpleCount,
-            maxSingleRoundEarnings
+            craftPurpleCount
           }}
           onClaim={(achievementType, tier) => {
             // 获取奖励金额

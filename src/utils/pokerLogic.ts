@@ -384,7 +384,7 @@ export const calculateHandScore = (cards: Card[], cardCount?: number): HandResul
      resHand.scoringCards.forEach(rc => {
         const card = rc.originalCard;
         
-        // 超级品质直接使用 baseValue（已包含+30加成）
+        // 超级品质直接使用 baseValue（已包含+15加成）
         let rankValue: number;
         if (card.quality === 'super') {
           rankValue = card.baseValue;

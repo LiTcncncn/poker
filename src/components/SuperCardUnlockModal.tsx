@@ -73,7 +73,7 @@ export const SuperCardUnlockModal: React.FC<SuperCardUnlockModalProps> = ({
         {/* 属性说明 */}
         <div className="text-center mb-4">
           <div className="text-3xl sm:text-5xl font-black text-yellow-400">
-            每次计分+30
+            每次计分+15
           </div>
           <div className="text-sm sm:text-base text-slate-400 mt-2">
             已替换牌池中对应的白色牌

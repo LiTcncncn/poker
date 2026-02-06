@@ -281,7 +281,6 @@ interface GameState {
   greenCardCount: number;       // 绿牌总数
   craftBlueCount: number;       // 合成蓝卡次数
   craftPurpleCount: number;     // 合成紫卡次数
-  maxSingleRoundEarnings: number; // 单回合最高收益
 
   // 抽卡保底机制
   drawsSincePurple: number; // 距离上次紫卡的抽数
@@ -384,7 +383,6 @@ export const useGameStore = create<GameState>()(
       greenCardCount: 0,
       craftBlueCount: 0,
       craftPurpleCount: 0,
-      maxSingleRoundEarnings: 0,
       
       drawsSincePurple: 0, // 保底计数器
       
@@ -537,15 +535,7 @@ export const useGameStore = create<GameState>()(
           );
         }
         
-        // 检测单回合收益成就
-        const newMaxSingleRoundEarnings = Math.max(state.maxSingleRoundEarnings, result.score);
-        if (newMaxSingleRoundEarnings > state.maxSingleRoundEarnings && newAchievements['max_single_round_earnings']) {
-          newAchievements['max_single_round_earnings'] = checkAchievementProgress(
-            'max_single_round_earnings',
-            newMaxSingleRoundEarnings,
-            newAchievements['max_single_round_earnings']
-          );
-        }
+        // （已移除）单回合最高收益成就
 
         const newBestHands = [...state.bestHands, result]
             .sort((a, b) => b.score - a.score)
@@ -593,7 +583,6 @@ export const useGameStore = create<GameState>()(
             achievements: newAchievements,
             bestHands: newBestHands,
             dailyEarnings: newDailyEarnings,
-            maxSingleRoundEarnings: newMaxSingleRoundEarnings,
             // 完成前置阶段
             ...(shouldCompleteTutorial ? { tutorialStage: 'complete' as const } : {})
         };
@@ -1033,29 +1022,41 @@ export const useGameStore = create<GameState>()(
      const { activeDeck, reserveDeck } = get();
      const allCards = [...activeDeck.filter((c): c is Card => c !== null), ...reserveDeck];
      
-     // 验证：必须选择 3 张蓝色品质卡牌
-     if (selectedBlueIds.length !== 3) return null;
+     // 验证：必须选择 5 张蓝色品质卡牌（2张完全相同 + 3张任意蓝牌）
+     if (selectedBlueIds.length !== 5) return null;
      
      const selectedCards = allCards.filter(card => selectedBlueIds.includes(card.id));
-     if (selectedCards.length !== 3) return null;
-     
-     const [card1, card2, card3] = selectedCards;
+     if (selectedCards.length !== 5) return null;
      
      // 验证：必须是蓝色品质
-     if (card1.quality !== 'blue' || card2.quality !== 'blue' || card3.quality !== 'blue') return null;
+     const allBlue = selectedCards.every(card => card.quality === 'blue');
+     if (!allBlue) return null;
      
-     // 验证：必须完全一样（花色、数值、效果）
-     const isSame = card1.suit === card2.suit && card2.suit === card3.suit
-                 && card1.rank === card2.rank && card2.rank === card3.rank
-                 && card1.effects.length === card2.effects.length && card2.effects.length === card3.effects.length
-                 && card1.effects.every((e1, idx) => {
-                     const e2 = card2.effects[idx];
-                     const e3 = card3.effects[idx];
-                     return e1.type === e2.type && e2.type === e3.type 
-                         && e1.value === e2.value && e2.value === e3.value;
-                 });
+     // 验证：至少有2张完全相同的蓝牌（花色、数值、效果都相同）
+     // 按（花色、数值、效果）分组
+     const cardGroups: Card[][] = [];
+     selectedCards.forEach(card => {
+       const key = `${card.suit}-${card.rank}-${card.effects.map(e => `${e.type}:${e.value}`).join('|')}`;
+       let found = false;
+       for (const group of cardGroups) {
+         if (group.length > 0) {
+           const first = group[0];
+           const firstKey = `${first.suit}-${first.rank}-${first.effects.map(e => `${e.type}:${e.value}`).join('|')}`;
+           if (key === firstKey) {
+             group.push(card);
+             found = true;
+             break;
+           }
+         }
+       }
+       if (!found) {
+         cardGroups.push([card]);
+       }
+     });
      
-     if (!isSame) return null;
+     // 检查是否有至少2张完全相同的卡牌
+     const hasPair = cardGroups.some(group => group.length >= 2);
+     if (!hasPair) return null;
      
      // 生成随机紫色品质卡牌
      const suits: Suit[] = ['spades', 'hearts', 'clubs', 'diamonds'];
@@ -1302,7 +1303,6 @@ export const useGameStore = create<GameState>()(
       greenCardCount: 0,
       craftBlueCount: 0,
       craftPurpleCount: 0,
-      maxSingleRoundEarnings: 0,
       dailyEarnings: {
         date: new Date().toISOString().split('T')[0],
         records: [],
@@ -1674,7 +1674,7 @@ export const useGameStore = create<GameState>()(
   
   // 领取成就奖励
   claimAchievement: (achievementType: AchievementType, tier: number) => {
-    const { achievements, stats, blueCardCount, purpleCardCount, greenCardCount, superCardUnlockedCount, craftBlueCount, craftPurpleCount, maxSingleRoundEarnings } = get();
+    const { achievements, stats, blueCardCount, purpleCardCount, greenCardCount, superCardUnlockedCount, craftBlueCount, craftPurpleCount } = get();
     const progress = achievements[achievementType];
     
     // 验证：档位索引有效
@@ -1714,9 +1714,6 @@ export const useGameStore = create<GameState>()(
         case 'craft_purple_count':
           currentCount = craftPurpleCount;
           break;
-        case 'max_single_round_earnings':
-          currentCount = maxSingleRoundEarnings;
-          break;
       }
     }
     
@@ -1726,6 +1723,13 @@ export const useGameStore = create<GameState>()(
     
     // 验证：档位必须未领取
     if (progress.claimedTiers.includes(tier)) return false;
+
+    // 实现 A：禁止跨档领取（必须按顺序领取）
+    for (let i = 0; i < tier; i++) {
+      if (!progress.claimedTiers.includes(i)) {
+        return false;
+      }
+    }
     
     // 获取奖励（支持动态奖励）
     const reward = typeof config.reward === 'function' ? config.reward(threshold) : config.reward;
@@ -1974,15 +1978,7 @@ export const useGameStore = create<GameState>()(
         );
       }
       
-      // 检测单回合收益成就
-      const newMaxSingleRoundEarnings = Math.max(state.maxSingleRoundEarnings, result.score);
-      if (newMaxSingleRoundEarnings > state.maxSingleRoundEarnings && newAchievements['max_single_round_earnings']) {
-        newAchievements['max_single_round_earnings'] = checkAchievementProgress(
-          'max_single_round_earnings',
-          newMaxSingleRoundEarnings,
-          newAchievements['max_single_round_earnings']
-        );
-      }
+      // （已移除）单回合最高收益成就
 
       // 更新最佳手牌
       const newBestHands = [...state.bestHands, result]
@@ -2011,7 +2007,6 @@ export const useGameStore = create<GameState>()(
         achievements: newAchievements,
         bestHands: newBestHands,
         dailyEarnings: newDailyEarnings,
-        maxSingleRoundEarnings: newMaxSingleRoundEarnings,
       };
     });
   },
@@ -2067,7 +2062,6 @@ export const useGameStore = create<GameState>()(
         greenCardCount: state.greenCardCount,
         craftBlueCount: state.craftBlueCount,
         craftPurpleCount: state.craftPurpleCount,
-        maxSingleRoundEarnings: state.maxSingleRoundEarnings,
         jokerEnabled: state.jokerEnabled, // Joker 玩法开关
       }),
       migrate: (persistedState: any, version: number) => {

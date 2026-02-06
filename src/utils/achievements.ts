@@ -8,8 +8,7 @@ export type AchievementType =
   | 'purple_card_count'       // 紫牌数量
   | 'green_card_count'        // 绿牌数量
   | 'craft_blue_count'        // 合成蓝卡次数
-  | 'craft_purple_count'      // 合成紫卡次数
-  | 'max_single_round_earnings'; // 单回合最高收益
+  | 'craft_purple_count';     // 合成紫卡次数
 
 // 成就配置
 export interface AchievementConfig {
@@ -51,7 +50,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   // 牌型成就 - 使用增量值
   one_pair: {
     achievementType: 'one_pair',
-    reward: 30,
+    reward: 20, // 30 / 0.6 * 0.4 = 20
     // 100档：前50档（1,9,10×28,20×20），后50档（30×50）
     incrementalThresholds: [
       1, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 
@@ -66,7 +65,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   two_pairs: {
     achievementType: 'two_pairs',
-    reward: 30,
+    reward: 20, // 30 / 0.6 * 0.4 = 20
     // 80档：前30档（1,7,8×28），后50档（20×50）
     incrementalThresholds: [
       1, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 
@@ -80,7 +79,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   three_of_a_kind: {
     achievementType: 'three_of_a_kind',
-    reward: 60,
+    reward: 40, // 60 / 0.6 * 0.4 = 40
     // 80档：前30档（1,4,5×28），后50档（15×50）
     incrementalThresholds: [
       1, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 
@@ -94,7 +93,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   straight: {
     achievementType: 'straight',
-    reward: 120,
+    reward: 80, // 120 / 0.6 * 0.4 = 80
     // 80档：前30档（1,2,3×28），后50档（15×50）
     incrementalThresholds: [
       1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 
@@ -108,7 +107,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   flush: {
     achievementType: 'flush',
-    reward: 120,
+    reward: 80, // 120 / 0.6 * 0.4 = 80
     // 80档：前30档（1,2,3×28），后50档（15×50）
     incrementalThresholds: [
       1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 
@@ -122,7 +121,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   full_house: {
     achievementType: 'full_house',
-    reward: 180,
+    reward: 120, // 180 / 0.6 * 0.4 = 120
     // 80档：前30档（1,2,3×28），后50档（15×50）
     incrementalThresholds: [
       1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 
@@ -136,7 +135,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   four_of_a_kind: {
     achievementType: 'four_of_a_kind',
-    reward: 300,
+    reward: 200, // 300 / 0.6 * 0.4 = 200
     // 80档：前30档（1,1,2×28），后50档（15×50）
     incrementalThresholds: [
       1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 
@@ -150,7 +149,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   straight_flush: {
     achievementType: 'straight_flush',
-    reward: 600,
+    reward: 400, // 600 / 0.6 * 0.4 = 400
     // 80档：前30档（1×30），后50档（10×50）
     incrementalThresholds: [
       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
@@ -164,7 +163,7 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   royal_flush: {
     achievementType: 'royal_flush',
-    reward: 1200, // 奖励改为1200钻（原2000的60%）
+    reward: 800, // 1200 / 0.6 * 0.4 = 800
     // 80档：前30档（1×30），后50档（5×50）
     incrementalThresholds: [
       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
@@ -180,49 +179,38 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   // 新成就类型
   super_card_count: {
     achievementType: 'super_card_count',
-    reward: 600,
+    reward: 400, // 600 / 0.6 * 0.4 = 400
     incrementalThresholds: [13, 13, 13, 13], // 4档：每个花色的A-K完成（13张），4个花色共52张
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   blue_card_count: {
     achievementType: 'blue_card_count',
-    reward: 30,
+    reward: 20, // 30 / 0.6 * 0.4 = 20
     incrementalThresholds: generateProgressiveFixedIncremental([1, 4, 5], 10, 20), // 1, 4, 5, 10, 10, 10...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   purple_card_count: {
     achievementType: 'purple_card_count',
-    reward: 60,
+    reward: 40, // 60 / 0.6 * 0.4 = 40
     incrementalThresholds: generateProgressiveFixedIncremental([1, 2, 2], 5, 20), // 1, 2, 2, 5, 5, 5...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   green_card_count: {
     achievementType: 'green_card_count',
-    reward: 30,
+    reward: 20, // 30 / 0.6 * 0.4 = 20
     incrementalThresholds: generateProgressiveFixedIncremental([1, 4, 5, 0], 20, 20), // 1, 4, 5, 0, 20, 20, 20...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   craft_blue_count: {
     achievementType: 'craft_blue_count',
-    reward: 30,
+    reward: 20, // 30 / 0.6 * 0.4 = 20
     incrementalThresholds: generateProgressiveFixedIncremental([1, 2, 2], 5, 20), // 1, 2, 2, 5, 5, 5...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   craft_purple_count: {
     achievementType: 'craft_purple_count',
-    reward: 60,
+    reward: 40, // 60 / 0.6 * 0.4 = 40
     incrementalThresholds: generateProgressiveFixedIncremental([1, 1, 1], 3, 20), // 1, 1, 1, 3, 3, 3...
-    get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
-  },
-  max_single_round_earnings: {
-    achievementType: 'max_single_round_earnings',
-    reward: (threshold: number) => {
-      if (threshold >= 2300) return 180;
-      if (threshold >= 1200) return 90;
-      return 30;
-    },
-    // 最大值型成就保持累计值（因为它是最大值，不是累积）
-    incrementalThresholds: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 200, 200, 200, 200, 200, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 500, 500, 500, 500, 500],
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   }
 };
@@ -267,7 +255,6 @@ export const ACHIEVEMENT_TYPE_NAMES: Record<AchievementType, string> = {
   green_card_count: '绿牌数量',
   craft_blue_count: '合成蓝卡次数',
   craft_purple_count: '合成紫卡次数',
-  max_single_round_earnings: '单回合最高收益',
 };
 
 // 初始化成就进度
@@ -302,8 +289,7 @@ export const createInitialAchievements = (): Record<AchievementType, Achievement
     'purple_card_count',
     'green_card_count',
     'craft_blue_count',
-    'craft_purple_count',
-    'max_single_round_earnings'
+    'craft_purple_count'
   ];
   
   newAchievementTypes.forEach(achievementType => {
@@ -381,7 +367,6 @@ export const hasClaimableAchievements = (
     superCardCount: number;
     craftBlueCount: number;
     craftPurpleCount: number;
-    maxSingleRoundEarnings: number;
   }
 ): boolean => {
   // 检查牌型成就
@@ -407,15 +392,16 @@ export const hasClaimableAchievements = (
     const stat = stats[handType] || { count: 0, totalScore: 0 };
     const currentCount = stat.count;
     
-    // 检查所有档位，找出已完成但未领取的
+    // 实现A：按顺序领取时，只有“第一个未领取档位”可能可领取
+    let firstUnclaimedTier = -1;
     for (let tier = 0; tier < config.thresholds.length; tier++) {
-      const threshold = config.thresholds[tier];
-      // 如果当前数量达到阈值（已完成），且未领取，则返回 true
-      if (currentCount >= threshold && !progress.claimedTiers.includes(tier)) {
-        return true;
+      if (!progress.claimedTiers.includes(tier)) {
+        firstUnclaimedTier = tier;
+        break;
       }
     }
-    return false;
+    if (firstUnclaimedTier === -1) return false;
+    return currentCount >= config.thresholds[firstUnclaimedTier];
   });
   
   if (hasClaimableHandType) return true;
@@ -429,8 +415,7 @@ export const hasClaimableAchievements = (
     'purple_card_count',
     'green_card_count',
     'craft_blue_count',
-    'craft_purple_count',
-    'max_single_round_earnings'
+    'craft_purple_count'
   ];
   
   return newAchievementTypes.some(achievementType => {
@@ -461,20 +446,18 @@ export const hasClaimableAchievements = (
       case 'craft_purple_count':
         currentCount = cardStats.craftPurpleCount;
         break;
-      case 'max_single_round_earnings':
-        currentCount = cardStats.maxSingleRoundEarnings;
-        break;
     }
     
-    // 检查所有档位，找出已完成但未领取的
+    // 实现A：按顺序领取时，只有“第一个未领取档位”可能可领取
+    let firstUnclaimedTier = -1;
     for (let tier = 0; tier < config.thresholds.length; tier++) {
-      const threshold = config.thresholds[tier];
-      // 如果当前数量达到阈值（已完成），且未领取，则返回 true
-      if (currentCount >= threshold && !progress.claimedTiers.includes(tier)) {
-        return true;
+      if (!progress.claimedTiers.includes(tier)) {
+        firstUnclaimedTier = tier;
+        break;
       }
     }
-    return false;
+    if (firstUnclaimedTier === -1) return false;
+    return currentCount >= config.thresholds[firstUnclaimedTier];
   });
 };
 
