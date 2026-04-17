@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  /* 与大背景图深色角接近，避免滚动/回弹露边 */
+  body {
+    background-color: #0a192e;
+  }
+}
+
 /* 扩展动画关键帧 */
 @layer utilities {
   /* 粒子爆炸动画 */
@@ -247,16 +254,26 @@
       transform: translateY(-12px);
     }
   }
-  
-  /* 记分卡牌浮动动画 */
-  @keyframes scoring-float {
-    0%, 100% {
-      transform: translateY(-12px);
+
+  /* 结算参与积分牌：3px 金色描边 + 4～10px 外扩高光脉冲 */
+  @keyframes scoring-card-gold-outline-pulse {
+    0%,
+    100% {
+      box-shadow:
+        0 0 0 3px rgba(234, 179, 8, 0.92),
+        0 0 4px 1px rgba(252, 211, 77, 0.32);
     }
     50% {
-      transform: translateY(-16px);
+      box-shadow:
+        0 0 0 3px rgba(253, 224, 71, 1),
+        0 0 10px 3px rgba(250, 204, 21, 0.48);
     }
   }
+
+  .scoring-card-gold-ring {
+    animation: scoring-card-gold-outline-pulse 1.25s ease-in-out infinite;
+  }
+  
 }
 
 .animate-particle-explode {
@@ -307,7 +324,8 @@
 }
 
 .animate-shimmer-diagonal {
-  animation: shimmer-diagonal 2s ease-in-out infinite;
+  /* 紫牌斜向扫光：周期缩短 + linear，减少两次扫光之间的「空档」感 */
+  animation: shimmer-diagonal 1.2s linear infinite;
   background: linear-gradient(
     135deg,
     transparent 0%,
@@ -334,10 +352,6 @@
   animation: lift-up 0.3s ease-out forwards;
 }
 
-  .animate-scoring-float {
-    animation: scoring-float 2s ease-in-out infinite;
-  }
-  
   /* 强脉冲按钮动画 - 高频缩放+阴影闪烁 */
   @keyframes button-pulse-strong {
     0%, 100% {
@@ -594,6 +608,54 @@
   }
 
 @layer utilities {
+  /* 主界面星空：仅一层主径向光斑（性能） */
+  @keyframes main-scene-bg-halo-drift {
+    0% {
+      transform: translate3d(-58%, -40%, 0) rotate(-10deg) scale(1.04);
+    }
+    20% {
+      transform: translate3d(52%, -22%, 0) rotate(8deg) scale(1.08);
+    }
+    40% {
+      transform: translate3d(56%, 48%, 0) rotate(-4deg) scale(1.06);
+    }
+    60% {
+      transform: translate3d(-28%, 52%, 0) rotate(10deg) scale(1.09);
+    }
+    80% {
+      transform: translate3d(-62%, 14%, 0) rotate(-6deg) scale(1.05);
+    }
+    100% {
+      transform: translate3d(-58%, -40%, 0) rotate(-10deg) scale(1.04);
+    }
+  }
+  .main-scene-bg-halo {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 1;
+  }
+  .main-scene-bg-halo__layer {
+    position: absolute;
+    left: -55%;
+    top: -42%;
+    width: 210%;
+    height: 184%;
+    will-change: transform;
+    background: radial-gradient(
+      ellipse 95% 75% at 38% 36%,
+      rgba(125, 211, 252, 0.36) 0%,
+      rgba(59, 130, 246, 0.14) 34%,
+      rgba(147, 197, 253, 0.26) 50%,
+      rgba(59, 130, 246, 0.12) 58%,
+      transparent 73%
+    );
+    filter: blur(46px);
+    opacity: 0.58;
+    animation: main-scene-bg-halo-drift 12s linear infinite;
+  }
+
   .preserve-3d {
     -webkit-transform-style: preserve-3d;
     transform-style: preserve-3d;
@@ -707,5 +769,90 @@
     background-size: 100% 100%, 100% 100%, 100% 100%;
     mix-blend-mode: screen;
     opacity: 1;
+  }
+
+  /* CardFaceV2 超级牌：外光色环 — linear + 0/100% 一致，匀速无「到点停顿」 */
+  @keyframes super-card-border-glow {
+    0%,
+    100% {
+      box-shadow:
+        0 8px 22px rgba(192, 132, 252, 0.55),
+        0 0 36px rgba(167, 139, 250, 0.42),
+        0 0 52px rgba(139, 92, 246, 0.22),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    }
+    25% {
+      box-shadow:
+        0 10px 26px rgba(56, 189, 248, 0.48),
+        0 0 40px rgba(192, 132, 252, 0.48),
+        0 0 56px rgba(34, 211, 238, 0.2),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.42);
+    }
+    50% {
+      box-shadow:
+        0 10px 26px rgba(244, 114, 182, 0.5),
+        0 0 44px rgba(168, 85, 247, 0.45),
+        0 0 58px rgba(236, 72, 153, 0.22),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    }
+    75% {
+      box-shadow:
+        0 9px 24px rgba(253, 224, 71, 0.35),
+        0 0 40px rgba(192, 132, 252, 0.5),
+        0 0 54px rgba(250, 204, 21, 0.18),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.38);
+    }
+  }
+
+  .animate-super-card-border-glow {
+    animation: super-card-border-glow 3.2s linear infinite;
+  }
+
+  /* 牌池等：超级牌无动画，外光与动态版 0%/100% 帧一致 */
+  .super-card-face-static-glow {
+    box-shadow:
+      0 8px 22px rgba(192, 132, 252, 0.55),
+      0 0 36px rgba(167, 139, 250, 0.42),
+      0 0 52px rgba(139, 92, 246, 0.22),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  }
+
+  /* 锥彩旋转 + 色相环流（hue 0→360 天然首尾相接） */
+  @keyframes super-conic-spin {
+    from {
+      transform: rotate(0deg) scale(1.75);
+    }
+    to {
+      transform: rotate(360deg) scale(1.75);
+    }
+  }
+
+  @keyframes super-prism-hue {
+    0% {
+      filter: hue-rotate(0deg) saturate(1.35);
+    }
+    100% {
+      filter: hue-rotate(360deg) saturate(1.35);
+    }
+  }
+
+  .animate-super-conic-hint {
+    animation:
+      super-conic-spin 4s linear infinite,
+      super-prism-hue 11s linear infinite;
+    background: conic-gradient(
+      from 200deg at 50% 45%,
+      rgba(192, 132, 252, 0.42),
+      rgba(56, 189, 248, 0.36),
+      rgba(244, 114, 182, 0.4),
+      rgba(253, 224, 71, 0.28),
+      rgba(34, 211, 238, 0.34),
+      rgba(167, 139, 250, 0.38),
+      rgba(192, 132, 252, 0.42)
+    );
+    mix-blend-mode: overlay;
+    opacity: 0.95;
+    transform-origin: 50% 50%;
+    will-change: transform, filter;
   }
 }

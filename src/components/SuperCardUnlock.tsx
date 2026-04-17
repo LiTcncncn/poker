@@ -1,7 +1,8 @@
 import React from 'react';
 import { useGameStore } from '../store/gameStore';
-import { getSuperCardIndex } from '../utils/superCardPrices';
 import clsx from 'clsx';
+import { Card } from './Card';
+import { buildSuperPreviewCard } from '../utils/superPreviewCard';
 
 interface SuperCardUnlockProps {
   onUnlock?: (cardIndex: number, suit: string, rank: number) => void;
@@ -26,10 +27,7 @@ export const SuperCardUnlock: React.FC<SuperCardUnlockProps> = ({ onUnlock }) =>
   
   const { suit, rank } = cardInfo;
   const canAfford = money >= price;
-  
-  // 获取图片路径
-  const cardIndex = getSuperCardIndex(suit, rank);
-  const imagePath = `${import.meta.env.BASE_URL}pokers/poker${cardIndex + 1}.png`;
+  const preview = buildSuperPreviewCard(suit, rank);
   
   const handleUnlock = () => {
     if (canAfford) {
@@ -43,16 +41,13 @@ export const SuperCardUnlock: React.FC<SuperCardUnlockProps> = ({ onUnlock }) =>
   return (
     <div className="flex flex-col items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-br from-purple-900 via-purple-800 to-purple-900 rounded-xl sm:rounded-2xl shadow-lg border-2 border-purple-500/60 w-[270px] h-[270px] sm:w-[200px] sm:h-[200px] md:w-[240px] md:h-[240px] aspect-square">
       {/* 当前超级扑克牌显示 */}
-      <div className="relative flex-1 flex items-center justify-center">
-        <div className="relative w-32 h-44 sm:w-28 sm:h-40 md:w-36 md:h-52 rounded-lg overflow-hidden">
-          <img 
-            src={imagePath}
-            alt="Super Card"
-            className="w-full h-full object-cover"
-            draggable={false}
+      <div className="relative flex-1 flex min-h-0 items-center justify-center">
+        <div className="relative w-[7.25rem] aspect-[2/3] min-[1320px]:w-36 overflow-hidden rounded-lg">
+          <Card
+            card={preview}
+            isFlipped={true}
+            style={{ width: '100%', height: '100%' }}
           />
-          {/* 金色闪光特效 */}
-          <div className="absolute inset-0 animate-super-card-glow pointer-events-none" />
         </div>
       </div>
       

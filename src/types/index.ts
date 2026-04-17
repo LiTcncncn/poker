@@ -1,6 +1,6 @@
 export type Suit = 'spades' | 'hearts' | 'clubs' | 'diamonds';
 export type Rank = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14; // 11=J, 12=Q, 13=K, 14=A
-export type CardQuality = 'white' | 'green' | 'blue' | 'purple' | 'orange';
+export type CardQuality = 'white' | 'green' | 'blue' | 'purple' | 'gold' | 'orange';
 
 export interface CardEffect {
   type: 'high_score' | 'multiplier' | 'double_suit' | 'cross_value';

@@ -1,53 +1,23 @@
-import { Card, Suit } from '../types/poker';
+import { Card } from '../types/poker';
 
-/**
- * 扑克牌图片映射
- * 根据花色和数值返回对应的图片编号
- * 
- * 假设图片顺序：
- * poker1-13: 黑桃 A, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K
- * poker14-26: 红心 A, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K
- * poker27-39: 梅花 A, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K
- * poker40-52: 方块 A, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K
- */
+/** 仅小丑牌使用位图；普通牌正面由 CardFaceV2 绘制，不依赖 poker1–52 */
 export const getCardImagePath = (card: Card): string => {
-  // Joker 牌使用 poker53.png
   if (card.isJoker) {
     return `${import.meta.env.BASE_URL}pokers/poker53.png`;
   }
-  
-  // 白色品质使用真实图片
-  if (card.quality === 'white') {
-    const suitOrder: Record<Suit, number> = {
-      spades: 0,    // 黑桃 1-13
-      hearts: 1,    // 红心 14-26
-      clubs: 2,     // 梅花 27-39
-      diamonds: 3,  // 方块 40-52
-    };
-
-    // Rank 14 = A, 应该是每组的第一张
-    // Rank 2-13 按顺序排列
-    let rankIndex: number;
-    if (card.rank === 14) {
-      // A 是第一张
-      rankIndex = 1;
-    } else {
-      // 2-13 按顺序
-      rankIndex = card.rank;
-    }
-
-    const imageNumber = suitOrder[card.suit] * 13 + rankIndex;
-    return `${import.meta.env.BASE_URL}pokers/poker${imageNumber}.png`;
-  }
-  
-  // 绿色、蓝色等品质暂时返回空（继续使用CSS绘制）
   return '';
 };
 
 /**
- * 获取牌背图片路径
+ * 主界面牌背花纹（自定义蓝底白花 PNG）；牌壳圆角与描边由 CSS 叠加，牌格保持 2:3。
  */
 export const getCardBackImagePath = (): string => {
-  return `${import.meta.env.BASE_URL}pokers/poker_back_arena.png`;
+  return `${import.meta.env.BASE_URL}pokers/poker_back_custom.png`;
 };
 
+/**
+ * 牌背白边须放在 **img 上方的遮罩层**：父节点上的 inset shadow 会被 `<img>` 整块盖住，浏览器里等于没有。
+ * 与牌面同级的 `rounded-[14px]` / `rounded-2xl` 一并传入，圆角与裁切一致。
+ */
+export const CARD_BACK_WHITE_INSET_OVERLAY_CLASS =
+  'pointer-events-none absolute inset-0 z-[1] shadow-[inset_0_0_0_5px_#fff]';

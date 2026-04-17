@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from './Card';
 import { Card as CardType } from '../types/poker';
-import { X, Sparkles } from 'lucide-react';
+import { X } from 'lucide-react';
 import clsx from 'clsx';
 
 interface Draw10AnimationProps {
@@ -29,12 +29,12 @@ export const Draw10Animation: React.FC<Draw10AnimationProps> = ({ cards, onCompl
         <X className="w-8 h-8 text-white" />
       </button>
 
-      {/* 标题 */}
+      {/* 标题（原 text-2xl / sm:text-4xl 的 1.5 倍） */}
       <div className="text-center mb-4 sm:mb-8">
-        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-          <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 animate-spin" />
-          <h2 className="text-2xl sm:text-4xl font-bold text-white">十连抽结果</h2>
-          <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 animate-spin" />
+        <div className="mb-3 flex items-center justify-center sm:mb-4">
+          <h2 className="text-[2.25rem] font-bold leading-tight text-white sm:text-[3.375rem]">
+            十连抽
+          </h2>
         </div>
         
         {/* 统计信息 */}
@@ -68,19 +68,11 @@ export const Draw10Animation: React.FC<Draw10AnimationProps> = ({ cards, onCompl
                 card={card} 
                 isFlipped={true}
                 showDetails={false}
-                className={clsx(
-                  "hover:scale-110 transition-transform",
-                  card.quality === 'purple' && "ring-4 ring-purple-400 animate-pulse"
-                )}
+                className="transition-transform hover:scale-110"
               />
             </div>
           </div>
         ))}
-      </div>
-
-      {/* 提示文字 */}
-      <div className="text-slate-400 text-sm animate-pulse">
-        点击右上角关闭或按 ESC 键
       </div>
 
       {/* 紫卡特效 */}

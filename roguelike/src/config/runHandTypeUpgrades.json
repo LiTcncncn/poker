@@ -1,0 +1,40 @@
+{
+  "baseStats": {
+    "high_card":        { "baseScore": 5,   "multiplier": 1 },
+    "one_pair":         { "baseScore": 10,  "multiplier": 2 },
+    "two_pairs":        { "baseScore": 25,  "multiplier": 3 },
+    "three_of_a_kind":  { "baseScore": 30,  "multiplier": 3 },
+    "straight":         { "baseScore": 50,  "multiplier": 5 },
+    "flush":            { "baseScore": 60,  "multiplier": 5 },
+    "full_house":       { "baseScore": 60,  "multiplier": 6 },
+    "four_of_a_kind":   { "baseScore": 80,  "multiplier": 8 },
+    "five_of_a_kind":   { "baseScore": 200, "multiplier": 10 },
+    "straight_flush":   { "baseScore": 300, "multiplier": 20 },
+    "royal_flush":      { "baseScore": 300, "multiplier": 20 }
+  },
+  "perLevelGrowth": {
+    "high_card":        { "baseScoreDelta": 10, "multiplierDelta": 1 },
+    "one_pair":         { "baseScoreDelta": 15, "multiplierDelta": 1 },
+    "two_pairs":        { "baseScoreDelta": 25, "multiplierDelta": 1 },
+    "three_of_a_kind":  { "baseScoreDelta": 20, "multiplierDelta": 2 },
+    "straight":         { "baseScoreDelta": 40, "multiplierDelta": 3 },
+    "flush":            { "baseScoreDelta": 40, "multiplierDelta": 4 },
+    "full_house":       { "baseScoreDelta": 40, "multiplierDelta": 4 },
+    "four_of_a_kind":   { "baseScoreDelta": 60, "multiplierDelta": 6 },
+    "five_of_a_kind":   { "baseScoreDelta": 100,"multiplierDelta": 5 },
+    "straight_flush":   { "baseScoreDelta": 150,"multiplierDelta": 10 },
+    "royal_flush":      { "baseScoreDelta": 150,"multiplierDelta": 10 }
+  },
+  "upgradeCards": [
+    { "id": "upgrade_high_card",       "handType": "high_card",       "name": "高牌升级卡"   },
+    { "id": "upgrade_one_pair",        "handType": "one_pair",        "name": "一对升级卡"   },
+    { "id": "upgrade_two_pairs",       "handType": "two_pairs",       "name": "两对升级卡"   },
+    { "id": "upgrade_three_of_a_kind", "handType": "three_of_a_kind", "name": "三条升级卡"   },
+    { "id": "upgrade_straight",        "handType": "straight",        "name": "顺子升级卡"   },
+    { "id": "upgrade_flush",           "handType": "flush",           "name": "同花升级卡"   },
+    { "id": "upgrade_full_house",      "handType": "full_house",      "name": "葫芦升级卡"   },
+    { "id": "upgrade_four_of_a_kind",  "handType": "four_of_a_kind",  "name": "四条升级卡"   },
+    { "id": "upgrade_five_of_a_kind",  "handType": "five_of_a_kind",  "name": "五条升级卡"   },
+    { "id": "upgrade_straight_flush",  "handType": "straight_flush",  "name": "同花顺升级卡" }
+  ]
+}

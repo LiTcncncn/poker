@@ -1,0 +1,751 @@
+[
+  {
+    "id": "full_house_bonus_spades_A",
+    "name": "葫芦赔率+3",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "multiplier_bonus",
+        "value": 3,
+        "handType": "full_house"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_A"
+  },
+  {
+    "id": "i_love_one_pair_1",
+    "name": "我爱一对",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_2"
+  },
+  {
+    "id": "i_love_one_pair_2",
+    "name": "我爱一对",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_3"
+  },
+  {
+    "id": "i_love_one_pair_3",
+    "name": "我爱一对",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_4"
+  },
+  {
+    "id": "i_love_two_pairs_1",
+    "name": "我爱两对",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_5"
+  },
+  {
+    "id": "i_love_three_of_a_kind_1",
+    "name": "我爱三条",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_6"
+  },
+  {
+    "id": "i_love_two_pairs_2",
+    "name": "我爱两对",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_7"
+  },
+  {
+    "id": "joker_plus_plus_1",
+    "name": "JOKER+",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0.08,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_8"
+  },
+  {
+    "id": "i_love_straight_1",
+    "name": "我爱顺子",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_9"
+  },
+  {
+    "id": "two_pairs_bonus",
+    "name": "两对赔率+3",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "multiplier_bonus",
+        "value": 3,
+        "handType": "two_pairs"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_10"
+  },
+  {
+    "id": "four_card_straight",
+    "name": "4张成顺",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "n_card_straight",
+        "value": 4
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_J"
+  },
+  {
+    "id": "red_flush_1",
+    "name": "♥♦成花",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "color_flush",
+        "color": "red"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_Q"
+  },
+  {
+    "id": "joker_plus_plus_2",
+    "name": "JOKER+",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0.08,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "spades_K"
+  },
+  {
+    "id": "super_3_card_1",
+    "name": "超级3张",
+    "cardCount": 3,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "n_card_straight",
+        "value": 3
+      },
+      {
+        "type": "n_card_flush",
+        "value": 3
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_A"
+  },
+  {
+    "id": "i_love_three_of_a_kind_2",
+    "name": "我爱三条",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_2"
+  },
+  {
+    "id": "even_straight_1",
+    "name": "双数成顺",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "even_straight"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_3"
+  },
+  {
+    "id": "i_love_full_house_1",
+    "name": "我爱葫芦",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_4"
+  },
+  {
+    "id": "joker_plus_plus_3",
+    "name": "JOKER+",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0.08,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_5"
+  },
+  {
+    "id": "red_flush_2",
+    "name": "♥♦成花",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "color_flush",
+        "color": "red"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_6"
+  },
+  {
+    "id": "super_4_card_1",
+    "name": "超级4张",
+    "cardCount": 4,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "n_card_straight",
+        "value": 4
+      },
+      {
+        "type": "n_card_flush",
+        "value": 4
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_7"
+  },
+  {
+    "id": "odd_straight_1",
+    "name": "单数成顺",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "odd_straight"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_8"
+  },
+  {
+    "id": "full_house_bonus_1",
+    "name": "葫芦赔率+3",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "multiplier_bonus",
+        "value": 3,
+        "handType": "full_house"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_9"
+  },
+  {
+    "id": "joker_plus_plus_4",
+    "name": "JOKER+",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0.08,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_10"
+  },
+  {
+    "id": "flush_bonus_1",
+    "name": "同花赔率+3",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "multiplier_bonus",
+        "value": 3,
+        "handType": "flush"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_J"
+  },
+  {
+    "id": "super_3_card_2",
+    "name": "超级3张",
+    "cardCount": 3,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "n_card_straight",
+        "value": 3
+      },
+      {
+        "type": "n_card_flush",
+        "value": 3
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_Q"
+  },
+  {
+    "id": "i_love_four_of_a_kind_1",
+    "name": "我爱四条",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "hearts_K"
+  },
+  {
+    "id": "black_flush_1",
+    "name": "♠♣成花",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "color_flush",
+        "color": "black"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_A"
+  },
+  {
+    "id": "four_card_flush",
+    "name": "4张成花",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "n_card_flush",
+        "value": 4
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_2"
+  },
+  {
+    "id": "full_house_bonus_2",
+    "name": "葫芦赔率+3",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "multiplier_bonus",
+        "value": 3,
+        "handType": "full_house"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_3"
+  },
+  {
+    "id": "super_3_card_3",
+    "name": "超级3张",
+    "cardCount": 3,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "n_card_straight",
+        "value": 3
+      },
+      {
+        "type": "n_card_flush",
+        "value": 3
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_4"
+  },
+  {
+    "id": "joker_plus_plus_5",
+    "name": "JOKER+",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0.08,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_5"
+  },
+  {
+    "id": "red_flush_3",
+    "name": "♥♦成花",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "color_flush",
+        "color": "red"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_6"
+  },
+  {
+    "id": "three_of_a_kind_bonus",
+    "name": "三条赔率+3",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "multiplier_bonus",
+        "value": 3,
+        "handType": "three_of_a_kind"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_7"
+  },
+  {
+    "id": "straight_bonus",
+    "name": "顺子赔率+3",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "multiplier_bonus",
+        "value": 3,
+        "handType": "straight"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_8"
+  },
+  {
+    "id": "super_4_card_2",
+    "name": "超级4张",
+    "cardCount": 4,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "n_card_straight",
+        "value": 4
+      },
+      {
+        "type": "n_card_flush",
+        "value": 4
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_9"
+  },
+  {
+    "id": "joker_plus_plus_6",
+    "name": "JOKER+",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0.08,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_10"
+  },
+  {
+    "id": "i_love_straight_2",
+    "name": "我爱顺子",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_J"
+  },
+  {
+    "id": "even_straight_2",
+    "name": "双数成顺",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "even_straight"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_Q"
+  },
+  {
+    "id": "full_house_bonus_3",
+    "name": "葫芦赔率+3",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "multiplier_bonus",
+        "value": 3,
+        "handType": "full_house"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "clubs_K"
+  },
+  {
+    "id": "joker_plus_plus_diamonds_A",
+    "name": "JOKER+",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0.08,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_A"
+  },
+  {
+    "id": "super_4_card_3",
+    "name": "超级4张",
+    "cardCount": 4,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "n_card_straight",
+        "value": 4
+      },
+      {
+        "type": "n_card_flush",
+        "value": 4
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_2"
+  },
+  {
+    "id": "i_love_four_of_a_kind_2",
+    "name": "我爱四条",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_3"
+  },
+  {
+    "id": "i_love_flush",
+    "name": "我爱同花",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_4"
+  },
+  {
+    "id": "joker_plus_plus_7",
+    "name": "JOKER+",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0.08,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_5"
+  },
+  {
+    "id": "super_3_card_4",
+    "name": "超级3张",
+    "cardCount": 3,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "n_card_straight",
+        "value": 3
+      },
+      {
+        "type": "n_card_flush",
+        "value": 3
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_6"
+  },
+  {
+    "id": "flush_bonus_2",
+    "name": "同花赔率+3",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "multiplier_bonus",
+        "value": 3,
+        "handType": "flush"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_7"
+  },
+  {
+    "id": "odd_straight_2",
+    "name": "单数成顺",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "odd_straight"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_8"
+  },
+  {
+    "id": "super_4_card_4",
+    "name": "超级4张",
+    "cardCount": 4,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "n_card_straight",
+        "value": 4
+      },
+      {
+        "type": "n_card_flush",
+        "value": 4
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_9"
+  },
+  {
+    "id": "black_flush_3",
+    "name": "♠♣成花",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [
+      {
+        "type": "color_flush",
+        "color": "black"
+      }
+    ],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_10"
+  },
+  {
+    "id": "i_love_five_of_a_kind",
+    "name": "我爱5条",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_J"
+  },
+  {
+    "id": "i_love_straight_flush",
+    "name": "我爱同花顺",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_Q"
+  },
+  {
+    "id": "i_love_royal_flush",
+    "name": "我爱皇同",
+    "cardCount": 5,
+    "cardPool": "all",
+    "jokerProbability": 0,
+    "extraRules": [],
+    "enabled": true,
+    "isSuperCardUnlock": true,
+    "superCardId": "diamonds_K"
+  }
+]

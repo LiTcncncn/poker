@@ -9,11 +9,11 @@ const HAND_MULTIPLIERS: Record<HandType, number> = {
   straight: 5,
   flush: 7,
   full_house: 10,
-  four_of_a_kind: 30,
-  five_of_a_kind: 200,  // 5条
+  four_of_a_kind: 20,
+  five_of_a_kind: 60,   // 5条
   six_of_a_kind: 300,   // 6条
   seven_of_a_kind: 300, // 7条
-  straight_flush: 60,
+  straight_flush: 100,
   royal_flush: 200,
 };
 
@@ -90,7 +90,7 @@ const evaluateResolvedHand = (resolvedCards: ResolvedCard[], cardCount: number =
   
   // 1-4张牌时，跳过需要5张的牌型判定
   const canHaveFlushOrStraight = cardCount === 5;
-  const canHaveFourOfAKind = cardCount === 5; // 4张时不判定四条
+  const canHaveFourOfAKind = cardCount >= 4; // 超级4张、5张均可判定四条
   const canHaveFiveOfAKind = cardCount === 5; // 5条需要5张牌
   const canHaveSixOfAKind = cardCount === 6; // 6条需要6张牌
   const canHaveSevenOfAKind = cardCount === 7; // 7条需要7张牌
@@ -470,7 +470,7 @@ export const calculateHandScore = (cards: Card[], cardCount?: number): HandResul
       }
       // 钻石牌奖励：每张参与计分的钻石牌额外奖励20钻石
       if (rc.originalCard.isDiamondCard) {
-          diamondReward += 20;
+          diamondReward += rc.originalCard.diamondBonus ?? 20;
       }
   });
 

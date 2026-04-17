@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Lock, Zap, Clock, Timer, CreditCard, Gem } from 'lucide-react';
 import clsx from 'clsx';
+import { MAX_UNLOCKED_ATTRIBUTE_SLOTS } from '../constants/deckPool';
 
 interface SkillTreeProps {
   money: number;
@@ -86,10 +87,10 @@ export const SkillTree: React.FC<SkillTreeProps> = ({
     {
       id: 'attributeSlot' as const,
       name: '上阵卡池扩展',
-      description: `解锁一个属性牌位置 (当前: ${unlockedAttributeSlots}/48)`,
+      description: `解锁一个属性牌位置 (当前: ${unlockedAttributeSlots}/${MAX_UNLOCKED_ATTRIBUTE_SLOTS})`,
       icon: Lock,
-      level: unlockedAttributeSlots - 10, // 初始10个，所以等级 = 已解锁数 - 10
-      maxLevel: 38, // 最多解锁38个（10 + 38 = 48）
+      level: unlockedAttributeSlots - 20, // 初始20格，每解锁+1级
+      maxLevel: MAX_UNLOCKED_ATTRIBUTE_SLOTS - 20,
       isBoolean: false,
     },
   ];

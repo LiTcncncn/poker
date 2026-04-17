@@ -5,7 +5,11 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+    },
     screens: {
       'sm': '1320px',  // PC 端断点：≥1320px 为 PC，<1320px 为手机竖屏
       'md': '1320px',  // 统一使用 1320px

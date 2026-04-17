@@ -1,0 +1,161 @@
+[
+  {
+    "id": "ban_high_card_only",
+    "name": "禁高牌",
+    "description": "本关高牌不计分",
+    "difficulty": 1,
+    "effects": [{ "type": "ban_hand_types", "value": 0, "handTypes": ["high_card"] }]
+  },
+  {
+    "id": "ban_two_pairs",
+    "name": "禁两对",
+    "description": "本关两对不计分",
+    "difficulty": 1,
+    "effects": [{ "type": "ban_hand_types", "value": 0, "handTypes": ["two_pairs"] }]
+  },
+  {
+    "id": "reduce_hold_1",
+    "name": "短筹压力",
+    "description": "本关补牌次数 -1",
+    "difficulty": 1,
+    "effects": [{ "type": "reduce_hold", "value": 1 }]
+  },
+  {
+    "id": "block_early_1",
+    "name": "前压干扰",
+    "description": "前 1 手不可补牌",
+    "difficulty": 1,
+    "effects": [{ "type": "block_hold_before", "value": 1 }]
+  },
+  {
+    "id": "block_late_1",
+    "name": "尾段干扰",
+    "description": "后 1 手不可补牌",
+    "difficulty": 1,
+    "effects": [{ "type": "block_hold_after", "value": 1 }]
+  },
+  {
+    "id": "reduce_hand_1",
+    "name": "手数削减",
+    "description": "本关手数 -1",
+    "difficulty": 1,
+    "effects": [{ "type": "reduce_hand_count", "value": 1 }]
+  },
+
+  {
+    "id": "ban_one_pair",
+    "name": "禁一对",
+    "description": "本关一对不计分",
+    "difficulty": 2,
+    "effects": [{ "type": "ban_hand_types", "value": 0, "handTypes": ["one_pair"] }]
+  },
+  {
+    "id": "ban_trips",
+    "name": "禁三条",
+    "description": "本关三条不计分",
+    "difficulty": 2,
+    "effects": [{ "type": "ban_hand_types", "value": 0, "handTypes": ["three_of_a_kind"] }]
+  },
+  {
+    "id": "ban_straight",
+    "name": "禁顺子线",
+    "description": "本关顺子与同花顺不计分",
+    "difficulty": 2,
+    "effects": [{ "type": "ban_hand_types", "value": 0, "handTypes": ["straight", "straight_flush", "royal_flush"] }]
+  },
+  {
+    "id": "ban_flush",
+    "name": "禁同花线",
+    "description": "本关同花与同花顺不计分",
+    "difficulty": 2,
+    "effects": [{ "type": "ban_hand_types", "value": 0, "handTypes": ["flush", "straight_flush", "royal_flush"] }]
+  },
+  {
+    "id": "reduce_hold_2",
+    "name": "极限压缩",
+    "description": "本关补牌次数 -2",
+    "difficulty": 2,
+    "effects": [{ "type": "reduce_hold", "value": 2 }]
+  },
+  {
+    "id": "block_early_2",
+    "name": "前段封锁",
+    "description": "前 2 手不可补牌",
+    "difficulty": 2,
+    "effects": [{ "type": "block_hold_before", "value": 2 }]
+  },
+  {
+    "id": "block_late_2",
+    "name": "后段封锁",
+    "description": "后 2 手不可补牌",
+    "difficulty": 2,
+    "effects": [{ "type": "block_hold_after", "value": 2 }]
+  },
+  {
+    "id": "ban_spades",
+    "name": "黑桃封印",
+    "description": "本关♠️牌面分不计入",
+    "difficulty": 2,
+    "effects": [{ "type": "ban_suits", "value": 0, "suits": ["spades"] }]
+  },
+  {
+    "id": "ban_hearts",
+    "name": "红心封印",
+    "description": "本关♥️牌面分不计入",
+    "difficulty": 2,
+    "effects": [{ "type": "ban_suits", "value": 0, "suits": ["hearts"] }]
+  },
+  {
+    "id": "ban_clubs",
+    "name": "梅花封印",
+    "description": "本关♣️牌面分不计入",
+    "difficulty": 2,
+    "effects": [{ "type": "ban_suits", "value": 0, "suits": ["clubs"] }]
+  },
+  {
+    "id": "ban_diamonds",
+    "name": "方块封印",
+    "description": "本关♦️牌面分不计入",
+    "difficulty": 2,
+    "effects": [{ "type": "ban_suits", "value": 0, "suits": ["diamonds"] }]
+  },
+  {
+    "id": "ban_small_cards",
+    "name": "小牌无效",
+    "description": "本关 2-6 点牌牌面分不计入",
+    "difficulty": 2,
+    "effects": [{ "type": "ban_rank_max", "value": 6 }]
+  },
+
+  {
+    "id": "ban_high_and_pair",
+    "name": "禁低阶",
+    "description": "本关高牌与一对均不计分",
+    "difficulty": 3,
+    "effects": [{ "type": "ban_hand_types", "value": 0, "handTypes": ["high_card", "one_pair"] }]
+  },
+  {
+    "id": "ban_full_house",
+    "name": "禁葫芦",
+    "description": "本关葫芦不计分",
+    "difficulty": 3,
+    "effects": [{ "type": "ban_hand_types", "value": 0, "handTypes": ["full_house"] }]
+  },
+  {
+    "id": "reduce_hold_3",
+    "name": "重压削减",
+    "description": "本关补牌次数 -3",
+    "difficulty": 3,
+    "effects": [{ "type": "reduce_hold", "value": 3 }]
+  },
+  {
+    "id": "tactical_squeeze",
+    "name": "节奏压制",
+    "description": "本关补牌次数 -1，且前 1 手不可补牌",
+    "difficulty": 3,
+    "effects": [
+      { "type": "reduce_hold", "value": 1 },
+      { "type": "block_hold_before", "value": 1 }
+    ]
+  }
+]

@@ -22,6 +22,9 @@ const handTypeNames: Record<string, string> = {
   flush: '同花',
   full_house: '葫芦',
   four_of_a_kind: '四条',
+  five_of_a_kind: '五条',
+  six_of_a_kind: '六条',
+  seven_of_a_kind: '七条',
   straight_flush: '同花顺',
   royal_flush: '皇家同花顺',
 };
@@ -81,33 +84,41 @@ export const StatsView: React.FC<StatsViewProps> = ({ bestHands, stats, chartRec
     }));
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border-2 border-slate-700">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="w-8 h-8 text-yellow-400" />
-            <div>
-              <h2 className="text-3xl font-bold text-slate-100">游戏统计</h2>
-              <p className="text-slate-400 mt-1">总计 {totalHands} 手牌 · 累计收益 ${totalEarnings}</p>
-            </div>
+    <div
+      className="fixed inset-0 z-50 flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="stats-view-title"
+    >
+      <div className="flex shrink-0 items-center justify-between border-b border-slate-600/50 bg-slate-900/35 px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex min-w-0 items-center gap-3">
+          <TrendingUp className="h-7 w-7 shrink-0 text-yellow-400 sm:h-8 sm:w-8" aria-hidden />
+          <div className="min-w-0">
+            <h2
+              id="stats-view-title"
+              className="text-2xl font-bold text-slate-100 sm:text-3xl"
+            >
+              游戏统计
+            </h2>
+            <p className="mt-0.5 truncate text-sm text-slate-400">
+              总计 {totalHands} 手牌 · 累计收益 ${totalEarnings}
+            </p>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-          >
-            <X className="w-6 h-6 text-slate-400" />
-          </button>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded-lg p-2 transition-colors hover:bg-slate-700/80"
+        >
+          <X className="h-6 w-6 text-slate-400" />
+        </button>
+      </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 [scrollbar-gutter:stable] sm:p-4">
           {/* 心电图组件 - 在统计界面顶端 */}
-          <section className="mb-8">
-            <div className="w-full mb-6">
-              <EarningsChart 
-                records={chartRecords}
-                handCount={chartHandCount}
-              />
+          <section className="mb-6 sm:mb-8">
+            <div className="mb-4 w-full sm:mb-6">
+              <EarningsChart records={chartRecords} handCount={chartHandCount} />
             </div>
           </section>
 
@@ -120,14 +131,17 @@ export const StatsView: React.FC<StatsViewProps> = ({ bestHands, stats, chartRec
             {bestHands.length > 0 ? (
               <div className="space-y-3">
                 {bestHands.map((hand, index) => (
-                  <div 
+                  <div
                     key={index}
                     className={clsx(
-                      "p-4 rounded-xl border-2 flex items-center justify-between",
-                      index === 0 && "bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/50",
-                      index === 1 && "bg-gradient-to-r from-slate-500/20 to-slate-600/20 border-slate-400/50",
-                      index === 2 && "bg-gradient-to-r from-orange-800/20 to-orange-900/20 border-orange-700/50",
-                      index > 2 && "bg-slate-700/30 border-slate-600/50"
+                      'flex items-center justify-between rounded-xl border p-4',
+                      index === 0 &&
+                        'border-yellow-500/40 bg-gradient-to-r from-yellow-500/15 to-orange-500/15',
+                      index === 1 &&
+                        'border-slate-500/40 bg-gradient-to-r from-slate-500/15 to-slate-600/15',
+                      index === 2 &&
+                        'border-orange-700/40 bg-gradient-to-r from-orange-800/15 to-orange-900/15',
+                      index > 2 && 'border-slate-600/50 bg-slate-900/35'
                     )}
                   >
                     <div className="flex items-center gap-4">
@@ -168,7 +182,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ bestHands, stats, chartRec
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr className="border-b-2 border-slate-600">
+                    <tr className="border-b border-slate-600/60">
                       <th className="text-left py-3 px-4 text-slate-300 font-semibold">牌型</th>
                       <th 
                         className="text-right py-3 px-4 text-slate-300 font-semibold cursor-pointer hover:bg-slate-700/30 transition-colors select-none"
@@ -204,7 +218,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ bestHands, stats, chartRec
                         key={type} 
                         className={clsx(
                           "border-b border-slate-700/50 transition-colors hover:bg-slate-700/30",
-                          index % 2 === 0 && "bg-slate-800/20"
+                          index % 2 === 0 && 'bg-slate-900/25'
                         )}
                       >
                         <td className="py-3 px-4">
@@ -236,7 +250,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ bestHands, stats, chartRec
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t-2 border-slate-600 bg-slate-700/30">
+                    <tr className="border-t border-slate-600/60 bg-slate-900/40">
                       <td className="py-3 px-4 text-slate-100 font-bold">总计</td>
                       <td className="text-right py-3 px-4 text-slate-100 font-bold pr-16">{totalHands}</td>
                       <td className="text-right py-3 px-4 text-yellow-400 font-bold pr-20">${totalEarnings}</td>
@@ -253,21 +267,21 @@ export const StatsView: React.FC<StatsViewProps> = ({ bestHands, stats, chartRec
           
           {/* 重置游戏按钮 */}
           {onReset && (
-            <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-slate-700">
+            <div className="mt-6 border-t border-slate-600/50 pt-6 sm:mt-8 sm:pt-8">
               <button
+                type="button"
                 onClick={() => {
                   if (window.confirm('确定要重置游戏吗？这将清除所有进度和数据，包括金币、牌池、统计等。')) {
                     onReset();
                   }
                 }}
-                className="w-full py-3 sm:py-4 bg-red-600/20 hover:bg-red-600/30 rounded-lg transition-colors border-2 border-red-500/50 flex items-center justify-center gap-2 text-red-400 font-semibold"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/50 bg-red-600/15 py-3 font-semibold text-red-400 transition-colors hover:bg-red-600/25 sm:py-4"
               >
                 <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6" />
                 <span>重置游戏</span>
               </button>
             </div>
           )}
-        </div>
       </div>
     </div>
   );

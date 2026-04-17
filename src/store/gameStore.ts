@@ -2,7 +2,12 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Card, CardQuality, HandResult, Rank, Suit, HandType } from '../types/poker';
 import { calculateHandScore } from '../utils/pokerLogic';
-import { getSuperCardPrice, getSuperCardFromIndex } from '../utils/superCardPrices';
+import {
+  getSuperCardPrice,
+  getSuperCardFromIndex,
+  getFixedDeckIndex,
+  getSuperCardUnlockDiamondReward,
+} from '../utils/superCardPrices';
 import { 
   createInitialAchievements, 
   checkAchievementProgress, 
@@ -11,16 +16,36 @@ import {
   ACHIEVEMENT_CONFIGS,
   HAND_TYPE_NAMES
 } from '../utils/achievements';
+import { getGameModeById, getSuperCardUnlockByGameModeId } from '../utils/gameModeLoader';
+import { evaluateHandWithRules, isHandTypeMatchingTask } from '../utils/pokerLogicExtended';
+import { checkAchievementProgressWithCardLimit } from '../utils/achievementsExtended';
+import { 
+  updateTaskProgress as updateSuperCardTaskProgress,
+  payCost,
+  unlockSuperCard as unlockSuperCardWithManager,
+  resetAllUnlockProgress
+} from '../utils/superCardUnlockManager';
+import {
+  IS_DEV_TEST_BUILD,
+  DEV_TEST_DIAMONDS_MIN,
+  DEV_TEST_RECOVER_INTERVAL_MS,
+} from '../config/devTest';
+import {
+  DRAW_SINGLE_DIAMOND_COST,
+  DRAW_TEN_DIAMOND_COST,
+} from '../constants/drawDiamondCosts';
+import { MAX_UNLOCKED_ATTRIBUTE_SLOTS } from '../constants/deckPool';
 
-// 剩余牌池排序函数：按品质排序（purple > blue > green > 其他）
+// 剩余牌池排序函数：按品质排序（gold > purple > blue > green > 其他）
 const sortReserveDeck = (cards: Card[]): Card[] => {
   const qualityOrder: Record<CardQuality, number> = {
-    purple: 1,
-    blue: 2,
-    green: 3,
-    orange: 4,
-    super: 5,
-    white: 6,
+    gold: 1,
+    purple: 2,
+    blue: 3,
+    green: 4,
+    orange: 5,
+    super: 6,
+    white: 7,
   };
   
   return [...cards].sort((a, b) => {
@@ -28,6 +53,87 @@ const sortReserveDeck = (cards: Card[]): Card[] => {
     const orderB = qualityOrder[b.quality] || 99;
     return orderA - orderB;
   });
+};
+
+const getCardKey = (card: Card): string => {
+  const effectsStr = card.effects
+    .map((e) => {
+      if (e.type === 'double_suit' && e.suits) {
+        return `${e.type}:${[...e.suits].sort().join(',')}`;
+      }
+      if (e.type === 'cross_value' && e.ranks) {
+        return `${e.type}:${[...e.ranks].sort((a, b) => a - b).join(',')}`;
+      }
+      return `${e.type}:${e.value ?? ''}`;
+    })
+    .sort()
+    .join('|');
+
+  const crossEffect = card.effects.find((e) => e.type === 'cross_value' && e.ranks?.length);
+  const rankPart = crossEffect?.ranks?.length
+    ? `cross:${[...crossEffect.ranks].sort((a, b) => a - b).join(',')}`
+    : `rank:${card.rank}`;
+  const diamondPart = card.isDiamondCard ? (card.diamondBonus ?? 20) : 0;
+  return `${card.suit}-${rankPart}-${effectsStr}-diamond:${diamondPart}`;
+};
+
+// 隐藏规则：筛选实际牌池（每手牌每个数值最多5张品质牌）
+// 对于每个数值（2-A），如果直接是该数值的品质牌超过5张，则随机选5张
+// 跨数值牌不计入限制，全部加入牌池
+const filterActualDeck = (availableCards: Card[]): Card[] => {
+  const MAX_CARDS_PER_RANK = 5;
+  
+  // 分离白色牌、超级牌和品质牌
+  const whiteAndSuperCards = availableCards.filter(
+    card => card.quality === 'white' || card.quality === 'super'
+  );
+  const qualityCards = availableCards.filter(
+    card => card.quality !== 'white' && card.quality !== 'super'
+  );
+  
+  // 分离直接数值牌和跨数值牌
+  const directCards: Card[] = [];
+  const crossValueCards: Card[] = [];
+  
+  qualityCards.forEach(card => {
+    const hasCrossValue = card.effects.some(e => e.type === 'cross_value');
+    if (hasCrossValue) {
+      crossValueCards.push(card);
+    } else {
+      directCards.push(card);
+    }
+  });
+  
+  // 对每个数值（2-A），只对直接数值牌应用限制
+  const actualDirectCards: Card[] = [];
+  const processedCardIds = new Set<string>();
+  
+  for (let rank = 2; rank <= 14; rank++) {
+    // 找出所有直接是该数值的牌（不包括跨数值牌）
+    const directRankCards = directCards.filter(card => {
+      if (processedCardIds.has(card.id)) return false;
+      return card.rank === rank;
+    });
+    
+    // 如果超过5张，随机选5张
+    if (directRankCards.length > MAX_CARDS_PER_RANK) {
+      const shuffled = [...directRankCards].sort(() => Math.random() - 0.5);
+      const selected = shuffled.slice(0, MAX_CARDS_PER_RANK);
+      selected.forEach(card => {
+        actualDirectCards.push(card);
+        processedCardIds.add(card.id);
+      });
+    } else {
+      // 不超过5张，全部加入
+      directRankCards.forEach(card => {
+        actualDirectCards.push(card);
+        processedCardIds.add(card.id);
+      });
+    }
+  }
+  
+  // 返回：白色牌 + 超级牌 + 筛选后的直接数值牌 + 所有跨数值牌（不受限制）
+  return [...whiteAndSuperCards, ...actualDirectCards, ...crossValueCards];
 };
 
 // 计算卡牌数量统计
@@ -54,11 +160,11 @@ const calculateCardCounts = (activeDeck: (Card | null)[], reserveDeck: Card[], s
 // 初始上阵牌池生成 helper：100张固定位置（前52张白色牌，后48个空位）
 const generateInitialActiveDeck = (): (Card | null)[] => {
   const suits: Suit[] = ['spades', 'hearts', 'clubs', 'diamonds'];
-  const ranks: Rank[] = [14, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]; // A-K 顺序
+  const ranks: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]; // 2-A 顺序
   const activeDeck: (Card | null)[] = [];
 
   let idCounter = 1;
-  // 前52个位置：白色牌（固定），按 A-K 顺序
+  // 前52个位置：白色牌（固定），按 2-A 顺序
   for (const suit of suits) {
     for (const rank of ranks) {
       activeDeck.push({
@@ -281,6 +387,7 @@ interface GameState {
   greenCardCount: number;       // 绿牌总数
   craftBlueCount: number;       // 合成蓝卡次数
   craftPurpleCount: number;     // 合成紫卡次数
+  craftGoldCount: number;       // 合成金卡次数
 
   // 抽卡保底机制
   drawsSincePurple: number; // 距离上次紫卡的抽数
@@ -296,7 +403,7 @@ interface GameState {
   skillAutoFlipSpeed: number; // 自动翻牌速度技能等级 (0-10)
   skill6Cards: boolean; // 6张玩法（已解锁）
   skill7Cards: boolean; // 7张玩法（已解锁）
-  unlockedAttributeSlots: number; // 已解锁的属性牌位置数量 (初始20，最多48)
+  unlockedAttributeSlots: number; // 已解锁的属性牌位置数量 (初始20，最多 MAX_UNLOCKED_ATTRIBUTE_SLOTS)
 
   // 每日收益记录（心电图）
   dailyEarnings: {
@@ -318,6 +425,10 @@ interface GameState {
   // Joker 玩法开关
   jokerEnabled: boolean; // Joker 玩法是否开启（默认开启）
 
+  // 玩法系统
+  currentGameModeId: string | null; // 当前玩法ID
+  gameModeTaskProgress: Record<string, number>; // 各玩法的任务进度 {gameModeId: count}
+
   // Actions
   flipCards: () => void;
   resetHand: () => void; 
@@ -325,6 +436,7 @@ interface GameState {
   draw10Cards: () => Card[];
   craftBlueCard: (selectedGreenIds: string[]) => Card | null; // 合成蓝卡
   craftPurpleCard: (selectedBlueIds: string[]) => Card | null; // 合成紫卡
+  craftGoldCard: (selectedPurpleIds: string[]) => Card | null; // 合成金卡
   recoverEnergy: () => void; // 恢复体力逻辑
   toggleAutoFlip: () => void;
   getRecoveryProgress: () => number; // 获取当前恢复进度 (0-1)
@@ -348,6 +460,13 @@ interface GameState {
   getAttributeSlotUnlockCost: () => number; // 获取属性牌位置解锁费用
   claimAchievement: (achievementType: AchievementType, tier: number) => boolean; // 领取成就奖励，返回是否成功
   
+  // 玩法系统 Actions
+  setGameMode: (gameModeId: string) => void; // 设置当前玩法
+  getCurrentGameMode: () => import('../types/gameMode').GameModeConfig | null; // 获取当前玩法配置
+  updateGameModeTaskProgress: (handType: HandType) => void; // 更新当前玩法任务进度
+  paySuperCardUnlockCost: (superCardId: string, cost: number) => boolean; // 支付超级牌解锁费用，返回是否成功
+  unlockSuperCardWithTask: (superCardId: string) => boolean; // 使用新系统解锁超级牌，返回是否成功
+  
   // Video Poker 模式 Actions
   flipVPokerCards: () => void; // VPoker 翻牌（消耗体力，抽取 5 张牌）
   toggleVPokerHold: (index: number) => void; // 切换 Hold 状态（点击切换）
@@ -360,7 +479,7 @@ export const useGameStore = create<GameState>()(
   persist(
     (set, get) => ({
       money: 0,
-      diamonds: 0, // 钻石初始为0
+      diamonds: IS_DEV_TEST_BUILD ? DEV_TEST_DIAMONDS_MIN : 0,
       flipsRemaining: 20,
       maxFlips: 20,
       lastFlipTime: Date.now(),
@@ -383,6 +502,7 @@ export const useGameStore = create<GameState>()(
       greenCardCount: 0,
       craftBlueCount: 0,
       craftPurpleCount: 0,
+      craftGoldCount: 0,
       
       drawsSincePurple: 0, // 保底计数器
       
@@ -419,6 +539,10 @@ export const useGameStore = create<GameState>()(
       // Joker 玩法开关：默认开启
       jokerEnabled: true,
 
+      // 玩法系统：默认使用标准玩法（如果存在）
+      currentGameModeId: null,
+      gameModeTaskProgress: {},
+
   flipCards: () => {
     const { flipsRemaining, activeDeck, isFlipped, tutorialStage, unlockedCardSlots, tutorialFlipCount } = get();
     
@@ -426,18 +550,30 @@ export const useGameStore = create<GameState>()(
     if (isFlipped) return; 
 
     // 过滤出非空位的牌（只从上阵牌池抽取）
-    const availableCards = activeDeck.filter((card): card is Card => card !== null);
+    const allAvailableCards = activeDeck.filter((card): card is Card => card !== null);
+    
+    if (allAvailableCards.length === 0) return;
+
+    // 应用隐藏规则：筛选实际牌池（每个数值最多5张品质牌）
+    const availableCards = filterActualDeck(allAvailableCards);
     
     if (availableCards.length === 0) return;
 
     const hand: Card[] = [];
     const deckCopy = [...availableCards];
     
-    // 根据前置阶段和技能决定翻牌数量
-    const { skill6Cards, skill7Cards } = get();
+    // 根据前置阶段、技能和玩法配置决定翻牌数量
+    const { skill6Cards, skill7Cards, currentGameModeId } = get();
     let cardCount: number;
+    
+    // 如果有当前玩法配置，优先使用玩法配置的张数
+    const currentGameMode = currentGameModeId ? getGameModeById(currentGameModeId) : null;
+    
     if (tutorialStage === 'pre') {
       cardCount = unlockedCardSlots;
+    } else if (currentGameMode && currentGameMode.cardCount) {
+      // 使用玩法配置的张数
+      cardCount = currentGameMode.cardCount;
     } else if (skill7Cards) {
       cardCount = 7;
     } else if (skill6Cards) {
@@ -485,13 +621,22 @@ export const useGameStore = create<GameState>()(
       }
     }
 
-    // Joker 生成逻辑：5% 概率将其中一张牌替换为 Joker（测试用，后续可调整）
+    // Joker 生成逻辑：根据玩法配置决定概率
     // 限制：手牌中最多只能有一张 Joker
-    // 解锁条件：需要先解锁超级牌 ♠️2 (super_spades_2)
+    // 解锁条件：需要先解锁超级牌 ♠️2 (spades_2)
     const { jokerEnabled, superCardUnlockedIds } = get();
     const hasJoker = hand.some(card => card.isJoker);
-    const hasUnlockedSpades2 = superCardUnlockedIds.includes('super_spades_2');
-    if (jokerEnabled && hasUnlockedSpades2 && hand.length > 0 && !hasJoker && Math.random() < 0.05) {
+    const hasUnlockedSpades2 = superCardUnlockedIds.includes('spades_2');
+    
+    // 根据玩法配置决定 Joker 概率
+    // 规则：只有 JOKER+ 玩法为 8%（0.08），其他玩法为 0%
+    // 若没有玩法配置，默认为 0（不生成 Joker）
+    const jokerProbability =
+      currentGameMode && typeof currentGameMode.jokerProbability === 'number'
+        ? currentGameMode.jokerProbability
+        : 0;
+    
+    if (jokerEnabled && hasUnlockedSpades2 && hand.length > 0 && !hasJoker && jokerProbability > 0 && Math.random() < jokerProbability) {
       // 随机选择一张牌替换为 Joker
       const replaceIndex = Math.floor(Math.random() * hand.length);
       const jokerCard: Card = {
@@ -507,8 +652,10 @@ export const useGameStore = create<GameState>()(
       hand[replaceIndex] = jokerCard;
     }
 
-    // 计算牌型（支持动态牌数）
-    const result = calculateHandScore(hand, cardCount);
+    // 计算牌型（支持动态牌数和玩法规则）
+    const result = currentGameMode 
+      ? evaluateHandWithRules(hand, currentGameMode)
+      : calculateHandScore(hand, cardCount);
 
     // 前置阶段完成：第一次翻5张牌时
     const shouldCompleteTutorial = tutorialStage === 'pre' && cardCount === 5;
@@ -524,15 +671,34 @@ export const useGameStore = create<GameState>()(
             totalScore: newStats[result.type].totalScore + result.score
         };
 
-        // 检测成就进度（牌型成就）
+        // 检测成就进度（牌型成就，带5张牌限制）
         const newAchievements = { ...state.achievements };
         if (result.type !== 'high_card' && newAchievements[result.type]) {
           const currentCount = newStats[result.type].count;
-          newAchievements[result.type] = checkAchievementProgress(
+          newAchievements[result.type] = checkAchievementProgressWithCardLimit(
             result.type,
             currentCount,
-            newAchievements[result.type]
+            newAchievements[result.type],
+            cardCount,
+            result.scoringCardIds?.length
           );
+        }
+        
+        // 更新当前玩法任务进度（仅在新手阶段完成后）
+        if (tutorialStage === 'complete' && currentGameModeId && currentGameMode) {
+          const unlockConfig = getSuperCardUnlockByGameModeId(currentGameModeId);
+          console.log('📊 更新任务进度:', {
+            玩法ID: currentGameModeId,
+            玩法名: currentGameMode.name,
+            牌型: result.type,
+            任务类型: unlockConfig?.unlockConditions.task.type || 'unknown'
+          });
+          const { updateGameModeTaskProgress } = get();
+          updateGameModeTaskProgress(result.type);
+        } else if (tutorialStage === 'pre') {
+          console.log('⏭️ 新手阶段，不统计任务进度');
+        } else {
+          console.log('⚠️ 未设置当前玩法，任务进度不会更新');
         }
         
         // （已移除）单回合最高收益成就
@@ -607,8 +773,8 @@ export const useGameStore = create<GameState>()(
   drawCard: () => {
      // ... (keep existing logic)
      const { diamonds, drawsSincePurple } = get();
-     const COST = 100; // 100 钻石
-     
+     const COST = DRAW_SINGLE_DIAMOND_COST;
+
      if (diamonds < COST) return null;
 
      // 保底逻辑：30 抽必出紫卡
@@ -654,8 +820,8 @@ export const useGameStore = create<GameState>()(
             // 绿色品质高分牌 +5，蓝色品质高分牌 +10
             return { type: 'high_score' as const, value: isGreenQuality ? 5 : 10 };
          } else if (type === 'multiplier') {
-            // 绿色品质倍数牌 +2，蓝色品质倍数牌 +4
-            return { type: 'multiplier' as const, value: isGreenQuality ? 2 : 4 };
+            // 绿色品质倍数牌 +2，蓝色品质倍数牌 +3
+            return { type: 'multiplier' as const, value: isGreenQuality ? 2 : 3 };
          } else if (type === 'double_suit') {
              const otherSuits = suits.filter(s => s !== newCard.suit);
              const secondSuit = otherSuits[Math.floor(Math.random() * otherSuits.length)];
@@ -690,7 +856,7 @@ export const useGameStore = create<GameState>()(
              // 蓝色高分牌 +10
              newCard.effects.push({ type: 'high_score' as const, value: 10 });
          } else if (blueRoll < 0.6) {
-             // 蓝色倍数牌 +4
+             // 蓝色倍数牌 +3
              newCard.effects.push(generateEffect('multiplier'));
          } else {
              // 双效果组合（绿色效果：高分+5 + 倍数+2）
@@ -705,6 +871,7 @@ export const useGameStore = create<GameState>()(
         const isDiamondCard = Math.random() < 0.15; // 15% 概率成为钻石牌
         if (isDiamondCard) {
             newCard.isDiamondCard = true;
+            newCard.diamondBonus = 20;
             // 钻石牌不添加任何效果，只保留牌面数字
         } else {
             // 非钻石牌才生成效果
@@ -726,9 +893,9 @@ export const useGameStore = create<GameState>()(
                 newCard.effects.push({ type: 'high_score' as const, value: 10 });
             }
         } else if (purpleRoll < 0.5) {
-            // 紫色倍数牌 +8（只允许 9-A）
+            // 紫色倍数牌 +6（只允许 9-A）
             if (isHighRank) {
-                newCard.effects.push({ type: 'multiplier' as const, value: 8 });
+                newCard.effects.push({ type: 'multiplier' as const, value: 6 });
             } else {
                 // 小牌不允许倍数效果，改为跨数值+倍数（只允许 8-10 和 JQK）
                 const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
@@ -737,14 +904,14 @@ export const useGameStore = create<GameState>()(
                     targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
                 }
                 newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-                newCard.effects.push({ type: 'multiplier' as const, value: 4 });
+                newCard.effects.push({ type: 'multiplier' as const, value: 3 });
             }
         } else {
-            // 紫色组合效果
+            // 紫色组合效果（双花区间调大：35% 双花+高分，35% 双花+倍数）
             const comboRoll = Math.random();
-            if (comboRoll < 0.25) {
-                // 双花+高分(+10)（只允许 9-A）
-                if (isHighRank) {
+            if (comboRoll < 0.35) {
+                // 双花+高分(+10)（允许 8-A）
+                if (newCard.rank >= 8) {
                     const otherSuits = suits.filter(s => s !== newCard.suit);
                     const secondSuit = otherSuits[Math.floor(Math.random() * otherSuits.length)];
                     newCard.effects.push({ type: 'double_suit' as const, suits: [newCard.suit, secondSuit] });
@@ -768,13 +935,13 @@ export const useGameStore = create<GameState>()(
                 }
                 newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
                 newCard.effects.push({ type: 'high_score' as const, value: 10 });
-            } else if (comboRoll < 0.75) {
-                // 双花+倍数(+4)（只允许 9-A）
-                if (isHighRank) {
+            } else if (comboRoll < 0.85) {
+                // 双花+倍数(+3)（允许 8-A）
+                if (newCard.rank >= 8) {
                     const otherSuits = suits.filter(s => s !== newCard.suit);
                     const secondSuit = otherSuits[Math.floor(Math.random() * otherSuits.length)];
                     newCard.effects.push({ type: 'double_suit' as const, suits: [newCard.suit, secondSuit] });
-                    newCard.effects.push({ type: 'multiplier' as const, value: 4 });
+                    newCard.effects.push({ type: 'multiplier' as const, value: 3 });
                 } else {
                     // 小牌不允许双花+倍数，改为跨数值+倍数（只允许 8-10 和 JQK）
                     const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
@@ -783,17 +950,17 @@ export const useGameStore = create<GameState>()(
                         targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
                     }
                     newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-                    newCard.effects.push({ type: 'multiplier' as const, value: 4 });
+                    newCard.effects.push({ type: 'multiplier' as const, value: 3 });
                 }
             } else {
-                // 跨数值+倍数(+4)（不允许 234 和 567）
+                // 跨数值+倍数(+3)（不允许 234 和 567）
                 const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
                 let targetGroup = allowedGroups.find(g => g.includes(newCard.rank));
                 if (!targetGroup) {
                     targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
                 }
                 newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-                newCard.effects.push({ type: 'multiplier' as const, value: 4 });
+                newCard.effects.push({ type: 'multiplier' as const, value: 3 });
             }
         }
         }
@@ -862,8 +1029,8 @@ export const useGameStore = create<GameState>()(
 
   draw10Cards: () => {
      const { diamonds } = get();
-     const COST = 900; // 10 连抽成本：900 钻石
-     
+     const COST = DRAW_TEN_DIAMOND_COST;
+
      if (diamonds < COST) return [];
 
      const drawnCards: Card[] = [];
@@ -871,7 +1038,7 @@ export const useGameStore = create<GameState>()(
      // 执行 10 次抽卡
      for (let i = 0; i < 10; i++) {
          // 临时增加钻石以便单抽函数能正常工作
-         set((state) => ({ diamonds: state.diamonds + 100 }));
+         set((state) => ({ diamonds: state.diamonds + DRAW_SINGLE_DIAMOND_COST }));
          const card = get().drawCard();
          if (card) {
              drawnCards.push(card);
@@ -963,8 +1130,8 @@ export const useGameStore = create<GameState>()(
          // 蓝色高分牌 +10
          newCard.effects.push({ type: 'high_score' as const, value: 10 });
      } else if (blueRoll < 0.6) {
-         // 蓝色倍数牌 +4
-         newCard.effects.push({ type: 'multiplier' as const, value: 4 });
+         // 蓝色倍数牌 +3
+         newCard.effects.push({ type: 'multiplier' as const, value: 3 });
      } else {
          // 双效果组合（绿色效果：高分+5 + 倍数+2）
          newCard.effects.push({ type: 'high_score' as const, value: 5 });
@@ -988,15 +1155,8 @@ export const useGameStore = create<GameState>()(
        const newCraftBlueCount = state.craftBlueCount + 1;
        const cardCounts = calculateCardCounts(newActiveDeck, newReserveDeck, state.superCardUnlockedCount);
        
-       // 检测合成蓝卡成就和卡牌数量成就
+      // 检测卡牌数量成就
        const newAchievements = { ...state.achievements };
-       if (newAchievements['craft_blue_count']) {
-         newAchievements['craft_blue_count'] = checkAchievementProgress(
-           'craft_blue_count',
-           newCraftBlueCount,
-           newAchievements['craft_blue_count']
-         );
-       }
        if (newAchievements['blue_card_count']) {
          newAchievements['blue_card_count'] = checkAchievementProgress(
            'blue_card_count',
@@ -1033,15 +1193,38 @@ export const useGameStore = create<GameState>()(
      if (!allBlue) return null;
      
      // 验证：至少有2张完全相同的蓝牌（花色、数值、效果都相同）
+     // 生成卡牌的唯一标识 key（用于判断两张卡牌是否完全相同）
+     const getCardKey = (card: Card): string => {
+       // 效果数组需要排序以确保一致性
+       const effectsStr = card.effects
+         .map(e => {
+           if (e.type === 'double_suit' && e.suits) {
+             // 对 suits 数组排序以确保一致性
+             return `${e.type}:${[...e.suits].sort().join(',')}`;
+           } else if (e.type === 'cross_value' && e.ranks) {
+             // 对 ranks 数组排序以确保一致性
+             return `${e.type}:${[...e.ranks].sort((a, b) => a - b).join(',')}`;
+           } else {
+             return `${e.type}:${e.value ?? ''}`;
+           }
+         })
+         .sort() // 对效果字符串排序以确保一致性
+         .join('|');
+      const crossEffect = card.effects.find((e) => e.type === 'cross_value' && e.ranks?.length);
+      const rankPart = crossEffect?.ranks?.length
+        ? `cross:${[...crossEffect.ranks].sort((a, b) => a - b).join(',')}`
+        : `rank:${card.rank}`;
+      return `${card.suit}-${rankPart}-${effectsStr}`;
+     };
+     
      // 按（花色、数值、效果）分组
      const cardGroups: Card[][] = [];
      selectedCards.forEach(card => {
-       const key = `${card.suit}-${card.rank}-${card.effects.map(e => `${e.type}:${e.value}`).join('|')}`;
+       const key = getCardKey(card);
        let found = false;
        for (const group of cardGroups) {
          if (group.length > 0) {
-           const first = group[0];
-           const firstKey = `${first.suit}-${first.rank}-${first.effects.map(e => `${e.type}:${e.value}`).join('|')}`;
+           const firstKey = getCardKey(group[0]);
            if (key === firstKey) {
              group.push(card);
              found = true;
@@ -1080,6 +1263,7 @@ export const useGameStore = create<GameState>()(
     const isDiamondCard = Math.random() < 0.15; // 15% 概率成为钻石牌
     if (isDiamondCard) {
         newCard.isDiamondCard = true;
+        newCard.diamondBonus = 20;
         // 钻石牌不添加任何效果，只保留牌面数字
     } else {
         // 非钻石牌才生成效果
@@ -1101,9 +1285,9 @@ export const useGameStore = create<GameState>()(
             newCard.effects.push({ type: 'high_score' as const, value: 10 });
         }
     } else if (purpleRoll < 0.5) {
-        // 紫色倍数牌 +8（只允许 9-A）
+        // 紫色倍数牌 +6（只允许 9-A）
         if (isHighRank) {
-            newCard.effects.push({ type: 'multiplier' as const, value: 8 });
+            newCard.effects.push({ type: 'multiplier' as const, value: 6 });
         } else {
             // 小牌不允许倍数效果，改为跨数值+倍数（只允许 8-10 和 JQK）
             const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
@@ -1112,14 +1296,14 @@ export const useGameStore = create<GameState>()(
                 targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
             }
             newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-            newCard.effects.push({ type: 'multiplier' as const, value: 4 });
+            newCard.effects.push({ type: 'multiplier' as const, value: 3 });
         }
     } else {
-        // 紫色组合效果
+        // 紫色组合效果（双花区间调大：35% 双花+高分，35% 双花+倍数）
         const comboRoll = Math.random();
-        if (comboRoll < 0.25) {
-            // 双花+高分(+10)（只允许 9-A）
-            if (isHighRank) {
+        if (comboRoll < 0.35) {
+            // 双花+高分(+10)（允许 8-A）
+            if (newCard.rank >= 8) {
                 const otherSuits = suits.filter(s => s !== newCard.suit);
                 const secondSuit = otherSuits[Math.floor(Math.random() * otherSuits.length)];
                 newCard.effects.push({ type: 'double_suit' as const, suits: [newCard.suit, secondSuit] });
@@ -1143,13 +1327,13 @@ export const useGameStore = create<GameState>()(
             }
             newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
             newCard.effects.push({ type: 'high_score' as const, value: 10 });
-        } else if (comboRoll < 0.75) {
-            // 双花+倍数(+4)（只允许 9-A）
-            if (isHighRank) {
+        } else if (comboRoll < 0.85) {
+            // 双花+倍数(+3)（允许 8-A）
+            if (newCard.rank >= 8) {
                 const otherSuits = suits.filter(s => s !== newCard.suit);
                 const secondSuit = otherSuits[Math.floor(Math.random() * otherSuits.length)];
                 newCard.effects.push({ type: 'double_suit' as const, suits: [newCard.suit, secondSuit] });
-                newCard.effects.push({ type: 'multiplier' as const, value: 4 });
+                newCard.effects.push({ type: 'multiplier' as const, value: 3 });
             } else {
                 // 小牌不允许双花+倍数，改为跨数值+倍数（只允许 8-10 和 JQK）
                 const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
@@ -1158,17 +1342,17 @@ export const useGameStore = create<GameState>()(
                     targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
                 }
                 newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-                newCard.effects.push({ type: 'multiplier' as const, value: 4 });
+                newCard.effects.push({ type: 'multiplier' as const, value: 3 });
             }
         } else {
-            // 跨数值+倍数(+4)（不允许 234 和 567）
+            // 跨数值+倍数(+3)（不允许 234 和 567）
             const allowedGroups: Rank[][] = [[8, 9, 10], [11, 12, 13]];
             let targetGroup = allowedGroups.find(g => g.includes(newCard.rank));
             if (!targetGroup) {
                 targetGroup = newCard.rank === 14 ? [12, 13, 14] : allowedGroups[Math.floor(Math.random() * allowedGroups.length)];
             }
             newCard.effects.push({ type: 'cross_value' as const, ranks: targetGroup });
-            newCard.effects.push({ type: 'multiplier' as const, value: 4 });
+            newCard.effects.push({ type: 'multiplier' as const, value: 3 });
         }
     }
     }
@@ -1190,15 +1374,8 @@ export const useGameStore = create<GameState>()(
        const newCraftPurpleCount = state.craftPurpleCount + 1;
        const cardCounts = calculateCardCounts(newActiveDeck, newReserveDeck, state.superCardUnlockedCount);
        
-       // 检测合成紫卡成就和卡牌数量成就
+      // 检测卡牌数量成就
        const newAchievements = { ...state.achievements };
-       if (newAchievements['craft_purple_count']) {
-         newAchievements['craft_purple_count'] = checkAchievementProgress(
-           'craft_purple_count',
-           newCraftPurpleCount,
-           newAchievements['craft_purple_count']
-         );
-       }
        if (newAchievements['purple_card_count']) {
          newAchievements['purple_card_count'] = checkAchievementProgress(
            'purple_card_count',
@@ -1217,6 +1394,65 @@ export const useGameStore = create<GameState>()(
      });
      
      return newCard;
+  },
+
+  craftGoldCard: (selectedPurpleIds: string[]) => {
+    const { activeDeck, reserveDeck } = get();
+    const allCards = [...activeDeck.filter((c): c is Card => c !== null), ...reserveDeck];
+
+    // 规则：2 合 1，必须是两张完全相同的紫牌
+    if (selectedPurpleIds.length !== 2) return null;
+    const selectedCards = allCards.filter((card) => selectedPurpleIds.includes(card.id));
+    if (selectedCards.length !== 2) return null;
+    if (!selectedCards.every((card) => card.quality === 'purple')) return null;
+
+    const [cardA, cardB] = selectedCards;
+    if (getCardKey(cardA) !== getCardKey(cardB)) return null;
+
+    const doubledEffects = cardA.effects.map((effect) => {
+      if (effect.type === 'high_score' || effect.type === 'multiplier') {
+        return { ...effect, value: (effect.value ?? 0) * 2 };
+      }
+      return { ...effect };
+    });
+
+    const newCard: Card = {
+      ...cardA,
+      id: `card_craft_gold_${Date.now()}_${Math.random()}`,
+      quality: 'gold',
+      effects: doubledEffects,
+      isDiamondCard: cardA.isDiamondCard,
+      diamondBonus: cardA.isDiamondCard ? (cardA.diamondBonus ?? 20) * 2 : undefined,
+    };
+
+    set((state) => {
+      const newActiveDeck = state.activeDeck.map((card) =>
+        card && selectedPurpleIds.includes(card.id) ? null : card
+      );
+
+      const filteredReserveDeck = state.reserveDeck.filter((card) => !selectedPurpleIds.includes(card.id));
+      const newReserveDeck = sortReserveDeck([...filteredReserveDeck, newCard]);
+
+      const newCraftGoldCount = state.craftGoldCount + 1;
+      const cardCounts = calculateCardCounts(newActiveDeck, newReserveDeck, state.superCardUnlockedCount);
+      const newAchievements = { ...state.achievements };
+      if (newAchievements['craft_gold_count']) {
+        newAchievements['craft_gold_count'] = checkAchievementProgress(
+          'craft_gold_count',
+          newCraftGoldCount,
+          newAchievements['craft_gold_count']
+        );
+      }
+      return {
+        activeDeck: newActiveDeck,
+        reserveDeck: newReserveDeck,
+        purpleCardCount: cardCounts.purpleCardCount,
+        craftGoldCount: newCraftGoldCount,
+        achievements: newAchievements,
+      };
+    });
+
+    return newCard;
   },
 
   // Removed tick, replaced with explicit actions
@@ -1272,6 +1508,8 @@ export const useGameStore = create<GameState>()(
   resetGame: () => {
     // 清除 localStorage
     localStorage.removeItem('poker-game-storage');
+    // 同时清除超级牌解锁系统的 localStorage（否则会出现“新手阶段后直接跳到♠️4”等现象）
+    resetAllUnlockProgress();
     
     // 重置所有状态到初始值
     set({
@@ -1303,6 +1541,7 @@ export const useGameStore = create<GameState>()(
       greenCardCount: 0,
       craftBlueCount: 0,
       craftPurpleCount: 0,
+      craftGoldCount: 0,
       dailyEarnings: {
         date: new Date().toISOString().split('T')[0],
         records: [],
@@ -1310,8 +1549,11 @@ export const useGameStore = create<GameState>()(
       },
       superCardUnlockedCount: 0,
       superCardUnlockedIds: [],
-      diamonds: 0,
+      diamonds: IS_DEV_TEST_BUILD ? DEV_TEST_DIAMONDS_MIN : 0,
       achievements: createInitialAchievements(),
+      // 玩法系统
+      currentGameModeId: null,
+      gameModeTaskProgress: {},
     });
   },
   
@@ -1320,7 +1562,7 @@ export const useGameStore = create<GameState>()(
     
     // 属性牌位置解锁（使用钻石）
     if (skillId === 'attributeSlot') {
-      if (unlockedAttributeSlots >= 48) return false; // 已解锁所有位置
+      if (unlockedAttributeSlots >= MAX_UNLOCKED_ATTRIBUTE_SLOTS) return false; // 已解锁所有位置
       const cost = get().getAttributeSlotUnlockCost();
       if (diamonds < cost) return false;
       set((state) => ({
@@ -1423,9 +1665,9 @@ export const useGameStore = create<GameState>()(
   },
   
   getRecoverInterval: () => {
-    const { skillRecoverSpeed } = get();
-    // 基础60000ms (60秒) - 每级3000ms (3秒)，最低30000ms (30秒)
-    return Math.max(30000, 60000 - (skillRecoverSpeed * 3000));
+    if (IS_DEV_TEST_BUILD) return DEV_TEST_RECOVER_INTERVAL_MS;
+    // 技能系统已屏蔽，固定为 120 秒恢复一点体力
+    return 120000; // 120秒 = 120000毫秒
   },
   
   getAutoFlipDuration: () => {
@@ -1435,10 +1677,21 @@ export const useGameStore = create<GameState>()(
   },
   
   getCardCount: () => {
-    const { tutorialStage, unlockedCardSlots, skill6Cards, skill7Cards } = get();
+    const { tutorialStage, unlockedCardSlots, skill6Cards, skill7Cards, currentGameModeId } = get();
     if (tutorialStage === 'pre') {
       return unlockedCardSlots;
-    } else if (skill7Cards) {
+    }
+    
+    // 优先使用玩法配置的 cardCount
+    if (currentGameModeId) {
+      const currentGameMode = getGameModeById(currentGameModeId);
+      if (currentGameMode && currentGameMode.cardCount) {
+        return currentGameMode.cardCount;
+      }
+    }
+    
+    // 然后检查技能
+    if (skill7Cards) {
       return 7;
     } else if (skill6Cards) {
       return 6;
@@ -1534,7 +1787,7 @@ export const useGameStore = create<GameState>()(
       
       return {
         money: state.money - price,
-        diamonds: state.diamonds + 100, // 奖励 100 钻石
+        diamonds: state.diamonds + getSuperCardUnlockDiamondReward(suit), // 按花色发放钻石奖励
         superCardUnlockedCount: newUnlockedCount,
         superCardUnlockedIds: [...state.superCardUnlockedIds, superCardId],
         activeDeck: newActiveDeck,
@@ -1674,8 +1927,17 @@ export const useGameStore = create<GameState>()(
   
   // 领取成就奖励
   claimAchievement: (achievementType: AchievementType, tier: number) => {
-    const { achievements, stats, blueCardCount, purpleCardCount, greenCardCount, superCardUnlockedCount, craftBlueCount, craftPurpleCount } = get();
-    const progress = achievements[achievementType];
+    const { achievements, stats, blueCardCount, purpleCardCount, greenCardCount, superCardUnlockedCount, craftGoldCount } = get();
+    const progressRaw = achievements[achievementType];
+    const progress = progressRaw ?? {
+      achievementType,
+      currentTier: -1,
+      claimedTiers: [],
+    };
+    // 兼容：历史存档可能把 claimedTiers 序列化成字符串
+    const claimedTiers = (progress.claimedTiers ?? [])
+      .map((x: any) => (typeof x === 'number' ? x : Number(x)))
+      .filter((n: number) => Number.isFinite(n));
     
     // 验证：档位索引有效
     if (tier < 0) return false;
@@ -1708,11 +1970,8 @@ export const useGameStore = create<GameState>()(
         case 'super_card_count':
           currentCount = superCardUnlockedCount;
           break;
-        case 'craft_blue_count':
-          currentCount = craftBlueCount;
-          break;
-        case 'craft_purple_count':
-          currentCount = craftPurpleCount;
+        case 'craft_gold_count':
+          currentCount = craftGoldCount;
           break;
       }
     }
@@ -1722,11 +1981,11 @@ export const useGameStore = create<GameState>()(
     if (currentCount < threshold) return false;
     
     // 验证：档位必须未领取
-    if (progress.claimedTiers.includes(tier)) return false;
+    if (claimedTiers.includes(tier)) return false;
 
     // 实现 A：禁止跨档领取（必须按顺序领取）
     for (let i = 0; i < tier; i++) {
-      if (!progress.claimedTiers.includes(i)) {
+      if (!claimedTiers.includes(i)) {
         return false;
       }
     }
@@ -1737,9 +1996,17 @@ export const useGameStore = create<GameState>()(
     // 更新状态
     set((state) => {
       const newAchievements = { ...state.achievements };
+      const baseProgress = newAchievements[achievementType] ?? {
+        achievementType,
+        currentTier: -1,
+        claimedTiers: [],
+      };
+      const baseClaimed = (baseProgress.claimedTiers ?? [])
+        .map((x: any) => (typeof x === 'number' ? x : Number(x)))
+        .filter((n: number) => Number.isFinite(n));
       newAchievements[achievementType] = {
-        ...newAchievements[achievementType],
-        claimedTiers: [...newAchievements[achievementType].claimedTiers, tier]
+        ...baseProgress,
+        claimedTiers: [...baseClaimed, tier]
       };
       
       return {
@@ -1756,7 +2023,7 @@ export const useGameStore = create<GameState>()(
     const { money, unlockedAttributeSlots } = get();
     
     // 已经解锁所有位置
-    if (unlockedAttributeSlots >= 48) return false;
+    if (unlockedAttributeSlots >= MAX_UNLOCKED_ATTRIBUTE_SLOTS) return false;
     
     const COST = 500;
     if (money < COST) return false;
@@ -1772,51 +2039,264 @@ export const useGameStore = create<GameState>()(
   // 获取属性牌位置解锁费用
   getAttributeSlotUnlockCost: () => {
     const { unlockedAttributeSlots } = get();
-    // 初始解锁了20个，所以：
-    // 21-30个格（unlockedAttributeSlots 20-29）：100钻石
-    // 31-38个格（unlockedAttributeSlots 30-37）：200钻石
-    // 39-48个格（unlockedAttributeSlots 38-47）：300钻石
-    if (unlockedAttributeSlots < 30) {
-      return 100; // 21-30个格
-    } else if (unlockedAttributeSlots < 38) {
-      return 200; // 31-38个格
-    } else {
-      return 300; // 31-38个格（39-48）
+    if (unlockedAttributeSlots >= MAX_UNLOCKED_ATTRIBUTE_SLOTS) {
+      return 0;
     }
+    // 初始 20 格，最多解锁到 MAX_UNLOCKED_ATTRIBUTE_SLOTS（阶梯价）
+    if (unlockedAttributeSlots < 23) {
+      return 100;
+    }
+    return 200;
+  },
+
+  // ========== 玩法系统 ==========
+  
+  // 设置当前玩法
+  setGameMode: (gameModeId: string) => {
+    const gameMode = getGameModeById(gameModeId);
+    if (!gameMode) {
+      console.error('玩法不存在:', gameModeId);
+      return;
+    }
+    
+    set({ currentGameModeId: gameModeId });
+  },
+  
+  // 获取当前玩法配置
+  getCurrentGameMode: () => {
+    const { currentGameModeId } = get();
+    if (!currentGameModeId) return null;
+    return getGameModeById(currentGameModeId) || null;
+  },
+  
+  // 更新当前玩法任务进度
+  updateGameModeTaskProgress: (handType: HandType) => {
+    const { currentGameModeId, gameModeTaskProgress } = get();
+    if (!currentGameModeId) return;
+    
+    const gameMode = getGameModeById(currentGameModeId);
+    if (!gameMode) {
+      console.warn('⚠️ 玩法不存在:', currentGameModeId);
+      return;
+    }
+    
+    // 从 superCardUnlocks.json 获取任务配置
+    const unlockConfig = getSuperCardUnlockByGameModeId(currentGameModeId);
+    if (!unlockConfig) {
+      console.warn('⚠️ 未找到解锁配置:', currentGameModeId);
+      return;
+    }
+    
+    const taskType = unlockConfig.unlockConditions.task.type;
+    
+    // 检查牌型是否匹配任务类型
+    const isMatching = isHandTypeMatchingTask(handType, taskType);
+    console.log('📊 任务匹配检查:', {
+      玩法ID: currentGameModeId,
+      玩法名: gameMode.name,
+      牌型: handType,
+      任务类型: taskType,
+      是否匹配: isMatching
+    });
+    
+    if (isMatching) {
+      // 更新任务进度
+      const newProgress = { ...gameModeTaskProgress };
+      newProgress[currentGameModeId] = (newProgress[currentGameModeId] || 0) + 1;
+      
+      console.log('✅ 任务进度更新:', {
+        玩法ID: currentGameModeId,
+        新进度: newProgress[currentGameModeId]
+      });
+      
+      set({ gameModeTaskProgress: newProgress });
+      
+      // 如果是超级牌解锁玩法，同步更新超级牌解锁进度
+      if (gameMode.isSuperCardUnlock && gameMode.superCardId) {
+        updateSuperCardTaskProgress(gameMode.superCardId, 1);
+      }
+    } else {
+      console.log('❌ 牌型不匹配任务类型');
+    }
+  },
+  
+  // 支付超级牌解锁费用
+  paySuperCardUnlockCost: (superCardId: string, cost: number) => {
+    const { money } = get();
+    
+    if (money < cost) {
+      return false;
+    }
+    
+    // 扣除金钱
+    set((state) => ({ money: state.money - cost }));
+    
+    // 标记为已支付
+    payCost(superCardId);
+    
+    return true;
+  },
+  
+  // 使用新系统解锁超级牌
+  unlockSuperCardWithTask: (superCardId: string) => {
+    const { activeDeck, reserveDeck } = get();
+    
+    // 尝试解锁
+    const result = unlockSuperCardWithManager(superCardId);
+    
+    if (!result || !result.success) {
+      return false;
+    }
+    
+    // 解锁成功，自动切换到下一张超级牌的玩法
+    if (result.nextGameModeId) {
+      get().setGameMode(result.nextGameModeId);
+      console.log('✅ 已自动切换到下一张超级牌玩法:', result.nextGameModeId);
+    }
+    
+    // 解锁成功，将超级牌添加到牌池
+    // 找到对应的超级牌索引
+    const parts = superCardId.split('_');
+    if (parts.length !== 2) return false;
+    
+    const [suitName, rankName] = parts;
+    
+    const suitMap: Record<string, Suit> = {
+      'spades': 'spades',
+      'hearts': 'hearts',
+      'clubs': 'clubs',
+      'diamonds': 'diamonds'
+    };
+    
+    const rankMap: Record<string, Rank> = {
+      'A': 14,
+      '2': 2,
+      '3': 3,
+      '4': 4,
+      '5': 5,
+      '6': 6,
+      '7': 7,
+      '8': 8,
+      '9': 9,
+      '10': 10,
+      'J': 11,
+      'Q': 12,
+      'K': 13
+    };
+    
+    const suit = suitMap[suitName];
+    const rank = rankMap[rankName];
+    
+    if (!suit || !rank) return false;
+    const diamondReward = getSuperCardUnlockDiamondReward(suit);
+    
+    // 创建超级牌
+    // 超级牌+15，能力介于蓝卡和紫卡之间
+    const baseRankValue = rank >= 10 ? 10 : rank;
+    const superCard: Card = {
+      id: `super_${suit}_${rank}`,
+      suit,
+      rank,
+      quality: 'super',
+      effects: [],
+      baseValue: baseRankValue + 15, // 超级牌+15特殊属性
+      multiplier: 0
+    };
+    
+    // 计算超级牌在固定区的位置（前52个位置，索引0-51）
+    const fixedIndex = getFixedDeckIndex(suit, rank);
+    
+    // 替换固定区对应位置的白牌
+    const newActiveDeck = [...activeDeck];
+    let replaced = false;
+    
+    // 检查固定区位置是否有效，且该位置是白牌（可以替换）
+    if (fixedIndex >= 0 && fixedIndex < 52 && fixedIndex < newActiveDeck.length) {
+      const existingCard = newActiveDeck[fixedIndex];
+      // 如果位置是白牌，或者已经是同花色的超级牌，则替换
+      if (existingCard && (existingCard.quality === 'white' || 
+          (existingCard.quality === 'super' && existingCard.suit === suit && existingCard.rank === rank))) {
+        newActiveDeck[fixedIndex] = superCard;
+        replaced = true;
+      } else if (existingCard === null) {
+        // 如果位置是空的，也添加
+        newActiveDeck[fixedIndex] = superCard;
+        replaced = true;
+      }
+    }
+    
+    // 如果替换失败（位置已有其他牌），添加到剩余牌池
+    if (!replaced) {
+      const newReserveDeck = [...reserveDeck, superCard];
+      const { maxFlips } = get();
+      set((state) => ({ 
+        reserveDeck: newReserveDeck,
+        superCardUnlockedCount: state.superCardUnlockedCount + 1,
+        superCardUnlockedIds: [...state.superCardUnlockedIds, superCardId],
+        flipsRemaining: maxFlips, // 解锁超级牌后恢复满体力
+        lastRecoveryTime: Date.now(), // 重置恢复时间
+        diamonds: state.diamonds + diamondReward // 按花色发放钻石奖励
+      }));
+    } else {
+      const { maxFlips } = get();
+      set((state) => ({ 
+        activeDeck: newActiveDeck,
+        superCardUnlockedCount: state.superCardUnlockedCount + 1,
+        superCardUnlockedIds: [...state.superCardUnlockedIds, superCardId],
+        flipsRemaining: maxFlips, // 解锁超级牌后恢复满体力
+        lastRecoveryTime: Date.now(), // 重置恢复时间
+        diamonds: state.diamonds + diamondReward // 按花色发放钻石奖励
+      }));
+    }
+    
+    return true;
   },
 
   // ========== Video Poker 模式 ==========
   
-  // VPoker 翻牌：消耗体力，抽取 5 张牌
+  // VPoker 翻牌：消耗体力，根据玩法配置抽取对应数量的牌
   flipVPokerCards: () => {
-    const { flipsRemaining, activeDeck, isFlipped, isVideoPokerMode, vpokerReplaced } = get();
+    const { flipsRemaining, activeDeck, isFlipped, isVideoPokerMode, vpokerReplaced, currentGameModeId } = get();
     
     // 检查条件
     if (flipsRemaining <= 0) return;
     if (isFlipped && !vpokerReplaced) return; // 如果已经翻牌但未换牌，不允许再次翻牌
     if (isVideoPokerMode && vpokerReplaced) return; // 如果已经换牌，不允许再次翻牌
     
+    // 根据玩法配置决定发牌数量
+    const currentGameMode = currentGameModeId ? getGameModeById(currentGameModeId) : null;
+    const cardCount = currentGameMode && currentGameMode.cardCount ? currentGameMode.cardCount : 5;
+    
     // 过滤出非空位的牌（只从上阵牌池抽取）
-    const availableCards = activeDeck.filter((card): card is Card => card !== null);
-    if (availableCards.length < 5) return;
+    const allAvailableCards = activeDeck.filter((card): card is Card => card !== null);
+    if (allAvailableCards.length < cardCount) return;
+
+    // 应用隐藏规则：筛选实际牌池（每个数值最多5张品质牌）
+    const availableCards = filterActualDeck(allAvailableCards);
+    if (availableCards.length < cardCount) return;
 
     const hand: Card[] = [];
     const deckCopy = [...availableCards];
     
-    // 随机抽取 5 张牌
-    for (let i = 0; i < 5; i++) {
+    // 根据玩法配置抽取对应数量的牌
+    for (let i = 0; i < cardCount; i++) {
       const randomIndex = Math.floor(Math.random() * deckCopy.length);
       hand.push(deckCopy[randomIndex]);
       deckCopy.splice(randomIndex, 1);
     }
 
-    // Joker 生成逻辑：5% 概率将其中一张牌替换为 Joker（测试用，后续可调整）
+    // Joker 生成逻辑：统一按玩法配置决定概率
+    // 规则：只有 JOKER+ 玩法为 8%（0.08），其他玩法为 0%
     // 限制：手牌中最多只能有一张 Joker
-    // 解锁条件：需要先解锁超级牌 ♠️2 (super_spades_2)
-    const { jokerEnabled, superCardUnlockedIds } = get();
+    // 解锁条件：需要先解锁超级牌 ♠️2 (spades_2)
+    const { jokerEnabled, superCardUnlockedIds, currentGameModeId: currentModeIdForJoker } = get();
     const hasJoker = hand.some(card => card.isJoker);
-    const hasUnlockedSpades2 = superCardUnlockedIds.includes('super_spades_2');
-    if (jokerEnabled && hasUnlockedSpades2 && hand.length > 0 && !hasJoker && Math.random() < 0.05) {
+    const hasUnlockedSpades2 = superCardUnlockedIds.includes('spades_2');
+    const gameMode = currentModeIdForJoker ? getGameModeById(currentModeIdForJoker) : null;
+    const jokerProbability =
+      gameMode && typeof gameMode.jokerProbability === 'number' ? gameMode.jokerProbability : 0;
+
+    if (jokerEnabled && hasUnlockedSpades2 && hand.length > 0 && !hasJoker && jokerProbability > 0 && Math.random() < jokerProbability) {
       // 随机选择一张牌替换为 Joker
       const replaceIndex = Math.floor(Math.random() * hand.length);
       const jokerCard: Card = {
@@ -1847,11 +2327,16 @@ export const useGameStore = create<GameState>()(
 
   // 切换 Hold 状态（点击切换）
   toggleVPokerHold: (index: number) => {
-    const { isVideoPokerMode, vpokerReplaced } = get();
+    const { isVideoPokerMode, vpokerReplaced, currentGameModeId, vpokerInitialHand } = get();
     
     // 只在 VPoker 模式且未换牌时可以切换 Hold
     if (!isVideoPokerMode || vpokerReplaced) return;
-    if (index < 0 || index >= 5) return;
+    
+    // 根据玩法配置决定手牌数量
+    const currentGameMode = currentGameModeId ? getGameModeById(currentGameModeId) : null;
+    const cardCount = currentGameMode && currentGameMode.cardCount ? currentGameMode.cardCount : (vpokerInitialHand?.length || 5);
+    
+    if (index < 0 || index >= cardCount) return;
 
     set((state) => {
       const heldCards = [...state.vpokerHeldCards];
@@ -1879,26 +2364,37 @@ export const useGameStore = create<GameState>()(
       vpokerInitialHand, 
       vpokerHeldCards, 
       activeDeck, 
-      reserveDeck
+      currentGameModeId
     } = get();
     
     // 检查条件
     if (!isVideoPokerMode) return;
     if (vpokerReplaced) return; // 已经换过牌了
-    if (!vpokerInitialHand || vpokerInitialHand.length !== 5) return;
+    if (!vpokerInitialHand || vpokerInitialHand.length === 0) return;
 
-    // 获取所有可用牌池（上阵牌池 + 剩余牌池，排除已翻出的牌）
-    const allAvailableCards = [
-      ...activeDeck.filter((card): card is Card => card !== null),
-      ...reserveDeck
-    ];
+    // 根据玩法配置决定手牌数量
+    const currentGameMode = currentGameModeId ? getGameModeById(currentGameModeId) : null;
+    const cardCount = currentGameMode && currentGameMode.cardCount ? currentGameMode.cardCount : 5;
     
-    // 排除已翻出的 5 张牌
+    // 检查初始手牌数量是否匹配
+    if (vpokerInitialHand.length !== cardCount) {
+      console.warn(`初始手牌数量不匹配：期望 ${cardCount} 张，实际 ${vpokerInitialHand.length} 张`);
+      return;
+    }
+
+    // 仅从上阵牌池抽换牌（与 flipVPokerCards 一致，不包含剩余牌池）
+    const allAvailableCardsRaw = activeDeck.filter((card): card is Card => card !== null);
+    
+    // 排除已翻出的牌
     const initialHandIds = new Set(vpokerInitialHand.map(card => card.id));
-    const availableCards = allAvailableCards.filter(card => !initialHandIds.has(card.id));
+    const allAvailableCards = allAvailableCardsRaw.filter(card => !initialHandIds.has(card.id));
+    
+    // 应用隐藏规则：筛选实际牌池（每个数值最多5张品质牌）
+    // 注意：需要考虑已 Hold 的牌，确保最终手牌中每个数值最多5张
+    const availableCards = filterActualDeck(allAvailableCards);
     
     // 需要替换的牌数量
-    const replaceCount = 5 - vpokerHeldCards.length;
+    const replaceCount = cardCount - vpokerHeldCards.length;
     
     if (availableCards.length < replaceCount) {
       // 理论上不会发生，因为每手牌只换一次，但为了安全还是检查
@@ -1910,7 +2406,7 @@ export const useGameStore = create<GameState>()(
     const finalHand: Card[] = [];
     const deckCopy = [...availableCards];
     
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < cardCount; i++) {
       if (vpokerHeldCards.includes(i)) {
         // 保留 Hold 的牌
         finalHand.push(vpokerInitialHand[i]);
@@ -1922,16 +2418,21 @@ export const useGameStore = create<GameState>()(
       }
     }
 
-    // Joker 生成逻辑：5% 概率将其中一张牌替换为 Joker（测试用，后续可调整）
+    // Joker 生成逻辑：统一按玩法配置决定概率
+    // 规则：只有 JOKER+ 玩法为 8%（0.08），其他玩法为 0%
     // 限制：手牌中最多只能有一张 Joker（包括初始手牌中可能已有的 Joker）
-    // 解锁条件：需要先解锁超级牌 ♠️2 (super_spades_2)
-    const { jokerEnabled, superCardUnlockedIds } = get();
+    // 解锁条件：需要先解锁超级牌 ♠️2 (spades_2)
+    const { jokerEnabled, superCardUnlockedIds, currentGameModeId: currentModeIdForJoker } = get();
     const hasJoker = finalHand.some(card => card.isJoker);
-    const hasUnlockedSpades2 = superCardUnlockedIds.includes('super_spades_2');
-    if (jokerEnabled && hasUnlockedSpades2 && finalHand.length > 0 && !hasJoker && Math.random() < 0.05) {
+    const hasUnlockedSpades2 = superCardUnlockedIds.includes('spades_2');
+    const gameMode = currentModeIdForJoker ? getGameModeById(currentModeIdForJoker) : null;
+    const jokerProbability =
+      gameMode && typeof gameMode.jokerProbability === 'number' ? gameMode.jokerProbability : 0;
+
+    if (jokerEnabled && hasUnlockedSpades2 && finalHand.length > 0 && !hasJoker && jokerProbability > 0 && Math.random() < jokerProbability) {
       // 随机选择一张牌替换为 Joker（不能是已 Hold 的牌）
       const replaceableIndices: number[] = [];
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < cardCount; i++) {
         if (!vpokerHeldCards.includes(i)) {
           replaceableIndices.push(i);
         }
@@ -1952,8 +2453,37 @@ export const useGameStore = create<GameState>()(
       }
     }
 
-    // 计算牌型（使用现有逻辑）
-    const result = calculateHandScore(finalHand, 5);
+    // 计算牌型（使用玩法规则评估，如果有当前玩法）
+    // 注意：currentGameModeId 已经在函数开头从 get() 中获取了
+    let result: HandResult;
+    
+    if (currentGameModeId) {
+      const gameMode = getGameModeById(currentGameModeId);
+      if (gameMode) {
+        // 使用玩法规则评估
+        console.log('🎮 VPoker评估牌型:', {
+          玩法: gameMode.name,
+          cardCount: gameMode.cardCount,
+          finalHand数量: finalHand.length,
+          finalHand: finalHand.map(c => `${c.rank}${c.isJoker ? '(J)' : ''}`),
+          extraRules: gameMode.extraRules
+        });
+        result = evaluateHandWithRules(finalHand, gameMode);
+        console.log('🎮 VPoker评估结果:', {
+          type: result.type,
+          name: result.name,
+          score: result.score,
+          scoringCardIds: result.scoringCardIds,
+          scoringCardCount: result.scoringCardIds?.length
+        });
+      } else {
+        // 玩法不存在，使用标准评估
+        result = calculateHandScore(finalHand, cardCount);
+      }
+    } else {
+      // 没有当前玩法，使用标准评估
+      result = calculateHandScore(finalHand, cardCount);
+    }
 
     // 更新统计和成就（与普通翻牌一致）
     set((state) => {
@@ -1967,14 +2497,16 @@ export const useGameStore = create<GameState>()(
         totalScore: newStats[result.type].totalScore + result.score
       };
 
-      // 检测成就进度（牌型成就）
+      // 检测成就进度（牌型成就，带5张牌构成限制）
       const newAchievements = { ...state.achievements };
       if (result.type !== 'high_card' && newAchievements[result.type]) {
         const currentCount = newStats[result.type].count;
-        newAchievements[result.type] = checkAchievementProgress(
+        newAchievements[result.type] = checkAchievementProgressWithCardLimit(
           result.type,
           currentCount,
-          newAchievements[result.type]
+          newAchievements[result.type],
+          cardCount,
+          result.scoringCardIds?.length
         );
       }
       
@@ -2009,6 +2541,23 @@ export const useGameStore = create<GameState>()(
         dailyEarnings: newDailyEarnings,
       };
     });
+    
+    // 更新当前玩法任务进度（VPoker 模式换牌后）
+    const { tutorialStage, currentGameModeId: currentModeId } = get();
+    if (tutorialStage === 'complete' && currentModeId) {
+      const gameMode = getGameModeById(currentModeId);
+      if (gameMode) {
+        const unlockConfig = getSuperCardUnlockByGameModeId(currentModeId);
+        console.log('📊 VPoker换牌后更新任务进度:', {
+          玩法ID: currentModeId,
+          玩法名: gameMode.name,
+          牌型: result.type,
+          任务类型: unlockConfig?.unlockConditions.task.type || 'unknown'
+        });
+        const { updateGameModeTaskProgress } = get();
+        updateGameModeTaskProgress(result.type);
+      }
+    }
   },
 
   // 重置 VPoker 状态
@@ -2031,7 +2580,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'poker-game-storage', // localStorage key
-      version: 9, // 升级版本号：属性牌区默认开放20格，屏蔽技能系统
+      version: 11, // 升级版本号：更新已有卡牌的倍数效果
       partialize: (state) => ({
         // 只持久化这些字段
         money: state.money,
@@ -2062,6 +2611,7 @@ export const useGameStore = create<GameState>()(
         greenCardCount: state.greenCardCount,
         craftBlueCount: state.craftBlueCount,
         craftPurpleCount: state.craftPurpleCount,
+        craftGoldCount: state.craftGoldCount,
         jokerEnabled: state.jokerEnabled, // Joker 玩法开关
       }),
       migrate: (persistedState: any, version: number) => {
@@ -2089,14 +2639,14 @@ export const useGameStore = create<GameState>()(
           persistedState.unlockedCardSlots = 5;
           persistedState.tutorialFlipCount = {};
         }
-        // 从版本4升级：强制修复固定区顺序为 A-K
+        // 从版本4升级：强制修复固定区顺序为 2-A
         if (version <= 4) {
           if (persistedState.activeDeck && Array.isArray(persistedState.activeDeck)) {
             const activeDeck = persistedState.activeDeck;
-            // 总是重新排序固定区为 A-K 顺序
+            // 总是重新排序固定区为 2-A 顺序
             if (activeDeck.length >= 52) {
               const suits: Suit[] = ['spades', 'hearts', 'clubs', 'diamonds'];
-              const ranks: Rank[] = [14, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]; // A-K 顺序
+              const ranks: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]; // 2-A 顺序
               
               // 重新构建固定区（前52张）
               const fixedCards: (Card | null)[] = [];
@@ -2112,7 +2662,7 @@ export const useGameStore = create<GameState>()(
                 }
               }
               
-              // 按 A-K 顺序重新排列固定区
+              // 按 2-A 顺序重新排列固定区
               for (const suit of suits) {
                 for (const rank of ranks) {
                   const key = `${suit}-${rank}`;
@@ -2165,9 +2715,9 @@ export const useGameStore = create<GameState>()(
           if (persistedState.deck && Array.isArray(persistedState.deck)) {
             const oldDeck: Card[] = persistedState.deck;
             // 前52张白色牌和超级牌保留在上阵牌池（按位置）
-            // 需要按照标准顺序排列：spades A-K, hearts A-K, clubs A-K, diamonds A-K
+            // 需要按照标准顺序排列：spades 2-A, hearts 2-A, clubs 2-A, diamonds 2-A
             const suits: Suit[] = ['spades', 'hearts', 'clubs', 'diamonds'];
-            const ranks: Rank[] = [14, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]; // A-K 顺序
+            const ranks: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]; // 2-A 顺序
             
             const activeDeck: (Card | null)[] = [];
             const qualityCards: Card[] = [];
@@ -2244,12 +2794,156 @@ export const useGameStore = create<GameState>()(
             persistedState.unlockedAttributeSlots = 20;
           }
         }
-        
+        // 从版本9升级到版本10：强制修复固定区顺序为 2-A
+        if (version <= 10) {
+          if (persistedState.activeDeck && Array.isArray(persistedState.activeDeck)) {
+            const activeDeck = persistedState.activeDeck;
+            // 总是重新排序固定区为 2-A 顺序
+            if (activeDeck.length >= 52) {
+              const suits: Suit[] = ['spades', 'hearts', 'clubs', 'diamonds'];
+              const ranks: Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]; // 2-A 顺序
+              
+              // 重新构建固定区（前52张）
+              const fixedCards: (Card | null)[] = [];
+              const qualityCards: Card[] = [];
+              
+              // 收集所有固定区的牌（白色或超级牌）
+              const fixedCardsMap = new Map<string, Card>();
+              for (let i = 0; i < 52 && i < activeDeck.length; i++) {
+                const card = activeDeck[i];
+                if (card && (card.quality === 'white' || card.quality === 'super')) {
+                  const key = `${card.suit}-${card.rank}`;
+                  fixedCardsMap.set(key, card);
+                }
+              }
+              
+              // 按 2-A 顺序重新排列固定区
+              for (const suit of suits) {
+                for (const rank of ranks) {
+                  const key = `${suit}-${rank}`;
+                  const card = fixedCardsMap.get(key);
+                  if (card) {
+                    fixedCards.push(card);
+                  } else {
+                    // 如果找不到对应的牌，创建一个白色牌
+                    fixedCards.push({
+                      id: `card_${fixedCards.length + 1}`,
+                      suit,
+                      rank,
+                      quality: 'white',
+                      effects: [],
+                      baseValue: rank >= 10 ? 10 : rank,
+                      multiplier: 0,
+                    });
+                  }
+                }
+              }
+              
+              // 收集属性牌区的牌（后48张）
+              for (let i = 52; i < activeDeck.length && i < 100; i++) {
+                const card = activeDeck[i];
+                if (card) {
+                  qualityCards.push(card);
+                }
+              }
+              
+              // 重新构建 activeDeck
+              const newActiveDeck: (Card | null)[] = [...fixedCards];
+              
+              // 属性牌优先填充空位（最多48张）
+              for (let i = 0; i < Math.min(48, qualityCards.length); i++) {
+                newActiveDeck.push(qualityCards[i]);
+              }
+              
+              // 填充剩余空位
+              while (newActiveDeck.length < 100) {
+                newActiveDeck.push(null);
+              }
+              
+              persistedState.activeDeck = newActiveDeck;
+            }
+          }
+        }
+        // 从版本10升级到版本11：更新已有卡牌的倍数效果
+        if (version <= 10) {
+          // 更新卡牌倍数效果的辅助函数
+          const updateCardMultiplier = (card: any): Card => {
+            if (!card.effects || card.effects.length === 0) return card as Card;
+            
+            const updatedEffects = card.effects.map((effect: any) => {
+              if (effect.type === 'multiplier') {
+                // 蓝色品质：倍数从 4 改为 3
+                if (card.quality === 'blue' && effect.value === 4) {
+                  return { ...effect, value: 3 };
+                }
+                // 紫色品质：单效果倍数从 8 改为 6
+                if (card.quality === 'purple' && effect.value === 8) {
+                  return { ...effect, value: 6 };
+                }
+                // 紫色品质：组合效果倍数从 4 改为 3（双花+倍数、跨数值+倍数）
+                if (card.quality === 'purple' && effect.value === 4) {
+                  // 检查是否有其他效果（双花或跨数值）
+                  const hasDoubleSuit = card.effects.some((e: any) => e.type === 'double_suit');
+                  const hasCrossValue = card.effects.some((e: any) => e.type === 'cross_value');
+                  if (hasDoubleSuit || hasCrossValue) {
+                    return { ...effect, value: 3 };
+                  }
+                }
+              }
+              return effect;
+            });
+            
+            return { ...card, effects: updatedEffects } as Card;
+          };
+          
+          // 更新 activeDeck
+          if (persistedState.activeDeck && Array.isArray(persistedState.activeDeck)) {
+            persistedState.activeDeck = persistedState.activeDeck.map((card: any) => 
+              card ? updateCardMultiplier(card) : card
+            );
+          }
+          
+          // 更新 reserveDeck
+          if (persistedState.reserveDeck && Array.isArray(persistedState.reserveDeck)) {
+            persistedState.reserveDeck = persistedState.reserveDeck.map(updateCardMultiplier);
+          }
+        }
+
+        // 兼容：新增成就类型时，为老存档补齐缺失的成就key（不覆盖已有进度）
+        {
+          const initial = createInitialAchievements();
+          if (persistedState.achievements && typeof persistedState.achievements === 'object') {
+            persistedState.achievements = {
+              ...initial,
+              ...persistedState.achievements,
+            };
+          } else {
+            persistedState.achievements = initial;
+          }
+        }
+
+        if (
+          typeof persistedState.unlockedAttributeSlots === 'number' &&
+          persistedState.unlockedAttributeSlots > MAX_UNLOCKED_ATTRIBUTE_SLOTS
+        ) {
+          persistedState.unlockedAttributeSlots = MAX_UNLOCKED_ATTRIBUTE_SLOTS;
+        }
+
         return persistedState;
       },
       onRehydrateStorage: () => (state) => {
         // 恢复时，根据技能等级重新计算体力上限
         if (state) {
+          if (
+            typeof state.unlockedAttributeSlots === 'number' &&
+            state.unlockedAttributeSlots > MAX_UNLOCKED_ATTRIBUTE_SLOTS
+          ) {
+            state.unlockedAttributeSlots = MAX_UNLOCKED_ATTRIBUTE_SLOTS;
+          }
+          if (IS_DEV_TEST_BUILD) {
+            const d = state.diamonds ?? 0;
+            state.diamonds = Math.max(d, DEV_TEST_DIAMONDS_MIN);
+          }
           const { skillMaxFlips } = state;
           const correctMaxFlips = Math.min(30, 20 + skillMaxFlips);
           if (state.maxFlips !== correctMaxFlips) {

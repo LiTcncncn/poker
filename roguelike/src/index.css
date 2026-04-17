@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    background-color: #0B1220;
+    color: white;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* ── 3D 翻牌所需工具类 ── */
+@layer utilities {
+  .preserve-3d {
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  .rotate-y-180 {
+    -webkit-transform: rotateY(180deg);
+    transform: rotateY(180deg);
+  }
+  .rotate-y-0 {
+    -webkit-transform: rotateY(0deg);
+    transform: rotateY(0deg);
+  }
+}
+
+/* ── 主界面星空光晕（对齐 VPoker） ─────────────────────────────── */
+@layer utilities {
+  @keyframes main-scene-bg-halo-drift {
+    0% {
+      transform: translate3d(-58%, -40%, 0) rotate(-10deg) scale(1.04);
+    }
+    20% {
+      transform: translate3d(52%, -22%, 0) rotate(8deg) scale(1.08);
+    }
+    40% {
+      transform: translate3d(56%, 48%, 0) rotate(-4deg) scale(1.06);
+    }
+    60% {
+      transform: translate3d(-28%, 52%, 0) rotate(10deg) scale(1.09);
+    }
+    80% {
+      transform: translate3d(-62%, 14%, 0) rotate(-6deg) scale(1.05);
+    }
+    100% {
+      transform: translate3d(-58%, -40%, 0) rotate(-10deg) scale(1.04);
+    }
+  }
+
+  .main-scene-bg-halo {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .main-scene-bg-halo__layer {
+    position: absolute;
+    left: -55%;
+    top: -42%;
+    width: 210%;
+    height: 184%;
+    will-change: transform;
+    background: radial-gradient(
+      ellipse 95% 75% at 38% 36%,
+      rgba(125, 211, 252, 0.36) 0%,
+      rgba(59, 130, 246, 0.14) 34%,
+      rgba(147, 197, 253, 0.26) 50%,
+      rgba(59, 130, 246, 0.12) 58%,
+      transparent 73%
+    );
+    filter: blur(46px);
+    opacity: 0.58;
+    animation: main-scene-bg-halo-drift 12s linear infinite;
+  }
+}
+
+/* ── 计分卡牌金色光环 ── */
+@keyframes scoring-card-gold-outline-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px rgba(234, 179, 8, 0.92),
+      0 0 4px 1px rgba(252, 211, 77, 0.32);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(253, 224, 71, 1),
+      0 0 10px 3px rgba(250, 204, 21, 0.48);
+  }
+}
+.scoring-card-gold-ring {
+  animation: scoring-card-gold-outline-pulse 1.25s ease-in-out infinite;
+}
+
+/* ── 超级牌外光色环 ── */
+@keyframes super-card-border-glow {
+  0%, 100% {
+    box-shadow:
+      0 8px 22px rgba(192, 132, 252, 0.55),
+      0 0 36px rgba(167, 139, 250, 0.42),
+      0 0 52px rgba(139, 92, 246, 0.22),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  }
+  25% {
+    box-shadow:
+      0 10px 26px rgba(56, 189, 248, 0.48),
+      0 0 40px rgba(192, 132, 252, 0.48),
+      0 0 56px rgba(34, 211, 238, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.42);
+  }
+  50% {
+    box-shadow:
+      0 10px 26px rgba(244, 114, 182, 0.5),
+      0 0 44px rgba(168, 85, 247, 0.45),
+      0 0 58px rgba(236, 72, 153, 0.22),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  }
+  75% {
+    box-shadow:
+      0 9px 24px rgba(253, 224, 71, 0.35),
+      0 0 40px rgba(192, 132, 252, 0.5),
+      0 0 54px rgba(250, 204, 21, 0.18),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.38);
+  }
+}
+.animate-super-card-border-glow {
+  animation: super-card-border-glow 3.2s linear infinite;
+}
+.super-card-face-static-glow {
+  box-shadow:
+    0 8px 22px rgba(192, 132, 252, 0.55),
+    0 0 36px rgba(167, 139, 250, 0.42),
+    0 0 52px rgba(139, 92, 246, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+/* ── 超级牌锥彩旋转 ── */
+@keyframes super-conic-spin {
+  from { transform: rotate(0deg) scale(1.75); }
+  to   { transform: rotate(360deg) scale(1.75); }
+}
+@keyframes super-prism-hue {
+  0%   { filter: hue-rotate(0deg) saturate(1.35); }
+  100% { filter: hue-rotate(360deg) saturate(1.35); }
+}
+.animate-super-conic-hint {
+  animation: super-conic-spin 4s linear infinite, super-prism-hue 11s linear infinite;
+  background: conic-gradient(
+    from 200deg at 50% 45%,
+    rgba(192, 132, 252, 0.42), rgba(56, 189, 248, 0.36),
+    rgba(244, 114, 182, 0.4),  rgba(253, 224, 71, 0.28),
+    rgba(34, 211, 238, 0.34),  rgba(167, 139, 250, 0.38),
+    rgba(192, 132, 252, 0.42)
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.95;
+  transform-origin: 50% 50%;
+  will-change: transform, filter;
+}
+
+/* ── 属性牌斜向流光 ── */
+@keyframes shimmer-diagonal {
+  0%   { transform: translate(-100%, -100%); opacity: 0.3; }
+  50%  { opacity: 0.6; }
+  100% { transform: translate(100%, 100%);  opacity: 0.3; }
+}
+.animate-shimmer-diagonal {
+  animation: shimmer-diagonal 1.2s linear infinite;
+  background: linear-gradient(
+    135deg,
+    transparent 0%, transparent 30%,
+    rgba(168, 85, 247, 0.3) 40%, rgba(236, 72, 153, 0.4) 50%,
+    rgba(168, 85, 247, 0.3) 60%, transparent 70%, transparent 100%
+  );
+  width: 200%;
+  height: 200%;
+}
+
+/* ── 结算弹出动画 ── */
+@keyframes score-pop {
+  0%   { transform: scale(0.55); opacity: 0; }
+  60%  { transform: scale(1.16); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-score-pop {
+  animation: score-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ── fade-in ── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease both;
+}
+
+/* ── 弹窗出现动效（轻量） ── */
+@keyframes modal-pop-in {
+  0%   { transform: translateY(14px) scale(0.95); opacity: 0; }
+  100% { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+.animate-modal-pop-in {
+  animation: modal-pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.04s;
+}

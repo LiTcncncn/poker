@@ -1,0 +1,677 @@
+[
+  {
+    "superCardId": "spades_2",
+    "gameModeId": "i_love_one_pair_1",
+    "unlockOrder": 1,
+    "unlockConditions": {
+      "task": {
+        "type": "one_pair",
+        "target": 3
+      },
+      "cost": 300
+    },
+    "nextSuperCardId": "spades_3"
+  },
+  {
+    "superCardId": "spades_3",
+    "gameModeId": "i_love_one_pair_2",
+    "unlockOrder": 2,
+    "unlockConditions": {
+      "task": {
+        "type": "one_pair",
+        "target": 2
+      },
+      "cost": 500
+    },
+    "nextSuperCardId": "spades_4"
+  },
+  {
+    "superCardId": "spades_4",
+    "gameModeId": "i_love_one_pair_3",
+    "unlockOrder": 3,
+    "unlockConditions": {
+      "task": {
+        "type": "one_pair",
+        "target": 3
+      },
+      "cost": 800
+    },
+    "nextSuperCardId": "spades_5"
+  },
+  {
+    "superCardId": "spades_5",
+    "gameModeId": "i_love_two_pairs_1",
+    "unlockOrder": 4,
+    "unlockConditions": {
+      "task": {
+        "type": "two_pairs",
+        "target": 2
+      },
+      "cost": 1200
+    },
+    "nextSuperCardId": "spades_6"
+  },
+  {
+    "superCardId": "spades_6",
+    "gameModeId": "i_love_three_of_a_kind_1",
+    "unlockOrder": 5,
+    "unlockConditions": {
+      "task": {
+        "type": "three_of_a_kind",
+        "target": 2
+      },
+      "cost": 1700
+    },
+    "nextSuperCardId": "spades_7"
+  },
+  {
+    "superCardId": "spades_7",
+    "gameModeId": "i_love_two_pairs_2",
+    "unlockOrder": 6,
+    "unlockConditions": {
+      "task": {
+        "type": "two_pairs",
+        "target": 2
+      },
+      "cost": 2300
+    },
+    "nextSuperCardId": "spades_8"
+  },
+  {
+    "superCardId": "spades_8",
+    "gameModeId": "joker_plus_plus_1",
+    "unlockOrder": 7,
+    "unlockConditions": {
+      "task": {
+        "type": "three_of_a_kind",
+        "target": 5
+      },
+      "cost": 3000
+    },
+    "nextSuperCardId": "spades_9"
+  },
+  {
+    "superCardId": "spades_9",
+    "gameModeId": "i_love_straight_1",
+    "unlockOrder": 8,
+    "unlockConditions": {
+      "task": {
+        "type": "straight",
+        "target": 1
+      },
+      "cost": 3800
+    },
+    "nextSuperCardId": "spades_10"
+  },
+  {
+    "superCardId": "spades_10",
+    "gameModeId": "two_pairs_bonus",
+    "unlockOrder": 9,
+    "unlockConditions": {
+      "task": {
+        "type": "two_pairs",
+        "target": 4
+      },
+      "cost": 4700
+    },
+    "nextSuperCardId": "spades_J"
+  },
+  {
+    "superCardId": "spades_J",
+    "gameModeId": "four_card_straight",
+    "unlockOrder": 10,
+    "unlockConditions": {
+      "task": {
+        "type": "straight",
+        "target": 3
+      },
+      "cost": 5700
+    },
+    "nextSuperCardId": "spades_Q"
+  },
+  {
+    "superCardId": "spades_Q",
+    "gameModeId": "red_flush_1",
+    "unlockOrder": 11,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 3
+      },
+      "cost": 6800
+    },
+    "nextSuperCardId": "spades_K"
+  },
+  {
+    "superCardId": "spades_K",
+    "gameModeId": "joker_plus_plus_2",
+    "unlockOrder": 12,
+    "unlockConditions": {
+      "task": {
+        "type": "three_of_a_kind",
+        "target": 5
+      },
+      "cost": 8000
+    },
+    "nextSuperCardId": "spades_A"
+  },
+  {
+    "superCardId": "spades_A",
+    "gameModeId": "full_house_bonus_spades_A",
+    "unlockOrder": 13,
+    "unlockConditions": {
+      "task": {
+        "type": "full_house",
+        "target": 2
+      },
+      "cost": 9300
+    },
+    "nextSuperCardId": "hearts_2"
+  },
+  {
+    "superCardId": "hearts_2",
+    "gameModeId": "i_love_three_of_a_kind_2",
+    "unlockOrder": 14,
+    "unlockConditions": {
+      "task": {
+        "type": "three_of_a_kind",
+        "target": 5
+      },
+      "cost": 10700
+    },
+    "nextSuperCardId": "hearts_3"
+  },
+  {
+    "superCardId": "hearts_3",
+    "gameModeId": "even_straight_1",
+    "unlockOrder": 15,
+    "unlockConditions": {
+      "task": {
+        "type": "even_straight",
+        "target": 2
+      },
+      "cost": 12300
+    },
+    "nextSuperCardId": "hearts_4"
+  },
+  {
+    "superCardId": "hearts_4",
+    "gameModeId": "i_love_full_house_1",
+    "unlockOrder": 16,
+    "unlockConditions": {
+      "task": {
+        "type": "full_house",
+        "target": 3
+      },
+      "cost": 14100
+    },
+    "nextSuperCardId": "hearts_5"
+  },
+  {
+    "superCardId": "hearts_5",
+    "gameModeId": "joker_plus_plus_3",
+    "unlockOrder": 17,
+    "unlockConditions": {
+      "task": {
+        "type": "three_of_a_kind",
+        "target": 5
+      },
+      "cost": 16100
+    },
+    "nextSuperCardId": "hearts_6"
+  },
+  {
+    "superCardId": "hearts_6",
+    "gameModeId": "red_flush_2",
+    "unlockOrder": 18,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 6
+      },
+      "cost": 18300
+    },
+    "nextSuperCardId": "hearts_7"
+  },
+  {
+    "superCardId": "hearts_7",
+    "gameModeId": "super_4_card_1",
+    "unlockOrder": 19,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 6
+      },
+      "cost": 20700
+    },
+    "nextSuperCardId": "hearts_8"
+  },
+  {
+    "superCardId": "hearts_8",
+    "gameModeId": "odd_straight_1",
+    "unlockOrder": 20,
+    "unlockConditions": {
+      "task": {
+        "type": "odd_straight",
+        "target": 3
+      },
+      "cost": 23300
+    },
+    "nextSuperCardId": "hearts_9"
+  },
+  {
+    "superCardId": "hearts_9",
+    "gameModeId": "full_house_bonus_1",
+    "unlockOrder": 21,
+    "unlockConditions": {
+      "task": {
+        "type": "full_house",
+        "target": 4
+      },
+      "cost": 26100
+    },
+    "nextSuperCardId": "hearts_10"
+  },
+  {
+    "superCardId": "hearts_10",
+    "gameModeId": "joker_plus_plus_4",
+    "unlockOrder": 22,
+    "unlockConditions": {
+      "task": {
+        "type": "straight",
+        "target": 4
+      },
+      "cost": 29100
+    },
+    "nextSuperCardId": "hearts_J"
+  },
+  {
+    "superCardId": "hearts_J",
+    "gameModeId": "flush_bonus_1",
+    "unlockOrder": 23,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 3
+      },
+      "cost": 32300
+    },
+    "nextSuperCardId": "hearts_Q"
+  },
+  {
+    "superCardId": "hearts_Q",
+    "gameModeId": "super_3_card_2",
+    "unlockOrder": 24,
+    "unlockConditions": {
+      "task": {
+        "type": "straight",
+        "target": 15
+      },
+      "cost": 35700
+    },
+    "nextSuperCardId": "hearts_K"
+  },
+  {
+    "superCardId": "hearts_K",
+    "gameModeId": "i_love_four_of_a_kind_1",
+    "unlockOrder": 25,
+    "unlockConditions": {
+      "task": {
+        "type": "four_of_a_kind",
+        "target": 3
+      },
+      "cost": 39300
+    },
+    "nextSuperCardId": "hearts_A"
+  },
+  {
+    "superCardId": "hearts_A",
+    "gameModeId": "super_3_card_1",
+    "unlockOrder": 26,
+    "unlockConditions": {
+      "task": {
+        "type": "three_of_a_kind",
+        "target": 10
+      },
+      "cost": 43100
+    },
+    "nextSuperCardId": "clubs_2"
+  },
+  {
+    "superCardId": "clubs_2",
+    "gameModeId": "four_card_flush",
+    "unlockOrder": 27,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 15
+      },
+      "cost": 47100
+    },
+    "nextSuperCardId": "clubs_3"
+  },
+  {
+    "superCardId": "clubs_3",
+    "gameModeId": "full_house_bonus_2",
+    "unlockOrder": 28,
+    "unlockConditions": {
+      "task": {
+        "type": "full_house",
+        "target": 6
+      },
+      "cost": 51400
+    },
+    "nextSuperCardId": "clubs_4"
+  },
+  {
+    "superCardId": "clubs_4",
+    "gameModeId": "super_3_card_3",
+    "unlockOrder": 29,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 20
+      },
+      "cost": 56000
+    },
+    "nextSuperCardId": "clubs_5"
+  },
+  {
+    "superCardId": "clubs_5",
+    "gameModeId": "joker_plus_plus_5",
+    "unlockOrder": 30,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 8
+      },
+      "cost": 60900
+    },
+    "nextSuperCardId": "clubs_6"
+  },
+  {
+    "superCardId": "clubs_6",
+    "gameModeId": "red_flush_3",
+    "unlockOrder": 31,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 10
+      },
+      "cost": 66100
+    },
+    "nextSuperCardId": "clubs_7"
+  },
+  {
+    "superCardId": "clubs_7",
+    "gameModeId": "three_of_a_kind_bonus",
+    "unlockOrder": 32,
+    "unlockConditions": {
+      "task": {
+        "type": "three_of_a_kind",
+        "target": 15
+      },
+      "cost": 71600
+    },
+    "nextSuperCardId": "clubs_8"
+  },
+  {
+    "superCardId": "clubs_8",
+    "gameModeId": "straight_bonus",
+    "unlockOrder": 33,
+    "unlockConditions": {
+      "task": {
+        "type": "straight",
+        "target": 8
+      },
+      "cost": 77400
+    },
+    "nextSuperCardId": "clubs_9"
+  },
+  {
+    "superCardId": "clubs_9",
+    "gameModeId": "super_4_card_2",
+    "unlockOrder": 34,
+    "unlockConditions": {
+      "task": {
+        "type": "straight",
+        "target": 20
+      },
+      "cost": 83500
+    },
+    "nextSuperCardId": "clubs_10"
+  },
+  {
+    "superCardId": "clubs_10",
+    "gameModeId": "joker_plus_plus_6",
+    "unlockOrder": 35,
+    "unlockConditions": {
+      "task": {
+        "type": "full_house",
+        "target": 10
+      },
+      "cost": 89900
+    },
+    "nextSuperCardId": "clubs_J"
+  },
+  {
+    "superCardId": "clubs_J",
+    "gameModeId": "i_love_straight_2",
+    "unlockOrder": 36,
+    "unlockConditions": {
+      "task": {
+        "type": "straight",
+        "target": 15
+      },
+      "cost": 96600
+    },
+    "nextSuperCardId": "clubs_Q"
+  },
+  {
+    "superCardId": "clubs_Q",
+    "gameModeId": "even_straight_2",
+    "unlockOrder": 37,
+    "unlockConditions": {
+      "task": {
+        "type": "even_straight",
+        "target": 10
+      },
+      "cost": 103600
+    },
+    "nextSuperCardId": "clubs_K"
+  },
+  {
+    "superCardId": "clubs_K",
+    "gameModeId": "full_house_bonus_3",
+    "unlockOrder": 38,
+    "unlockConditions": {
+      "task": {
+        "type": "full_house",
+        "target": 15
+      },
+      "cost": 110900
+    },
+    "nextSuperCardId": "clubs_A"
+  },
+  {
+    "superCardId": "clubs_A",
+    "gameModeId": "black_flush_1",
+    "unlockOrder": 39,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 30
+      },
+      "cost": 118500
+    },
+    "nextSuperCardId": "diamonds_2"
+  },
+  {
+    "superCardId": "diamonds_2",
+    "gameModeId": "super_4_card_3",
+    "unlockOrder": 40,
+    "unlockConditions": {
+      "task": {
+        "type": "straight",
+        "target": 40
+      },
+      "cost": 126400
+    },
+    "nextSuperCardId": "diamonds_3"
+  },
+  {
+    "superCardId": "diamonds_3",
+    "gameModeId": "i_love_four_of_a_kind_2",
+    "unlockOrder": 41,
+    "unlockConditions": {
+      "task": {
+        "type": "four_of_a_kind",
+        "target": 15
+      },
+      "cost": 134800
+    },
+    "nextSuperCardId": "diamonds_4"
+  },
+  {
+    "superCardId": "diamonds_4",
+    "gameModeId": "i_love_flush",
+    "unlockOrder": 42,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 15
+      },
+      "cost": 143700
+    },
+    "nextSuperCardId": "diamonds_5"
+  },
+  {
+    "superCardId": "diamonds_5",
+    "gameModeId": "joker_plus_plus_7",
+    "unlockOrder": 43,
+    "unlockConditions": {
+      "task": {
+        "type": "four_of_a_kind",
+        "target": 10
+      },
+      "cost": 153100
+    },
+    "nextSuperCardId": "diamonds_6"
+  },
+  {
+    "superCardId": "diamonds_6",
+    "gameModeId": "super_3_card_4",
+    "unlockOrder": 44,
+    "unlockConditions": {
+      "task": {
+        "type": "straight",
+        "target": 50
+      },
+      "cost": 163000
+    },
+    "nextSuperCardId": "diamonds_7"
+  },
+  {
+    "superCardId": "diamonds_7",
+    "gameModeId": "flush_bonus_2",
+    "unlockOrder": 45,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 20
+      },
+      "cost": 173400
+    },
+    "nextSuperCardId": "diamonds_8"
+  },
+  {
+    "superCardId": "diamonds_8",
+    "gameModeId": "odd_straight_2",
+    "unlockOrder": 46,
+    "unlockConditions": {
+      "task": {
+        "type": "odd_straight",
+        "target": 15
+      },
+      "cost": 184300
+    },
+    "nextSuperCardId": "diamonds_9"
+  },
+  {
+    "superCardId": "diamonds_9",
+    "gameModeId": "super_4_card_4",
+    "unlockOrder": 47,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 50
+      },
+      "cost": 195700
+    },
+    "nextSuperCardId": "diamonds_10"
+  },
+  {
+    "superCardId": "diamonds_10",
+    "gameModeId": "black_flush_3",
+    "unlockOrder": 48,
+    "unlockConditions": {
+      "task": {
+        "type": "flush",
+        "target": 50
+      },
+      "cost": 207600
+    },
+    "nextSuperCardId": "diamonds_J"
+  },
+  {
+    "superCardId": "diamonds_J",
+    "gameModeId": "i_love_five_of_a_kind",
+    "unlockOrder": 49,
+    "unlockConditions": {
+      "task": {
+        "type": "five_of_a_kind",
+        "target": 3
+      },
+      "cost": 220000
+    },
+    "nextSuperCardId": "diamonds_Q"
+  },
+  {
+    "superCardId": "diamonds_Q",
+    "gameModeId": "i_love_straight_flush",
+    "unlockOrder": 50,
+    "unlockConditions": {
+      "task": {
+        "type": "straight_flush",
+        "target": 5
+      },
+      "cost": 232900
+    },
+    "nextSuperCardId": "diamonds_K"
+  },
+  {
+    "superCardId": "diamonds_K",
+    "gameModeId": "i_love_royal_flush",
+    "unlockOrder": 51,
+    "unlockConditions": {
+      "task": {
+        "type": "royal_flush",
+        "target": 3
+      },
+      "cost": 246300
+    },
+    "nextSuperCardId": "diamonds_A"
+  },
+  {
+    "superCardId": "diamonds_A",
+    "gameModeId": "joker_plus_plus_diamonds_A",
+    "unlockOrder": 52,
+    "unlockConditions": {
+      "task": {
+        "type": "five_of_a_kind",
+        "target": 10
+      },
+      "cost": 260200
+    }
+  }
+]

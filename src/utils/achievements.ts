@@ -7,8 +7,7 @@ export type AchievementType =
   | 'blue_card_count'        // 蓝牌数量
   | 'purple_card_count'       // 紫牌数量
   | 'green_card_count'        // 绿牌数量
-  | 'craft_blue_count'        // 合成蓝卡次数
-  | 'craft_purple_count';     // 合成紫卡次数
+  | 'craft_gold_count';       // 合成金卡次数
 
 // 成就配置
 export interface AchievementConfig {
@@ -45,134 +44,78 @@ const generateProgressiveFixedIncremental = (initial: number[], fixedIncrement: 
   return incremental;
 };
 
+// 牌型成就前档增量（共 500 档：前档 + 后档固定增量）
+const HAND_TIER_TOTAL = 500;
+const ONE_PAIR_INITIAL = [1, 9, ...Array(28).fill(10), ...Array(20).fill(20)]; // 前50档
+const TWO_PAIRS_INITIAL = [1, 7, ...Array(28).fill(8)]; // 前30档
+const THREE_KIND_INITIAL = [1, 4, ...Array(28).fill(5)]; // 前30档
+const STRAIGHT_LIKE_INITIAL = [1, 2, ...Array(28).fill(3)]; // 前30档（顺子/同花/葫芦）
+const FOUR_KIND_INITIAL = [1, 1, ...Array(28).fill(2)]; // 前30档
+const STRAIGHT_FLUSH_INITIAL = Array(30).fill(1); // 前30档
+const ROYAL_FLUSH_INITIAL = Array(30).fill(1); // 前30档
+
 // 成就配置表
 export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementConfig>> = {
-  // 牌型成就 - 使用增量值
+  // 牌型成就 - 500档：前档 + 后档固定增量
   one_pair: {
     achievementType: 'one_pair',
-    reward: 20, // 30 / 0.6 * 0.4 = 20
-    // 100档：前50档（1,9,10×28,20×20），后50档（30×50）
-    incrementalThresholds: [
-      1, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 
-      10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 
-      20, 20, 20, 20, 20, 20, 20, 20, 20, 20,
-      // 新增50档，每档30
-      30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
-      30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
-      30, 30, 30, 30, 30, 30, 30, 30, 30, 30
-    ],
+    reward: 20,
+    incrementalThresholds: generateProgressiveFixedIncremental(ONE_PAIR_INITIAL, 30, HAND_TIER_TOTAL),
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   two_pairs: {
     achievementType: 'two_pairs',
-    reward: 20, // 30 / 0.6 * 0.4 = 20
-    // 80档：前30档（1,7,8×28），后50档（20×50）
-    incrementalThresholds: [
-      1, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 
-      8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-      // 新增50档，每档20
-      20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20,
-      20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20,
-      20, 20, 20, 20, 20, 20, 20, 20, 20, 20
-    ],
+    reward: 30,
+    incrementalThresholds: generateProgressiveFixedIncremental(TWO_PAIRS_INITIAL, 20, HAND_TIER_TOTAL),
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   three_of_a_kind: {
     achievementType: 'three_of_a_kind',
-    reward: 40, // 60 / 0.6 * 0.4 = 40
-    // 80档：前30档（1,4,5×28），后50档（15×50）
-    incrementalThresholds: [
-      1, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 
-      5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-      // 新增50档，每档15
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15
-    ],
+    reward: 50,
+    incrementalThresholds: generateProgressiveFixedIncremental(THREE_KIND_INITIAL, 15, HAND_TIER_TOTAL),
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   straight: {
     achievementType: 'straight',
-    reward: 80, // 120 / 0.6 * 0.4 = 80
-    // 80档：前30档（1,2,3×28），后50档（15×50）
-    incrementalThresholds: [
-      1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 
-      3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-      // 新增50档，每档15
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15
-    ],
+    reward: 80,
+    incrementalThresholds: generateProgressiveFixedIncremental(STRAIGHT_LIKE_INITIAL, 10, HAND_TIER_TOTAL),
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   flush: {
     achievementType: 'flush',
-    reward: 80, // 120 / 0.6 * 0.4 = 80
-    // 80档：前30档（1,2,3×28），后50档（15×50）
-    incrementalThresholds: [
-      1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 
-      3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-      // 新增50档，每档15
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15
-    ],
+    reward: 80,
+    incrementalThresholds: generateProgressiveFixedIncremental(STRAIGHT_LIKE_INITIAL, 10, HAND_TIER_TOTAL),
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   full_house: {
     achievementType: 'full_house',
-    reward: 120, // 180 / 0.6 * 0.4 = 120
-    // 80档：前30档（1,2,3×28），后50档（15×50）
-    incrementalThresholds: [
-      1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 
-      3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-      // 新增50档，每档15
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15
-    ],
+    reward: 120,
+    incrementalThresholds: generateProgressiveFixedIncremental(STRAIGHT_LIKE_INITIAL, 10, HAND_TIER_TOTAL),
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   four_of_a_kind: {
     achievementType: 'four_of_a_kind',
-    reward: 200, // 300 / 0.6 * 0.4 = 200
-    // 80档：前30档（1,1,2×28），后50档（15×50）
-    incrementalThresholds: [
-      1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 
-      2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-      // 新增50档，每档15
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15, 15, 15
-    ],
+    reward: 200,
+    incrementalThresholds: generateProgressiveFixedIncremental(FOUR_KIND_INITIAL, 8, HAND_TIER_TOTAL),
+    get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
+  },
+  five_of_a_kind: {
+    achievementType: 'five_of_a_kind',
+    reward: 300,
+    // 五条：完全按四条的档位逻辑（前30档 + 后段固定增量），仅奖励更高
+    incrementalThresholds: generateProgressiveFixedIncremental(FOUR_KIND_INITIAL, 8, HAND_TIER_TOTAL),
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   straight_flush: {
     achievementType: 'straight_flush',
-    reward: 400, // 600 / 0.6 * 0.4 = 400
-    // 80档：前30档（1×30），后50档（10×50）
-    incrementalThresholds: [
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-      // 新增50档，每档10
-      10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
-      10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
-      10, 10, 10, 10, 10, 10, 10, 10, 10, 10
-    ],
+    reward: 400,
+    incrementalThresholds: generateProgressiveFixedIncremental(STRAIGHT_FLUSH_INITIAL, 5, HAND_TIER_TOTAL),
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   royal_flush: {
     achievementType: 'royal_flush',
-    reward: 800, // 1200 / 0.6 * 0.4 = 800
-    // 80档：前30档（1×30），后50档（5×50）
-    incrementalThresholds: [
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-      // 新增50档，每档5
-      5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-      5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-      5, 5, 5, 5, 5, 5, 5, 5, 5, 5
-    ],
+    reward: 800,
+    incrementalThresholds: generateProgressiveFixedIncremental(ROYAL_FLUSH_INITIAL, 2, HAND_TIER_TOTAL),
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   
@@ -185,14 +128,14 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
   },
   blue_card_count: {
     achievementType: 'blue_card_count',
-    reward: 20, // 30 / 0.6 * 0.4 = 20
-    incrementalThresholds: generateProgressiveFixedIncremental([1, 4, 5], 10, 20), // 1, 4, 5, 10, 10, 10...
+    reward: 50,
+    incrementalThresholds: generateProgressiveFixedIncremental([1, 4, 5], 5, 500), // 1, 5, 10, 15, 20...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   purple_card_count: {
     achievementType: 'purple_card_count',
-    reward: 40, // 60 / 0.6 * 0.4 = 40
-    incrementalThresholds: generateProgressiveFixedIncremental([1, 2, 2], 5, 20), // 1, 2, 2, 5, 5, 5...
+    reward: 150,
+    incrementalThresholds: generateProgressiveFixedIncremental([1, 2], 3, 500), // 1, 3, 6, 9, 12, 15...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
   green_card_count: {
@@ -201,16 +144,10 @@ export const ACHIEVEMENT_CONFIGS: Partial<Record<AchievementType, AchievementCon
     incrementalThresholds: generateProgressiveFixedIncremental([1, 4, 5, 0], 20, 20), // 1, 4, 5, 0, 20, 20, 20...
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   },
-  craft_blue_count: {
-    achievementType: 'craft_blue_count',
-    reward: 20, // 30 / 0.6 * 0.4 = 20
-    incrementalThresholds: generateProgressiveFixedIncremental([1, 2, 2], 5, 20), // 1, 2, 2, 5, 5, 5...
-    get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
-  },
-  craft_purple_count: {
-    achievementType: 'craft_purple_count',
-    reward: 40, // 60 / 0.6 * 0.4 = 40
-    incrementalThresholds: generateProgressiveFixedIncremental([1, 1, 1], 3, 20), // 1, 1, 1, 3, 3, 3...
+  craft_gold_count: {
+    achievementType: 'craft_gold_count',
+    reward: 200,
+    incrementalThresholds: generateProgressiveFixedIncremental([1], 1, 500), // 每档+1
     get thresholds() { return convertIncrementalToCumulative(this.incrementalThresholds); }
   }
 };
@@ -253,8 +190,7 @@ export const ACHIEVEMENT_TYPE_NAMES: Record<AchievementType, string> = {
   blue_card_count: '蓝牌数量',
   purple_card_count: '紫牌数量',
   green_card_count: '绿牌数量',
-  craft_blue_count: '合成蓝卡次数',
-  craft_purple_count: '合成紫卡次数',
+  craft_gold_count: '金牌数量',
 };
 
 // 初始化成就进度
@@ -270,6 +206,7 @@ export const createInitialAchievements = (): Record<AchievementType, Achievement
     'flush',
     'full_house',
     'four_of_a_kind',
+    'five_of_a_kind',
     'straight_flush',
     'royal_flush'
   ];
@@ -288,8 +225,7 @@ export const createInitialAchievements = (): Record<AchievementType, Achievement
     'blue_card_count',
     'purple_card_count',
     'green_card_count',
-    'craft_blue_count',
-    'craft_purple_count'
+    'craft_gold_count'
   ];
   
   newAchievementTypes.forEach(achievementType => {
@@ -365,10 +301,19 @@ export const hasClaimableAchievements = (
     purpleCardCount: number;
     greenCardCount: number;
     superCardCount: number;
-    craftBlueCount: number;
-    craftPurpleCount: number;
+    craftGoldCount: number;
   }
 ): boolean => {
+  const getProgressSafe = (achievementType: AchievementType): AchievementProgress => {
+    return (
+      achievements[achievementType] ?? {
+        achievementType,
+        currentTier: -1,
+        claimedTiers: [],
+      }
+    );
+  };
+
   // 检查牌型成就
   const handTypes: HandType[] = [
     'one_pair',
@@ -378,6 +323,7 @@ export const hasClaimableAchievements = (
     'flush',
     'full_house',
     'four_of_a_kind',
+    'five_of_a_kind',
     'straight_flush',
     'royal_flush'
   ];
@@ -386,8 +332,7 @@ export const hasClaimableAchievements = (
     const config = ACHIEVEMENT_CONFIGS[handType];
     if (!config) return false;
     
-    const progress = achievements[handType];
-    if (!progress) return false; // 确保 progress 存在
+    const progress = getProgressSafe(handType);
     
     const stat = stats[handType] || { count: 0, totalScore: 0 };
     const currentCount = stat.count;
@@ -414,16 +359,14 @@ export const hasClaimableAchievements = (
     'blue_card_count',
     'purple_card_count',
     'green_card_count',
-    'craft_blue_count',
-    'craft_purple_count'
+    'craft_gold_count'
   ];
   
   return newAchievementTypes.some(achievementType => {
     const config = ACHIEVEMENT_CONFIGS[achievementType];
     if (!config) return false;
     
-    const progress = achievements[achievementType];
-    if (!progress) return false; // 确保 progress 存在
+    const progress = getProgressSafe(achievementType);
     
     let currentCount = 0;
     
@@ -440,11 +383,8 @@ export const hasClaimableAchievements = (
       case 'green_card_count':
         currentCount = cardStats.greenCardCount;
         break;
-      case 'craft_blue_count':
-        currentCount = cardStats.craftBlueCount;
-        break;
-      case 'craft_purple_count':
-        currentCount = cardStats.craftPurpleCount;
+      case 'craft_gold_count':
+        currentCount = cardStats.craftGoldCount;
         break;
     }
     

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { X, Award, Gem } from 'lucide-react';
 import clsx from 'clsx';
 import { 
@@ -18,8 +18,7 @@ interface AchievementViewProps {
     purpleCardCount: number;
     greenCardCount: number;
     superCardCount: number;
-    craftBlueCount: number;
-    craftPurpleCount: number;
+    craftGoldCount: number;
   };
   onClaim: (achievementType: AchievementType, tier: number) => void;
   onClose: () => void;
@@ -35,6 +34,7 @@ const ALL_ACHIEVEMENT_TYPES: AchievementType[] = [
   'flush',
   'full_house',
   'four_of_a_kind',
+  'five_of_a_kind',
   'straight_flush',
   'royal_flush',
   // 新成就类型
@@ -42,8 +42,7 @@ const ALL_ACHIEVEMENT_TYPES: AchievementType[] = [
   'blue_card_count',
   'purple_card_count',
   'green_card_count',
-  'craft_blue_count',
-  'craft_purple_count',
+  'craft_gold_count',
 ];
 
 export const AchievementView: React.FC<AchievementViewProps> = ({ 
@@ -53,9 +52,16 @@ export const AchievementView: React.FC<AchievementViewProps> = ({
   onClaim, 
   onClose 
 }) => {
-  // 用于跟踪每个成就的动画进度
-  const [animatedProgress, setAnimatedProgress] = useState<Record<string, number>>({});
-  
+  const getProgressSafe = (achievementType: AchievementType): AchievementProgress => {
+    return (
+      achievements[achievementType] ?? {
+        achievementType,
+        currentTier: -1,
+        claimedTiers: [],
+      }
+    );
+  };
+
   // 获取成就的当前数值
   const getAchievementCount = (achievementType: AchievementType): number => {
     if (achievementType in HAND_TYPE_NAMES) {
@@ -74,10 +80,8 @@ export const AchievementView: React.FC<AchievementViewProps> = ({
           return cardStats.purpleCardCount;
         case 'green_card_count':
           return cardStats.greenCardCount;
-        case 'craft_blue_count':
-          return cardStats.craftBlueCount;
-        case 'craft_purple_count':
-          return cardStats.craftPurpleCount;
+        case 'craft_gold_count':
+          return cardStats.craftGoldCount;
         default:
           return 0;
       }
@@ -88,8 +92,7 @@ export const AchievementView: React.FC<AchievementViewProps> = ({
   const hasAnyClaimableTier = (achievementType: AchievementType): boolean => {
     const config = ACHIEVEMENT_CONFIGS[achievementType];
     if (!config) return false;
-    const progress = achievements[achievementType];
-    if (!progress) return false;
+    const progress = getProgressSafe(achievementType);
 
     const currentCount = getAchievementCount(achievementType);
     // 实现A：按顺序领取时，真正“可领取”的只会是第一个未领取档位
@@ -103,106 +106,47 @@ export const AchievementView: React.FC<AchievementViewProps> = ({
     return currentCount >= config.thresholds[firstUnclaimedTier];
   };
 
-  // 排序：有可领取的成就排在上面（其他维持原顺序）
-  const sortedAchievementTypes = [...ALL_ACHIEVEMENT_TYPES].sort((a, b) => {
-    const aClaimable = hasAnyClaimableTier(a);
-    const bClaimable = hasAnyClaimableTier(b);
-    if (aClaimable === bClaimable) return 0;
-    return bClaimable ? 1 : -1;
-  });
-  
-  // 当成就或统计更新时，触发动画
-  useEffect(() => {
-    const newAnimatedProgress: Record<string, number> = {};
-    ALL_ACHIEVEMENT_TYPES.forEach((achievementType) => {
-      const config = ACHIEVEMENT_CONFIGS[achievementType];
-      if (!config) return;
-      
-      const progress = achievements[achievementType];
-      const currentCount = getAchievementCount(achievementType);
-      const currentTier = progress.currentTier;
-      
-      // 计算应该显示的档位和进度
-      let displayThreshold: number;
-      let prevThreshold: number;
-      // const isCompleted: boolean; // 不再需要
-      
-      if (currentTier >= 0) {
-        const isCurrentClaimed = progress.claimedTiers.includes(currentTier);
-        if (isCurrentClaimed) {
-          const nextTier = currentTier + 1;
-          if (nextTier < config.thresholds.length) {
-            displayThreshold = config.thresholds[nextTier];
-            prevThreshold = nextTier > 0 ? config.thresholds[nextTier - 1] : 0;
-            // const isCompleted = currentCount >= displayThreshold;
-          } else {
-            displayThreshold = config.thresholds[currentTier];
-            prevThreshold = currentTier > 0 ? config.thresholds[currentTier - 1] : 0;
-            // const isCompleted = true;
-          }
-        } else {
-          displayThreshold = config.thresholds[currentTier];
-          prevThreshold = currentTier > 0 ? config.thresholds[currentTier - 1] : 0;
-          // const isCompleted = currentCount >= displayThreshold;
-        }
-      } else {
-        displayThreshold = config.thresholds[0];
-        prevThreshold = 0;
-        // const isCompleted = currentCount >= displayThreshold;
-      }
-      
-      // 计算进度百分比（累积型）
-      // 确定当前显示的档位
-      let displayTierForProgress = 0;
-      if (currentTier >= 0) {
-        const isCurrentClaimed = progress.claimedTiers.includes(currentTier);
-        displayTierForProgress = isCurrentClaimed
-          ? (currentTier + 1 < config.thresholds.length ? currentTier + 1 : currentTier)
-          : currentTier;
-      }
-      // 使用增量值作为需求数
-      const tierIncremental = config.incrementalThresholds
-        ? config.incrementalThresholds[displayTierForProgress]
-        : (displayThreshold - prevThreshold);
-      const currentTierProgress = Math.max(0, currentCount - prevThreshold);
-      const progressPercent = tierIncremental > 0 
-        ? Math.min(100, (currentTierProgress / tierIncremental) * 100) 
-        : 0;
-      newAnimatedProgress[achievementType] = progressPercent;
-    });
-    
-    // 重置动画，然后触发增长动画
-    setAnimatedProgress({});
-    setTimeout(() => {
-      setAnimatedProgress(newAnimatedProgress);
-    }, 50);
-  }, [achievements, stats, cardStats]);
+  // 排序：可领取置顶，但保持原始相对顺序（稳定排序）
+  const sortedAchievementTypes = ALL_ACHIEVEMENT_TYPES
+    .map((t, idx) => ({ t, idx, claimable: hasAnyClaimableTier(t) }))
+    .sort((a, b) => {
+      if (a.claimable !== b.claimable) return a.claimable ? -1 : 1;
+      return a.idx - b.idx;
+    })
+    .map(x => x.t);
   
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 rounded-2xl border-2 border-slate-700 w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-700">
-          <div className="flex items-center gap-3">
-            <Award className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400" />
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-100">成就系统</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+    <div
+      className="fixed inset-0 z-50 flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="achievement-view-title"
+    >
+      <div className="flex shrink-0 items-center justify-between border-b border-slate-600/50 bg-slate-900/35 px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex min-w-0 items-center gap-3">
+          <Award className="h-7 w-7 shrink-0 text-yellow-400 sm:h-8 sm:w-8" aria-hidden />
+          <h2
+            id="achievement-view-title"
+            className="text-2xl font-bold text-slate-100 sm:text-3xl"
           >
-            <X className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400" />
-          </button>
+            成就系统
+          </h2>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded-lg p-2 transition-colors hover:bg-slate-700/80"
+        >
+          <X className="h-6 w-6 text-slate-400" />
+        </button>
+      </div>
 
-        {/* Content - 纵向列表 */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="space-y-3 sm:space-y-4">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3 [scrollbar-gutter:stable] sm:space-y-4 sm:p-4">
             {sortedAchievementTypes.map((achievementType) => {
               const config = ACHIEVEMENT_CONFIGS[achievementType];
               if (!config) return null;
               
-              const progress = achievements[achievementType];
+              const progress = getProgressSafe(achievementType);
               const currentCount = getAchievementCount(achievementType);
               
               // 实现A：按顺序领取 -> 永远展示“第一个未领取档位”
@@ -252,7 +196,6 @@ export const AchievementView: React.FC<AchievementViewProps> = ({
               const progressPercent = displayTargetValue > 0 
                 ? Math.min(100, (displayCurrentValue / displayTargetValue) * 100) 
                 : 0;
-              const animatedWidth = animatedProgress[achievementType] !== undefined ? animatedProgress[achievementType] : progressPercent;
               
               // 获取奖励
               const reward = getAchievementReward(achievementType, displayTier);
@@ -260,7 +203,7 @@ export const AchievementView: React.FC<AchievementViewProps> = ({
               return (
                 <div
                   key={achievementType}
-                  className="bg-slate-800/50 rounded-xl p-4 sm:p-5 border-2 border-slate-700 hover:border-slate-600 transition-colors"
+                  className="rounded-xl border border-slate-600/50 bg-slate-900/35 p-4 transition-colors hover:border-slate-500/60 sm:p-5"
                 >
                   <div className="flex items-center gap-3 sm:gap-4">
                     {/* 左侧：成就名称 */}
@@ -281,7 +224,7 @@ export const AchievementView: React.FC<AchievementViewProps> = ({
                       <div className="w-full h-2 sm:h-3 bg-slate-700 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 transition-all duration-500 ease-out"
-                          style={{ width: `${animatedWidth}%` }}
+                          style={{ width: `${progressPercent}%` }}
                         />
                       </div>
                     </div>
@@ -310,8 +253,6 @@ export const AchievementView: React.FC<AchievementViewProps> = ({
                 </div>
               );
             })}
-          </div>
-        </div>
       </div>
     </div>
   );
