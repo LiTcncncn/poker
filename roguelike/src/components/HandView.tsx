@@ -3,6 +3,11 @@ import { Card as CardType } from '../shared/types/poker';
 import { HandResult } from '../types/run';
 import { Card } from '../shared/components/Card';
 
+/** 乘倍类数值展示为 1 位小数，避免 IEEE754 连乘后出现长尾巴 */
+function formatMultiplierDisplay(n: number): string {
+  return n.toFixed(1);
+}
+
 interface Props {
   hand: CardType[];
   heldIndices: number[];
@@ -62,7 +67,9 @@ function SettlementBlock({ r, preview }: { r: HandResult; preview: boolean }) {
         {r.independentMultiplier !== 1 && (
           <>
             <span className={preview ? 'text-white mx-1' : 'text-gray-500 mx-1'}>×</span>
-            <span className={preview ? 'text-white font-bold' : 'text-purple-400 font-bold'}>↑{r.independentMultiplier}</span>
+            <span className={preview ? 'text-white font-bold' : 'text-purple-400 font-bold'}>
+              ↑{formatMultiplierDisplay(r.independentMultiplier)}
+            </span>
           </>
         )}
 
@@ -89,7 +96,9 @@ function SettlementBlock({ r, preview }: { r: HandResult; preview: boolean }) {
                 <span className={preview ? 'text-white ml-0.5' : 'text-orange-400 ml-0.5'}>+{log.addedMultiplier}×</span>
               )}
               {log.multiplyFactor !== undefined && (
-                <span className={preview ? 'text-white ml-0.5' : 'text-purple-400 ml-0.5'}>×{log.multiplyFactor}</span>
+                <span className={preview ? 'text-white ml-0.5' : 'text-purple-400 ml-0.5'}>
+                  ×{formatMultiplierDisplay(log.multiplyFactor)}
+                </span>
               )}
             </span>
           ))}

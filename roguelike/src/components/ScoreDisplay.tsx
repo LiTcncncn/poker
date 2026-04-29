@@ -1,5 +1,6 @@
 import React from 'react';
 import { StageState } from '../types/run';
+import { TOTAL_STAGES } from '../engine/runEngine';
 
 interface Props {
   stage: StageState;
@@ -28,7 +29,10 @@ export function ScoreDisplay({ stage }: Props) {
       </div>
       {/* 剩余手数 */}
       <div className="flex items-center justify-between text-xs text-gray-400">
-        <span>第 {stage.stageIndex + 1} 关 / 15</span>
+        <span>
+          第 {stage.stageIndex + 1} 关
+          {stage.stageIndex < TOTAL_STAGES ? ` / ${TOTAL_STAGES}` : ' · 无限'}
+        </span>
         <span>剩余 <span className="text-white font-bold">{handsLeft}</span> 手</span>
       </div>
     </div>

@@ -15,6 +15,7 @@ export type SkillEffectType =
   | 'add_score'                       // 无条件 +N 技能$
   | 'add_multiplier'                  // 无条件 +N 额外倍率
   | 'independent_multiply'            // 独立乘区 ×N
+  | 'super_card_independent_multiply' // 独立乘区 ×min(上限, 1+N·value)；value 为每张超级牌增量（默认 0.1），上限见 skillEngine 常量
   | 'hand_add_score'                  // 特定牌型 +N 技能$
   | 'hand_add_multiplier'             // 特定牌型 +N 额外倍率
   | 'all_cards_score'                 // 强制 5 张全部计分（限定牌型）
@@ -22,7 +23,11 @@ export type SkillEffectType =
   | 'per_scoring_card_multiplier'     // 每张符合条件的计分牌 +N 额外倍率
   | 'per_non_scoring_card_multiplier' // 每张非计分牌 +N 额外倍率
   | 'accumulate_score'                // 触发累积 +N 技能$（整局持续）
+  /** 本关达标通关时：每剩余 1 手牌累积 value（上限 accumulateCap），整池并入当次结算技能$ */
+  | 'accumulate_score_saved_hands'
   | 'accumulate_multiplier'           // 触发累积 +N 额外倍率（整局持续）
+  /** 本手结算时未使用补牌（drawsUsedThisHand===0）：累积 value 倍率池（上限 accumulateCap），整池并入当次额外倍率 */
+  | 'accumulate_multiplier_no_draw'
   | 'modify_rule';                    // 改变成牌规则
 
 export interface SkillEffect {
@@ -30,6 +35,7 @@ export interface SkillEffect {
   value: number;
   // 触发条件（适用于大多数 effect 类型）
   triggerHandTypes?: HandType[];          // 只在这些牌型时触发
+  matchContainedHandTypes?: boolean;      // 是否按“含牌型”匹配（仅触发一次）
   triggerSuits?: Suit[];                  // 每张符合该花色的牌
   triggerRanks?: number[];                // 每张符合该点数的牌
   triggerFaceCard?: boolean;              // J/Q/K

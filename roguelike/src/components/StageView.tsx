@@ -8,6 +8,7 @@ import { UpgradeOption } from '../types/reward';
 import { Card as CardType } from '../shared/types/poker';
 import { getModifierById, canDraw, remainingHold, getEffectiveStage, isModifierSuppressed } from '../engine/stageEngine';
 import { evaluateHandWithSkills, getSkillsByIds } from '../engine/skillEngine';
+import { TOTAL_STAGES } from '../engine/runEngine';
 import type { HandResult } from '../types/run';
 
 export function StageView() {
@@ -55,6 +56,7 @@ export function StageView() {
       isLastHand: effectiveStage.usedHands + 1 >= effectiveStage.totalHands,
       isFirstHandOfStage: effectiveStage.usedHands === 0,
       drawsUsedThisHand: handState.drawsUsed,
+      superCardCount:    run.attributeCards?.length ?? 0,
     });
 
     return {
@@ -93,11 +95,18 @@ export function StageView() {
   const isDeal    = phase === 'deal';
   const isHold    = phase === 'hold';
   const stageDone = stage.status === 'won' || stage.status === 'lost';
+  /** 预览结算即可达标但尚未入账，或结算后累计严格超过目标（超分） */
+  const showGoalBarGlow =
+    (isHold &&
+      previewHandResult != null &&
+      stage.accumulatedGold < stage.targetGold &&
+      stage.accumulatedGold + previewHandResult.finalGold >= stage.targetGold) ||
+    (isResult && stage.accumulatedGold > stage.targetGold);
   const holdLeft  = remainingHold(effectiveStage); // 剩余补牌次数
   const canDrawNow = isHold && canDraw(effectiveStage);
 
   const displayStageNumber = run.isEndless
-    ? 16 + run.endlessStagesCleared
+    ? TOTAL_STAGES + 1 + run.endlessStagesCleared
     : stage.stageIndex + 1;
   const stageTitle = stage.isBoss
     ? 'BOSS 关'
@@ -162,14 +171,7 @@ export function StageView() {
     if (isHold) {
       return (
         <div className="flex gap-2">
-          {/* 结算（左） */}
-          <button
-            onClick={scoreHand}
-            className="flex-1 bg-rl-gold hover:bg-yellow-300 text-black font-black py-3 rounded-xl transition-colors shadow-md shadow-yellow-900/20"
-          >
-            结算
-          </button>
-          {/* 补牌（右） */}
+          {/* 补牌（左） */}
           <button
             onClick={canDrawNow ? drawCards : undefined}
             disabled={!canDrawNow}
@@ -182,6 +184,13 @@ export function StageView() {
             <span className="font-black">
               补牌（{holdLeft}/{effectiveStage.holdTotal}）
             </span>
+          </button>
+          {/* 结算（右） */}
+          <button
+            onClick={scoreHand}
+            className="flex-1 bg-rl-gold hover:bg-yellow-300 text-black font-black py-3 rounded-xl transition-colors shadow-md shadow-yellow-900/20"
+          >
+            结算
           </button>
         </div>
       );
@@ -214,28 +223,34 @@ export function StageView() {
             <span
               className={`text-xs font-bold rounded px-1.5 py-0.5 max-w-[55%] truncate text-right ${
                 modifierDisabled
-                  ? 'text-gray-400 bg-gray-700/10 border border-gray-500/40 line-through'
+                  ? 'text-gray-400 bg-gray-700/10 border border-gray-500/40'
                   : 'text-rl-red bg-rl-red/10 border border-rl-red/40'
               }`}
-              title={modifier.description}
+              title={
+                modifierDisabled
+                  ? `${modifier.description}（禁止类限制已由「精英关无限制」抵消，手数/补牌削减仍生效）`
+                  : modifier.description
+              }
             >
               {modifier.description}
             </span>
           )}
         </div>
 
-        {/* 进度条：底层半透为「若此刻结算」总进度，上层实线为当前已入账 */}
-        <div className="h-2 w-full bg-rl-border rounded-full overflow-hidden relative">
-          {isHold && previewHandResult != null && (
+        {/* 进度条：底层半透为「若此刻结算」总进度，上层实线为当前已入账；橘红外圈闪烁＝将过关未入账或已超分 */}
+        <div className={`w-full rounded-full ${showGoalBarGlow ? 'rl-goal-bar-glow' : ''}`}>
+          <div className="h-2 w-full bg-rl-border rounded-full overflow-hidden relative">
+            {isHold && previewHandResult != null && (
+              <div
+                className="absolute inset-y-0 left-0 bg-rl-gold/35 rounded-full transition-all duration-300 z-0"
+                style={{ width: `${previewProgressPct * 100}%` }}
+              />
+            )}
             <div
-              className="absolute inset-y-0 left-0 bg-rl-gold/35 rounded-full transition-all duration-300 z-0"
-              style={{ width: `${previewProgressPct * 100}%` }}
+              className="absolute inset-y-0 left-0 h-full bg-rl-gold rounded-full transition-all duration-500 z-10"
+              style={{ width: `${progressPct * 100}%` }}
             />
-          )}
-          <div
-            className="absolute inset-y-0 left-0 h-full bg-rl-gold rounded-full transition-all duration-500 z-10"
-            style={{ width: `${progressPct * 100}%` }}
-          />
+          </div>
         </div>
 
         {/* 进度条下方：补牌 + 剩余手数 */}
@@ -285,6 +300,10 @@ export function StageView() {
         <RewardModal
           reward={reward}
           stageIndex={stage.stageIndex}
+          ownedSkills={getSkillsByIds(run.acquiredSkillIds)}
+          skillAccumulation={run.skillAccumulation}
+          handTypeUpgrades={run.handTypeUpgrades}
+          ownedAttributeCards={run.attributeCards ?? []}
           onChooseSkill={chooseSkill}
           onChooseUpgrade={(opt) => chooseUpgrade(opt as UpgradeOption)}
           onChooseAttributeCard={(card: CardType) => chooseAttributeCard(card)}

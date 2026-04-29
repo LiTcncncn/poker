@@ -95,7 +95,7 @@ function pickSkillsByQualityPattern(available: SkillDef[], qualities: SkillQuali
 
 /**
  * 随机抽 3 个不重复技能（已拥有的不重复出现）。
- * afterElite: true 时紫色权重提升到 25%。
+ * afterElite: true 时使用精英品质模板池。
  */
 export function generateSkillOptions(
   acquiredSkillIds: string[],
@@ -109,13 +109,14 @@ export function generateSkillOptions(
     return pickSkillsByQualityPattern(available, ['green', 'green', 'green']);
   }
 
-  // 精英/Boss 后技能三选一组合池：
-  // 绿绿蓝 30%、绿蓝蓝 40%、绿蓝紫 30%
+  // 精英/Boss 后技能三选一组合池
   if (afterElite) {
     const patterns: WeightedQualityPattern[] = [
-      { qualities: ['green', 'green', 'blue'], weight: 30 },
-      { qualities: ['green', 'blue', 'blue'], weight: 40 },
-      { qualities: ['green', 'blue', 'purple'], weight: 30 },
+      { qualities: ['green', 'green', 'blue'], weight: 25 },
+      { qualities: ['green', 'blue', 'blue'], weight: 25 },
+      { qualities: ['blue', 'blue', 'blue'], weight: 20 },
+      { qualities: ['blue', 'blue', 'purple'], weight: 15 },
+      { qualities: ['blue', 'purple', 'purple'], weight: 15 },
     ];
     const selected = weightedRandom(patterns, p => p.weight);
     return pickSkillsByQualityPattern(available, selected.qualities);
@@ -272,18 +273,44 @@ export function generateOneAttributeCard(quality?: CardQuality): Card {
   }
 }
 
+/** 除 id 外完全一致则视为同一张牌（三选一禁止三张全同） */
+function attributeCardSignature(c: Card): string {
+  const eff = [...(c.effects ?? [])].sort((a, b) => {
+    const ta = String(a.type);
+    const tb = String(b.type);
+    if (ta !== tb) return ta.localeCompare(tb);
+    return JSON.stringify(a).localeCompare(JSON.stringify(b));
+  });
+  return `${c.suit}|${c.rank}|${c.quality}|${JSON.stringify(eff)}`;
+}
+
 /** 生成 3 张不同品质倾向的属性牌备选 */
 export function generateAttributeCardOptions(): Card[] {
-  // 属性牌三选一组合池：
-  // 绿绿蓝 25%、绿蓝蓝 25%、绿蓝紫 35%、绿紫紫 15%
+  // 属性牌（超级牌）三选一组合池：
+  // 绿绿绿 15%、绿蓝蓝 25%、蓝蓝蓝 10%、蓝蓝紫 35%、蓝紫紫 15%
   const patterns: Array<{ qualities: CardQuality[]; weight: number }> = [
-    { qualities: ['green', 'green', 'blue'],  weight: 25 },
+    { qualities: ['green', 'green', 'green'], weight: 15 },
     { qualities: ['green', 'blue', 'blue'],   weight: 25 },
-    { qualities: ['green', 'blue', 'purple'], weight: 35 },
-    { qualities: ['green', 'purple', 'purple'], weight: 15 },
+    { qualities: ['blue', 'blue', 'blue'],    weight: 10 },
+    { qualities: ['blue', 'blue', 'purple'], weight: 35 },
+    { qualities: ['blue', 'purple', 'purple'], weight: 15 },
   ];
   const selected = weightedRandom(patterns, p => p.weight);
-  return selected.qualities.map(q => generateOneAttributeCard(q));
+  const used = new Set<string>();
+  const out: Card[] = [];
+  const maxTriesPerSlot = 100;
+
+  for (const q of selected.qualities) {
+    let card = generateOneAttributeCard(q);
+    let tries = 0;
+    while (used.has(attributeCardSignature(card)) && tries < maxTriesPerSlot) {
+      card = generateOneAttributeCard(q);
+      tries++;
+    }
+    used.add(attributeCardSignature(card));
+    out.push(card);
+  }
+  return out;
 }
 
 /**
@@ -339,7 +366,7 @@ export function generateOpeningRewardState(acquiredSkillIds: string[]): RewardSt
  * 规则（3 关一组）：
  *   groupIndex % 3 == 0 (普通1)    → 升级三选一 → 属性牌三选一（两步）
  *   groupIndex % 3 == 1 (普通2)    → 升级三选一 → 属性牌三选一（两步）
- *   groupIndex % 3 == 2 (精英/Boss) → 技能三选一 → 技能三选一（两步）
+ *   groupIndex % 3 == 2 (精英/Boss) → 技能三选一（无限模式）/ 技能三选一×2（主线）
  *
  * @param groupIndex  主线用 stageIndex，无限阶段用 endlessStagesCleared
  */
@@ -348,11 +375,24 @@ export function generateRewardForStage(
   upgradeMap: HandTypeUpgradeMap,
   acquiredSkillIds: string[],
   afterElite = false,
+  isEndless = false,
 ): RewardState {
   const pos = ((groupIndex % 3) + 3) % 3;
 
   if (pos === 2) {
-    // 精英/Boss：两次技能三选一（第二次选项在玩家选完第一个技能后动态生成）
+    // 无限模式精英/Boss：一次技能三选一
+    if (isEndless) {
+      return {
+        step:             'skill',
+        skillOptions:     generateSkillOptions(acquiredSkillIds, afterElite),
+        upgradeOptions:   [],
+        attributeOptions: [],
+        pendingSteps:     [],
+        afterElite,
+      };
+    }
+
+    // 主线精英/Boss：两次技能三选一（第二次选项在玩家选完第一个技能后动态生成）
     return {
       step:             'skill',
       skillOptions:     generateSkillOptions(acquiredSkillIds, afterElite),

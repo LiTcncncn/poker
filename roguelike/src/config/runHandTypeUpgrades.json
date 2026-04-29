@@ -2,28 +2,28 @@
   "baseStats": {
     "high_card":        { "baseScore": 5,   "multiplier": 1 },
     "one_pair":         { "baseScore": 10,  "multiplier": 2 },
-    "two_pairs":        { "baseScore": 25,  "multiplier": 3 },
-    "three_of_a_kind":  { "baseScore": 30,  "multiplier": 3 },
+    "two_pairs":        { "baseScore": 30,  "multiplier": 3 },
+    "three_of_a_kind":  { "baseScore": 40,  "multiplier": 3 },
     "straight":         { "baseScore": 50,  "multiplier": 5 },
     "flush":            { "baseScore": 60,  "multiplier": 5 },
-    "full_house":       { "baseScore": 60,  "multiplier": 6 },
-    "four_of_a_kind":   { "baseScore": 80,  "multiplier": 8 },
-    "five_of_a_kind":   { "baseScore": 200, "multiplier": 10 },
-    "straight_flush":   { "baseScore": 300, "multiplier": 20 },
-    "royal_flush":      { "baseScore": 300, "multiplier": 20 }
+    "full_house":       { "baseScore": 80,  "multiplier": 6 },
+    "four_of_a_kind":   { "baseScore": 100, "multiplier": 8 },
+    "five_of_a_kind":   { "baseScore": 120, "multiplier": 8 },
+    "straight_flush":   { "baseScore": 200, "multiplier": 10 },
+    "royal_flush":      { "baseScore": 200, "multiplier": 10 }
   },
   "perLevelGrowth": {
     "high_card":        { "baseScoreDelta": 10, "multiplierDelta": 1 },
     "one_pair":         { "baseScoreDelta": 15, "multiplierDelta": 1 },
-    "two_pairs":        { "baseScoreDelta": 25, "multiplierDelta": 1 },
-    "three_of_a_kind":  { "baseScoreDelta": 20, "multiplierDelta": 2 },
+    "two_pairs":        { "baseScoreDelta": 30, "multiplierDelta": 2 },
+    "three_of_a_kind":  { "baseScoreDelta": 40, "multiplierDelta": 3 },
     "straight":         { "baseScoreDelta": 40, "multiplierDelta": 3 },
-    "flush":            { "baseScoreDelta": 40, "multiplierDelta": 4 },
-    "full_house":       { "baseScoreDelta": 40, "multiplierDelta": 4 },
-    "four_of_a_kind":   { "baseScoreDelta": 60, "multiplierDelta": 6 },
-    "five_of_a_kind":   { "baseScoreDelta": 100,"multiplierDelta": 5 },
-    "straight_flush":   { "baseScoreDelta": 150,"multiplierDelta": 10 },
-    "royal_flush":      { "baseScoreDelta": 150,"multiplierDelta": 10 }
+    "flush":            { "baseScoreDelta": 50, "multiplierDelta": 4 },
+    "full_house":       { "baseScoreDelta": 60, "multiplierDelta": 6 },
+    "four_of_a_kind":   { "baseScoreDelta": 60, "multiplierDelta": 8 },
+    "five_of_a_kind":   { "baseScoreDelta": 100,"multiplierDelta": 8 },
+    "straight_flush":   { "baseScoreDelta": 200,"multiplierDelta": 10 },
+    "royal_flush":      { "baseScoreDelta": 200,"multiplierDelta": 10 }
   },
   "upgradeCards": [
     { "id": "upgrade_high_card",       "handType": "high_card",       "name": "高牌升级卡"   },

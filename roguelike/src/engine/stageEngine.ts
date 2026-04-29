@@ -151,14 +151,14 @@ export function isModifierSuppressed(stage: StageState, acquiredSkillIds: string
   return stage.isElite || stage.isBoss;
 }
 
-/** 返回结算/补牌应使用的“生效态关卡” */
+/**
+ * 返回结算/补牌应使用的“生效态关卡”。
+ * 精英关无限制：仅取消禁止类与时点类限制；手数/补牌总量等已在 initStage 写入的数值仍生效。
+ */
 export function getEffectiveStage(stage: StageState, acquiredSkillIds: string[]): StageState {
   if (!isModifierSuppressed(stage, acquiredSkillIds)) return stage;
   return {
     ...stage,
-    // 词缀失效：还原限制字段。主线/无限当前都是 6 手 6 补牌，这里做下限兜底。
-    totalHands: Math.max(stage.totalHands, ENDLESS_HAND_COUNT),
-    holdTotal: Math.max(stage.holdTotal, ENDLESS_HOLD_COUNT),
     bannedHandTypes: [],
     bannedSuits: [],
     bannedRankMax: 0,

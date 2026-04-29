@@ -77,7 +77,13 @@ export default function InfoTabs({ run }: Props) {
         {/* ── 技能 ── */}
         {tab === 'skills' && (
           acquiredSkills.length > 0
-            ? <SkillPanel skills={acquiredSkills} skillAccumulation={run.skillAccumulation} />
+            ? (
+              <SkillPanel
+                skills={acquiredSkills}
+                skillAccumulation={run.skillAccumulation}
+                superCardCount={attrCards.length}
+              />
+            )
             : (
               <div className="text-xs text-gray-600 text-center py-4">
                 暂无技能 · 过关后选择

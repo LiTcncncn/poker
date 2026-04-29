@@ -1,0 +1,23 @@
+---
+description: Roguelike 代码与 Markdown 设计文档双向同步
+globs:
+  - roguelike/**/*
+  - "**/Video Poker Roguelike玩法设计方案.md"
+  - "**/roguelike/已有技能列表.md"
+---
+
+# Roguelike 与文档同步
+
+凡修改 **Roguelike** 下列内容时，须**同步更新**对应 Markdown（同一 PR / 同一次提交内完成，避免只改代码或只改文档）：
+
+| 修改类型 | 须同步的文档 |
+|----------|----------------|
+| `runSkillPool.json` 技能 id / 名称 / 描述 / `effects` / 品质 | `roguelike/已有技能列表.md`（条数、表格、`effects` 折叠块）；涉及玩法叙述时另改 `Video Poker Roguelike玩法设计方案.md` |
+| `rewardEngine.ts` 技能三选一、超级牌三选一的**权重/模板/规则** | `Video Poker Roguelike玩法设计方案.md` 中奖励与品质相关章节；必要时在 `已有技能列表.md` 脚注说明 |
+| `skillEngine.ts` 技能效果类型、结算公式、常量（如乘倍上限） | `已有技能列表.md` 类型参考或表格；`玩法设计方案.md` 中数值/规则描述 |
+| `stageEngine.ts`、词缀 JSON、关卡模板 | `玩法设计方案.md` 与相关设计段落 |
+| UI 文案若与设计稿「玩家可见说明」一致 | 上述 MD 中面向策划/玩家的表述 |
+
+**已有技能列表** 头部约定：与 `runSkillPool.json` **一一对应**；改 JSON 必改表与 `effects` 块；改引擎专属逻辑（JSON `effects` 为空由代码处理）须在表格「描述」中写清。
+
+**不要**只改 dist 构建产物；设计文档以仓库内 **源文档** 为准。

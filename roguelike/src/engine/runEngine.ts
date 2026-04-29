@@ -6,10 +6,21 @@ import stageTemplates from '../config/runStageTemplates.json';
 
 const TOTAL_STAGES = stageTemplates.length;
 
-// 无限阶段目标金币增长参数
-const ENDLESS_BASE_GOLD  = 30000;  // 以主线末关为基准
-const ENDLESS_NORMAL_RATE = 1.18;
-const ENDLESS_ELITE_BONUS = 1.12;
+type StageTpl = { targetGold: number; isElite: boolean; isBoss: boolean };
+const stageTplList = stageTemplates as StageTpl[];
+
+/** 无限阶段递推起点：主线最后一关 targetGold（与 JSON 同步） */
+const ENDLESS_SEED_GOLD = stageTplList[stageTplList.length - 1].targetGold;
+
+// 无限阶段目标金币增长参数（递推 + 千位取整；约第 30 关 ≈16 万）
+const ENDLESS_NORMAL_RATE = 1.09;
+const ENDLESS_ELITE_BONUS = 1.04;
+/** 无限关目标取整到千位（末三位为 0） */
+const ENDLESS_GOLD_ROUND = 1000;
+
+function roundEndlessGold(gold: number): number {
+  return Math.round(gold / ENDLESS_GOLD_ROUND) * ENDLESS_GOLD_ROUND;
+}
 
 function newRunId(): string {
   return `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -19,13 +30,13 @@ function newRunId(): string {
 export function initRun(): RunState {
   // 先为精英/Boss 关卡分配词缀 ID
   const stageModifiers: Record<number, string> = {};
-  (stageTemplates as { isElite: boolean; isBoss: boolean }[]).forEach((t, i) => {
+  stageTplList.forEach((t, i) => {
     if (t.isElite || t.isBoss) {
       stageModifiers[i] = pickModifierForStageIndex(i);
     }
   });
 
-  const stages: StageState[] = (stageTemplates as { isElite: boolean; isBoss: boolean }[]).map((_, i) => {
+  const stages: StageState[] = stageTplList.map((_, i) => {
     const modId = stageModifiers[i];
     const stage = initStage(i, modId);
     return { ...stage, status: i === 0 ? 'active' : 'pending' } as StageState;
@@ -46,6 +57,8 @@ export function initRun(): RunState {
     endlessStagesCleared: 0,
     totalGoldEarned: 0,
     highestSingleStageTarget: 0,
+    bestHandThisRun: null,
+    maxSingleHandGold: 0,
   };
 }
 
@@ -105,14 +118,17 @@ export function defeatRun(run: RunState): RunState {
 // ─── 无限挑战阶段 ─────────────────────────────────────────────
 
 /**
- * 计算无限挑战第 idx 关（0-based）的目标金币。
- * 每关以上关为基础乘以 NORMAL_RATE，精英关再额外乘 ELITE_BONUS。
+ * 计算无限挑战第 endlessIdx 关（0-based）的目标金币。
+ * 从主线末关 targetGold 起算，每关以上一关结果乘 NORMAL_RATE，精英关再乘 ELITE_BONUS；
+ * 结果四舍五入到千位，且相对上一关单调不减。
  */
 function calcEndlessTargetGold(endlessIdx: number): number {
-  let gold = ENDLESS_BASE_GOLD;
+  let gold = ENDLESS_SEED_GOLD;
   for (let i = 0; i <= endlessIdx; i++) {
     const isThisElite = (i + 1) % 3 === 0;
-    gold = Math.round(gold * ENDLESS_NORMAL_RATE * (isThisElite ? ENDLESS_ELITE_BONUS : 1));
+    const raw = gold * ENDLESS_NORMAL_RATE * (isThisElite ? ENDLESS_ELITE_BONUS : 1);
+    const rounded = roundEndlessGold(raw);
+    gold = Math.max(gold, rounded);
   }
   return gold;
 }

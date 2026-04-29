@@ -3,7 +3,7 @@ import { Card, HandType, Suit } from '../shared/types/poker';
 // ─── Run 全局 ────────────────────────────────────────────────
 export interface RunState {
   runId: string;
-  currentStageIndex: number;   // 0-based, 主线 0-14，无限阶段固定为 TOTAL_STAGES(15)
+  currentStageIndex: number;   // 0-based, 主线 0..TOTAL_STAGES-1，无限阶段固定为 TOTAL_STAGES
   stages: StageState[];
   handTypeUpgrades: HandTypeUpgradeMap;  // 已累积的牌型等级
   acquiredSkillIds: string[];
@@ -27,6 +27,13 @@ export interface RunState {
   totalGoldEarned: number;
   /** 本局遭遇过的最高单关目标金币 */
   highestSingleStageTarget: number;
+  /**
+   * 单手 `finalGold` 创新高时记录：牌型为该手牌型，`finalGold` 与 `maxSingleHandGold` 一致。
+   * 并列峰值时保留先达到者。
+   */
+  bestHandThisRun: { handType: HandType; finalGold: number } | null;
+  /** 本局单手最终 $ 峰值（结算/排行以该数值为准） */
+  maxSingleHandGold: number;
 }
 
 // ─── 关卡 ────────────────────────────────────────────────────

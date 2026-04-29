@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { TOTAL_STAGES } from '../engine/runEngine';
+import { RushLeaderboardModal } from './RushLeaderboardModal';
 
 interface Props {
   onStart: () => void;
 }
 
 export function RunEntry({ onStart }: Props) {
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-8 p-6 text-center">
       <div className="flex flex-col gap-2">
@@ -13,7 +17,7 @@ export function RunEntry({ onStart }: Props) {
           <span className="block text-rl-gold">Roguelike</span>
         </h1>
         <p className="text-gray-400 text-sm max-w-xs">
-          15 关闯关 · 每关 6 手 · 构筑你的牌型流派
+          {TOTAL_STAGES} 关闯关 · 每关 6 手 · 构筑你的牌型流派
         </p>
       </div>
 
@@ -22,15 +26,26 @@ export function RunEntry({ onStart }: Props) {
         <div>• 每手 5 张牌，按牌型赔率结算</div>
         <div>• 每手可通过“hold-补牌”增强牌型</div>
         <div>• 通过技能、升级、超级牌三选一构筑</div>
-        <div>• 第 3、6、9、12、15 为精英关</div>
+        <div>• 第 3、6、9、12、15、18 为精英关；第 {TOTAL_STAGES} 关为 Boss</div>
       </div>
 
-      <button
-        onClick={onStart}
-        className="bg-rl-gold hover:bg-yellow-300 text-black font-black text-lg px-10 py-3 rounded-xl transition-colors shadow-lg shadow-yellow-900/30"
-      >
-        开始游戏
-      </button>
+      <div className="flex flex-col gap-2 w-full max-w-xs">
+        <button
+          onClick={onStart}
+          className="bg-rl-gold hover:bg-yellow-300 text-black font-black text-lg px-10 py-3 rounded-xl transition-colors shadow-lg shadow-yellow-900/30"
+        >
+          开始游戏
+        </button>
+        <button
+          type="button"
+          onClick={() => setLeaderboardOpen(true)}
+          className="bg-rl-surface hover:bg-rl-border border border-rl-border text-gray-200 hover:text-white font-bold text-sm py-2.5 rounded-xl transition-colors"
+        >
+          冲关排行
+        </button>
+      </div>
+
+      <RushLeaderboardModal open={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
     </div>
   );
 }

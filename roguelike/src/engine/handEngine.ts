@@ -25,6 +25,29 @@ export const HAND_NAMES: Record<HandType, string> = {
   royal_flush:      '皇家同花顺',
 };
 
+/** 越大越强（与 `pokerLogic` 内牌型比较一致） */
+export const HAND_TYPE_STRENGTH: Record<HandType, number> = {
+  high_card: 1,
+  one_pair: 2,
+  two_pairs: 3,
+  three_of_a_kind: 4,
+  straight: 5,
+  flush: 6,
+  full_house: 7,
+  four_of_a_kind: 8,
+  five_of_a_kind: 9,
+  six_of_a_kind: 10,
+  seven_of_a_kind: 11,
+  straight_flush: 12,
+  royal_flush: 13,
+};
+
+/** 结算等用牌型类目名；皇家同花顺显示为「同花顺」 */
+export function handTypeCategoryLabel(handType: HandType): string {
+  if (handType === 'royal_flush') return HAND_NAMES.straight_flush;
+  return HAND_NAMES[handType] ?? handType;
+}
+
 /** 根据当前升级等级获取牌型基础$ 和 倍率 */
 export function getHandTypeStats(
   handType: HandType,

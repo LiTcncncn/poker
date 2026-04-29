@@ -17,7 +17,8 @@ class ErrorBoundary extends Component<
   handleReset = () => {
     // 清除 localStorage 存档后刷新
     try {
-      ['poker-roguelike-storage-v7', 'poker-roguelike-storage-v6',
+      ['poker-roguelike-rush-leaderboard-v1',
+       'poker-roguelike-storage-v8', 'poker-roguelike-storage-v7', 'poker-roguelike-storage-v6',
        'poker-roguelike-storage-v5', 'poker-roguelike-storage-v4',
        'poker-roguelike-storage-v3', 'poker-roguelike-storage-v2',
        'poker-roguelike-storage'].forEach(k =>

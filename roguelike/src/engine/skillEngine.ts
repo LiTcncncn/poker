@@ -2,7 +2,6 @@ import { Card, HandType, Suit } from '../shared/types/poker';
 import { SkillDef, SkillEffect, RuleModType } from '../types/skill';
 import { HandResult, HandTypeUpgradeMap, SkillApplyLog } from '../types/run';
 import {
-  findColorFlush,
   findNCardFlush,
   findNCardStraight,
   findNCardEvenStraight,
@@ -60,9 +59,63 @@ const HAND_NAMES: Record<HandType, string> = {
 };
 const SKILL_COUNT_MULT_ID = 'skill_count_mult';
 const RAINBOW_SUITS_X2_ID = 'rainbow_suits_x2';
+/** 超级牌乘倍：独立乘区因子上限（1 + 张数×增量 不超过此值） */
+const SUPER_CARD_INDEPENDENT_MULT_CAP = 3;
 
 function handPriority(ht: HandType): number {
   return HAND_PRIORITY[ht] ?? 0;
+}
+
+/** 由最终结算牌型推导“可视为包含”的子牌型集合 */
+function getContainedHandTypes(handType: HandType): Set<HandType> {
+  const contained = new Set<HandType>([handType]);
+  switch (handType) {
+    case 'two_pairs':
+      contained.add('one_pair');
+      break;
+    case 'three_of_a_kind':
+      contained.add('one_pair');
+      break;
+    case 'full_house':
+      contained.add('three_of_a_kind');
+      contained.add('two_pairs');
+      contained.add('one_pair');
+      break;
+    case 'four_of_a_kind':
+      contained.add('three_of_a_kind');
+      contained.add('one_pair');
+      break;
+    case 'five_of_a_kind':
+      contained.add('four_of_a_kind');
+      contained.add('three_of_a_kind');
+      contained.add('one_pair');
+      break;
+    case 'six_of_a_kind':
+      contained.add('five_of_a_kind');
+      contained.add('four_of_a_kind');
+      contained.add('three_of_a_kind');
+      contained.add('one_pair');
+      break;
+    case 'seven_of_a_kind':
+      contained.add('six_of_a_kind');
+      contained.add('five_of_a_kind');
+      contained.add('four_of_a_kind');
+      contained.add('three_of_a_kind');
+      contained.add('one_pair');
+      break;
+    case 'straight_flush':
+      contained.add('straight');
+      contained.add('flush');
+      break;
+    case 'royal_flush':
+      contained.add('straight_flush');
+      contained.add('straight');
+      contained.add('flush');
+      break;
+    default:
+      break;
+  }
+  return contained;
 }
 
 /** 提取已获取技能中所有激活的规则改写 */
@@ -89,6 +142,8 @@ function isFourCardFlush(cards: Card[]): boolean {
  *  双花属性牌（double_suit effect）：只要其中一个花色属于目标颜色组，就视为该颜色。
  *  注意：归一化后必须把 double_suit 收窄为单一花色，否则 calculateHandScore 仍会按双花展开，
  *  会与已写入的 suit（如统一为 ♠）冲突，导致 ♥+♣ 这类牌无法成黑色同花。
+ *  若同时持有黑色成花 + 红色成花：不能在同一遍里用 if/else if（跨色双花会先被固定成黑，破坏红同花），
+ *  由 detectHandType 分别用「仅黑」「仅红」规则集各算一次再择优。
  */
 function normalizeForColorFlush(cards: Card[], ruleMods: Set<RuleModType>): Card[] {
   return cards.map(c => {
@@ -136,6 +191,14 @@ function isFlushHand(cards: Card[]): boolean {
   return nonJokers.every(c => c.suit === suit);
 }
 
+/**
+ * 四张成花仅按字面 4 同花判定。
+ * 黑/红成花（color_flush_*）限定在 5 张成花路径，不参与 n_card_flush_4，避免组合过强。
+ */
+function findBestFourFlushForRules(hand: Card[]): Card[] | null {
+  return findNCardFlush(hand, 4);
+}
+
 /** 带规则改写的牌型检测，返回最优结果 */
 function detectHandType(
   hand: Card[],
@@ -149,12 +212,35 @@ function detectHandType(
   };
 
   // Step 2: Color flush 规则 — 归一化花色后重新检测（兼容同花顺）
-  // 约束：
-  // - 黑/红成花只在 5 张牌型判定中生效
-  // - 不与“四张成花”共同使用（同时拥有时以黑/红成花为准，四张成花不触发）
-  if (hand.length === 5 && (ruleMods.has('color_flush_black') || ruleMods.has('color_flush_red')) && !ruleMods.has('n_card_flush_4')) {
-    const normalized = normalizeForColorFlush(hand, ruleMods);
-    const nr = calculateHandScore(normalized, normalized.length);
+  // 可与四张成花共存：先尝试 5 张色组成花/同花顺；不足时再交给 Step 4 用四张规则补判。
+  if (hand.length === 5 && (ruleMods.has('color_flush_black') || ruleMods.has('color_flush_red'))) {
+    const hasBlack = ruleMods.has('color_flush_black');
+    const hasRed = ruleMods.has('color_flush_red');
+
+    const pickBetterColorFlushResult = (
+      a: ReturnType<typeof calculateHandScore>,
+      b: ReturnType<typeof calculateHandScore>,
+    ): ReturnType<typeof calculateHandScore> => {
+      const pa = handPriority(a.type);
+      const pb = handPriority(b.type);
+      if (pb > pa) return b;
+      if (pa > pb) return a;
+      return b.score > a.score ? b : a;
+    };
+
+    let nr: ReturnType<typeof calculateHandScore>;
+    if (hasBlack && hasRed) {
+      const modsBlackOnly = new Set(ruleMods);
+      modsBlackOnly.delete('color_flush_red');
+      const modsRedOnly = new Set(ruleMods);
+      modsRedOnly.delete('color_flush_black');
+      const nrB = calculateHandScore(normalizeForColorFlush(hand, modsBlackOnly), hand.length);
+      const nrR = calculateHandScore(normalizeForColorFlush(hand, modsRedOnly), hand.length);
+      nr = pickBetterColorFlushResult(nrB, nrR);
+    } else {
+      const normalized = normalizeForColorFlush(hand, ruleMods);
+      nr = calculateHandScore(normalized, normalized.length);
+    }
     // scoringCardIds 是归一化牌的 id，与原牌相同
     if (handPriority(nr.type) > handPriority(best.handType)) {
       best = { handType: nr.type, scoringCardIds: nr.scoringCardIds };
@@ -182,7 +268,8 @@ function detectHandType(
   }
 
   // Step 3.5: 偶数成顺 + 四张成顺 组合（支持 4/6/8/10 这种 4 张偶数序列）
-  if (ruleMods.has('even_straight') && ruleMods.has('n_card_straight_4') && handPriority(best.handType) < handPriority('straight')) {
+  // 条件用「弱于同花」而非弱于顺子：否则 Step 1 已出五张标准顺子时，无法再用本分支升级为四张同花
+  if (ruleMods.has('even_straight') && ruleMods.has('n_card_straight_4') && handPriority(best.handType) < handPriority('flush')) {
     const even4 = findNCardEvenStraight(hand, 4);
     if (even4) {
       const ht: HandType = isFourCardFlush(even4) ? 'flush' : 'straight';
@@ -193,7 +280,8 @@ function detectHandType(
   }
 
   // Step 3.6: 奇数成顺 + 四张成顺 组合（支持 A/3/5/7、3/5/7/9 等 4 张奇数序列）
-  if (ruleMods.has('odd_straight') && ruleMods.has('n_card_straight_4') && handPriority(best.handType) < handPriority('straight')) {
+  // 同上：须允许在已是「顺子」时仍尝试四张奇数序 + 同花 → 升为同花
+  if (ruleMods.has('odd_straight') && ruleMods.has('n_card_straight_4') && handPriority(best.handType) < handPriority('flush')) {
     const odd4 = findNCardOddStraight(hand, 4);
     if (odd4) {
       const ht: HandType = isFourCardFlush(odd4) ? 'flush' : 'straight';
@@ -204,11 +292,9 @@ function detectHandType(
   }
 
   // Step 4: 4 张成花（不兼容同花顺，只当当前不足 flush 时才检查）
-  // 与黑/红成花互斥：若拥有黑/红成花，则不触发四张成花
-  if (ruleMods.has('n_card_flush_4') &&
-      !(ruleMods.has('color_flush_black') || ruleMods.has('color_flush_red')) &&
-      handPriority(best.handType) < handPriority('flush')) {
-    const fc = findNCardFlush(hand, 4);
+  // 可与黑/红成花共存：字面 4 同花找不到时，在色组归一化后的牌里再找 4 张。
+  if (ruleMods.has('n_card_flush_4') && handPriority(best.handType) < handPriority('flush')) {
+    const fc = findBestFourFlushForRules(hand);
     if (fc) {
       best = { handType: 'flush', scoringCardIds: fc.map(c => c.id) };
     }
@@ -286,6 +372,15 @@ export interface HandContext {
   isFirstHandOfStage: boolean;
   /** 本手已用补牌次数（0 = 未补牌，用于技能触发条件） */
   drawsUsedThisHand: number;
+  /** 本局已获得的超级牌（属性牌）数量，用于「超级牌乘倍」等 */
+  superCardCount?: number;
+}
+
+/** 超级牌乘倍：当前独立乘区因子 min(上限, 1 + superCardCount × delta)（无此效果则 null） */
+export function getSuperCardIndependentFactor(skill: SkillDef, superCardCount: number): number | null {
+  const ef = skill.effects.find(e => e.type === 'super_card_independent_multiply');
+  if (!ef) return null;
+  return Math.min(SUPER_CARD_INDEPENDENT_MULT_CAP, 1 + superCardCount * ef.value);
 }
 
 export interface SkillHandResult extends HandResult {
@@ -304,6 +399,7 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
     isLastHand,
     isFirstHandOfStage,
     drawsUsedThisHand,
+    superCardCount = 0,
   } = ctx;
 
   const ruleMods = getActiveRuleMods(acquiredSkills);
@@ -374,6 +470,7 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
     handType === 'straight' &&
     scoringCards.length === 5 &&
     [10, 11, 12, 13, 14].every(r => scoringCards.some(c => c.rank === r));
+  const containedHandTypes = getContainedHandTypes(handType);
 
   for (const skill of acquiredSkills) {
     for (const ef of skill.effects) {
@@ -385,7 +482,10 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
 
       // ── triggerHandTypes 全局条件 ──
       const handTypeMatch =
-        !ef.triggerHandTypes || ef.triggerHandTypes.includes(handType);
+        !ef.triggerHandTypes ||
+        (ef.matchContainedHandTypes
+          ? ef.triggerHandTypes.some(t => containedHandTypes.has(t))
+          : ef.triggerHandTypes.includes(handType));
 
       // ── requireLastHand ──
       if (ef.requireLastHand && !isLastHand) continue;
@@ -517,10 +617,34 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
           break;
         }
 
+        case 'accumulate_multiplier_no_draw': {
+          if (drawsUsedThisHand > 0) break;
+          const cap = ef.accumulateCap ?? 9999;
+          const prev = newAccumulation[skill.id] ?? 0;
+          const grown = Math.min(prev + ef.value, cap);
+          newAccumulation[skill.id] = grown;
+          skillAddedMultiplier += grown;
+          skillLog.push({ skillId: skill.id, skillName: skill.name, addedMultiplier: grown });
+          break;
+        }
+
         case 'independent_multiply': {
           if (!handTypeMatch) break;
           independentMultiplier *= ef.value;
           skillLog.push({ skillId: skill.id, skillName: skill.name, multiplyFactor: ef.value });
+          break;
+        }
+
+        case 'super_card_independent_multiply': {
+          if (!handTypeMatch) break;
+          const factor = Math.min(
+            SUPER_CARD_INDEPENDENT_MULT_CAP,
+            1 + superCardCount * ef.value,
+          );
+          if (factor > 1) {
+            independentMultiplier *= factor;
+            skillLog.push({ skillId: skill.id, skillName: skill.name, multiplyFactor: factor });
+          }
           break;
         }
 
@@ -585,6 +709,50 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
     finalGold,
     skillLog,
     newAccumulation,
+  };
+}
+
+/**
+ * 本关通关且仍剩余手数时：对拥有 `accumulate_score_saved_hands` 的技能按「每剩余 1 手 +value」叠加上限，
+ * 并将**整池**并入当次技能$后重算 `finalGold`（与 `accumulate_score` 同类记账）。
+ */
+export function applySavedHandsStageWinBonus(
+  base: SkillHandResult,
+  acquiredSkills: SkillDef[],
+  savedHands: number,
+): SkillHandResult {
+  if (savedHands <= 0) return base;
+
+  let newAccumulation = { ...base.newAccumulation };
+  let skillAddedScore = base.skillAddedScore;
+  const skillLog = [...base.skillLog];
+  let touched = false;
+
+  for (const skill of acquiredSkills) {
+    for (const ef of skill.effects) {
+      if (ef.type !== 'accumulate_score_saved_hands') continue;
+      const cap = ef.accumulateCap ?? 9999;
+      const prev = newAccumulation[skill.id] ?? 0;
+      const grown = Math.min(prev + ef.value * savedHands, cap);
+      newAccumulation[skill.id] = grown;
+      skillAddedScore += grown;
+      skillLog.push({ skillId: skill.id, skillName: skill.name, addedScore: grown });
+      touched = true;
+    }
+  }
+
+  if (!touched) return base;
+
+  const finalGold = Math.round(
+    (base.cardScoreSum + skillAddedScore) * base.multiplierTotal * base.independentMultiplier,
+  );
+
+  return {
+    ...base,
+    skillAddedScore,
+    newAccumulation,
+    skillLog,
+    finalGold,
   };
 }
 

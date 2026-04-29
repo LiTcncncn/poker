@@ -5,23 +5,29 @@ import SkillCard from './SkillCard';
 interface Props {
   skills: SkillDef[];
   skillAccumulation?: Record<string, number>;
+  /** 本局超级牌张数，用于「超级牌乘倍」显示当前 × */
+  superCardCount?: number;
 }
 
 function withAccumulatedName(skill: SkillDef, skillAccumulation: Record<string, number>): string {
   const accumulated = skillAccumulation[skill.id] ?? 0;
-  const hasScoreAccum = skill.effects.some(e => e.type === 'accumulate_score');
-  const hasMultAccum = skill.effects.some(e => e.type === 'accumulate_multiplier');
+  const hasScoreAccum = skill.effects.some(
+    e => e.type === 'accumulate_score' || e.type === 'accumulate_score_saved_hands',
+  );
+  const hasMultAccum = skill.effects.some(
+    e => e.type === 'accumulate_multiplier' || e.type === 'accumulate_multiplier_no_draw',
+  );
 
   if (hasScoreAccum) return `${skill.name}+$${accumulated}`;
   if (hasMultAccum) return `${skill.name}+${accumulated}倍`;
   return skill.name;
 }
 
-export default function SkillPanel({ skills, skillAccumulation = {} }: Props) {
+export default function SkillPanel({ skills, skillAccumulation = {}, superCardCount }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
 
   if (skills.length === 0) return null;
-  const visibleSkills = skills.slice(0, 12);
+  const visibleSkills = skills.slice(0, 15);
 
   return (
     <div className="mt-2 relative pb-6">
@@ -34,6 +40,7 @@ export default function SkillPanel({ skills, skillAccumulation = {} }: Props) {
             displayName={withAccumulatedName(s, skillAccumulation)}
             compact
             owned
+            superCardCount={superCardCount}
           />
         ))}
       </div>
@@ -60,6 +67,7 @@ export default function SkillPanel({ skills, skillAccumulation = {} }: Props) {
                     skill={s}
                     displayName={withAccumulatedName(s, skillAccumulation)}
                     owned
+                    superCardCount={superCardCount}
                   />
                 ))}
               </div>

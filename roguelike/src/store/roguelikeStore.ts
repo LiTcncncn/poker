@@ -8,7 +8,13 @@ import { initRun, updateStageInRun, advanceToNextStage, advanceToNextEndlessStag
 import { applyHandGold, consumeDraw, canDraw, getEffectiveStage } from '../engine/stageEngine';
 import { buildBaseDeck, injectJokers, shuffle, dealCards, replaceUnheld, capJokersInHand } from '../engine/deckEngine';
 import { applyUpgrade, generateRewardForStage, generateOpeningRewardState, generateSkillOptions } from '../engine/rewardEngine';
-import { evaluateHandWithSkills, applyHoldSkillAccumulation, getSkillsByIds } from '../engine/skillEngine';
+import {
+  evaluateHandWithSkills,
+  applyHoldSkillAccumulation,
+  getSkillsByIds,
+  applySavedHandsStageWinBonus,
+} from '../engine/skillEngine';
+import { recordRunOnAbandon } from '../storage/rushLeaderboard';
 
 const HAND_SIZE = 5;
 
@@ -25,7 +31,7 @@ function _commitScore(
   const isLastHand         = stage.usedHands + 1 >= stage.totalHands;
   const isFirstHandOfStage = stage.usedHands === 0;
 
-  const evalResult = evaluateHandWithSkills({
+  const evalBase = evaluateHandWithSkills({
     hand: handState.hand,
     upgradeMap: run.handTypeUpgrades,
     acquiredSkills: skills,
@@ -36,7 +42,13 @@ function _commitScore(
     isLastHand,
     isFirstHandOfStage,
     drawsUsedThisHand: handState.drawsUsed,
+    superCardCount:    run.attributeCards?.length ?? 0,
   });
+
+  const wouldClearStage =
+    stage.accumulatedGold + evalBase.finalGold >= stage.targetGold;
+  const savedHands = wouldClearStage ? stage.totalHands - (stage.usedHands + 1) : 0;
+  const evalResult = applySavedHandsStageWinBonus(evalBase, skills, savedHands);
 
   const handResult: HandResult = {
     handType:              evalResult.handType,
@@ -54,11 +66,20 @@ function _commitScore(
   // 进入结算展示时统一清空 HOLD 标记，避免“直接结算”场景残留 HOLD UI
   const newHandState: HandState = { ...handState, heldIndices: [], phase: 'result', lastResult: handResult };
 
+  const fg = handResult.finalGold;
+  const prevMaxGold = run.maxSingleHandGold ?? 0;
+  let bestHandThisRun = run.bestHandThisRun ?? null;
+  if (fg > prevMaxGold) {
+    bestHandThisRun = { handType: handResult.handType, finalGold: fg };
+  }
+
   // 更新统计数据
   let newRun: RunState = {
     ...run,
     skillAccumulation: evalResult.newAccumulation,
     totalGoldEarned: run.totalGoldEarned + evalResult.finalGold,
+    bestHandThisRun,
+    maxSingleHandGold: Math.max(prevMaxGold, fg),
   };
 
   const newStage = applyHandGold(stage, evalResult.finalGold);
@@ -71,7 +92,13 @@ function _commitScore(
     if (run.isEndless) {
       // 无限阶段：按 endlessStagesCleared % 3 决定奖励类型（与主线节奏相同）
       const afterElite = stage.isElite;
-      const rewardState = generateRewardForStage(run.endlessStagesCleared, newRun.handTypeUpgrades, newRun.acquiredSkillIds, afterElite);
+      const rewardState = generateRewardForStage(
+        run.endlessStagesCleared,
+        newRun.handTypeUpgrades,
+        newRun.acquiredSkillIds,
+        afterElite,
+        true
+      );
       set({ run: newRun, handState: newHandState, reward: rewardState });
     } else {
       const isLastStage = stage.stageIndex + 1 >= TOTAL_STAGES;
@@ -82,7 +109,13 @@ function _commitScore(
       } else {
         // 按关卡位置（stageIndex % 3）决定奖励类型
         const afterElite = stage.isElite || stage.isBoss;
-        const rewardState = generateRewardForStage(stage.stageIndex, newRun.handTypeUpgrades, newRun.acquiredSkillIds, afterElite);
+        const rewardState = generateRewardForStage(
+          stage.stageIndex,
+          newRun.handTypeUpgrades,
+          newRun.acquiredSkillIds,
+          afterElite,
+          false
+        );
         set({ run: newRun, handState: newHandState, reward: rewardState });
       }
     }
@@ -153,7 +186,11 @@ export const useRLStore = create<RLStore>()(
         });
       },
 
-      abandonRun: () => set({ run: null, handState: null, reward: null }),
+      abandonRun: () => {
+        const { run } = get();
+        if (run) recordRunOnAbandon(run);
+        set({ run: null, handState: null, reward: null });
+      },
 
       // ─── 进入无限挑战模式 ──────────────────────────────────────
       enterEndlessMode: () => {
@@ -363,18 +400,23 @@ export const useRLStore = create<RLStore>()(
       },
     }),
     {
-      name: 'poker-roguelike-storage-v7',  // v7: 统一补牌次数，去除 rehold，简化手牌 phase
+      name: 'poker-roguelike-storage-v8',  // v8: 主线 20 关；v7: 统一补牌次数，去除 rehold，简化手牌 phase
       partialize: (state) => ({
         run:       state.run,
         handState: state.handState,
         reward:    state.reward,
       }),
       // 旧版存档直接丢弃，避免类型不兼容
-      migrate: (_persisted: unknown, version: number) => {
+      migrate: (persisted: unknown, version: number) => {
         if (version < 7) return { run: null, handState: null, reward: null };
-        return _persisted as { run: RunState | null; handState: unknown; reward: unknown };
+        const p = persisted as { run: RunState | null; handState: unknown; reward: unknown };
+        // 主线关数变更：进行中/无尽存档与 20 关模板不兼容，强制清局
+        if (version < 8 && p.run) {
+          return { ...p, run: null, handState: null, reward: null };
+        }
+        return p;
       },
-      version: 7,
+      version: 8,
     }
   )
 );
