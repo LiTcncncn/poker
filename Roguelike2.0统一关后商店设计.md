@@ -90,7 +90,7 @@
 统一写法：
 
 \[
-gateK(N) = 15 + 20N
+gateK(N) = 19 + 20N
 \]
 
 当 `ownedBlackCount <= N` 且 `k >= gateK(N)` 时，启用该段的“黑边出现保底”。

@@ -105,6 +105,19 @@
     ]
   },
   {
+    "id": "small_cards_score",
+    "name": "小牌加注",
+    "quality": "green",
+    "description": "计分时每张 2~6 额外 +$20",
+    "effects": [
+      {
+        "type": "per_scoring_card_score",
+        "value": 20,
+        "triggerRanks": [2, 3, 4, 5, 6]
+      }
+    ]
+  },
+  {
     "id": "heart_mult",
     "name": "红桃倍率",
     "quality": "blue",
@@ -161,6 +174,19 @@
         "triggerSuits": [
           "diamonds"
         ]
+      }
+    ]
+  },
+  {
+    "id": "face_mult",
+    "name": "人头牌加倍",
+    "quality": "blue",
+    "description": "计分时每张人头牌（J/Q/K）额外 +3 倍",
+    "effects": [
+      {
+        "type": "per_scoring_card_multiplier",
+        "value": 3,
+        "triggerFaceCard": true
       }
     ]
   },
@@ -300,11 +326,11 @@
     "id": "joker_mult",
     "name": "Joker加倍率",
     "quality": "green",
-    "description": "计分时有 Joker 参与，额外 +3 倍",
+    "description": "计分时有 Joker 参与，额外 +5 倍",
     "effects": [
       {
         "type": "add_multiplier",
-        "value": 3,
+        "value": 5,
         "triggerHasJoker": true
       }
     ]
@@ -581,7 +607,7 @@
   },
   {
     "id": "saved_hold_mult",
-    "name": "省补倍率",
+    "name": "省 HOLD 加倍",
     "quality": "purple",
     "description": "每省一次补牌（本手未使用补牌），累积 +1 倍（上限 +20 倍）；每次计分时加入额外倍率",
     "effects": [
@@ -596,12 +622,16 @@
     "id": "odd_straight_skill",
     "name": "奇数成顺",
     "quality": "blue",
-    "description": "纯奇数牌（A/3/5/7/9）可成顺子；兼容同花顺",
+    "description": "纯奇数牌（A/3/5/7/9）可成顺子；兼容同花顺。并且计分时额外 +10 倍",
     "effects": [
       {
         "type": "modify_rule",
         "value": 0,
         "ruleType": "odd_straight"
+      },
+      {
+        "type": "add_multiplier",
+        "value": 10
       }
     ]
   },
@@ -609,12 +639,16 @@
     "id": "even_straight_skill",
     "name": "偶数成顺",
     "quality": "blue",
-    "description": "纯偶数牌（2/4/6/8/10）可成顺子；兼容同花顺",
+    "description": "纯偶数牌（2/4/6/8/10）可成顺子；兼容同花顺。并且计分时额外 +10 倍",
     "effects": [
       {
         "type": "modify_rule",
         "value": 0,
         "ruleType": "even_straight"
+      },
+      {
+        "type": "add_multiplier",
+        "value": 10
       }
     ]
   },
@@ -672,13 +706,13 @@
   },
   {
     "id": "last_hand_double",
-    "name": "末手翻倍",
+    "name": "末手乘倍",
     "quality": "purple",
-    "description": "本关最后一手结算时 ×3",
+    "description": "本关最后一手结算时 ×2",
     "effects": [
       {
         "type": "independent_multiply",
-        "value": 3,
+        "value": 2,
         "requireLastHand": true
       }
     ]
@@ -687,11 +721,11 @@
     "id": "no_hold_double",
     "name": "开门红乘倍",
     "quality": "purple",
-    "description": "每关第一手且未使用额外 hold 时，结算 ×3",
+    "description": "每关第一手且未使用额外 hold 时，结算 ×2.5",
     "effects": [
       {
         "type": "independent_multiply",
-        "value": 3,
+        "value": 2.5,
         "requireFirstHandNoHold": true
       }
     ]
@@ -742,6 +776,22 @@
     ]
   },
   {
+    "id": "hearts_flush_x15",
+    "name": "♥️同花乘倍",
+    "quality": "purple",
+    "description": "红桃♥️同花（4/5 张均可，Joker/双花可补），结算 ×1.5（红色成花技能下的♦️不算）",
+    "effects": [
+      {
+        "type": "independent_multiply",
+        "value": 1.5,
+        "triggerHandTypes": ["flush"],
+        "matchContainedHandTypes": true,
+        "requireStrictFlushSuit": "hearts",
+        "requireStrictFlushMinCount": 4
+      }
+    ]
+  },
+  {
     "id": "straight_flush_x2",
     "name": "同花顺乘倍",
     "quality": "purple",
@@ -773,7 +823,7 @@
     "id": "super_card_mult",
     "name": "超级牌乘倍",
     "quality": "purple",
-    "description": "每拥有一张超级牌，结算独立乘区倍率 +0.1（因子最高 ×2.5；界面显示当前乘倍）",
+    "description": "每拥有两张超级牌，结算独立乘区倍率 +0.1（因子最高 ×2.5；界面显示当前乘倍）",
     "effects": [
       {
         "type": "super_card_independent_multiply",
@@ -791,8 +841,8 @@
   {
     "id": "elite_unshackled",
     "name": "精英关无限制",
-    "quality": "purple",
-    "description": "精英/Boss 关：牌型/花色/小牌禁止、禁小丑（不出现 Joker）与补牌时段限制不生效；削减手数/补牌总次数仍生效（主线与无限均生效）",
+    "quality": "blue",
+    "description": "精英/Boss 关：牌型/花色/小牌禁止、禁小丑（不出现 Joker）与补牌时段限制不生效；削减手数/补牌总次数仍生效。共 3 次，进入精英/Boss 关时消耗 1 次，用完后本技能消失（牌面显示剩余次数）。",
     "effects": []
   },
   {
@@ -820,24 +870,24 @@
     "id": "diamond_score_per_gem",
     "name": "钻石估值",
     "quality": "blue",
-    "description": "每持有 1💎（计分取样时刻，不含本手待发钻），本手 +$3。",
+    "description": "每持有 1💎（计分取样时刻，不含本手待发钻），本手 +$1。",
     "effects": [
       {
         "type": "per_run_diamond_score",
-        "value": 3
+        "value": 1
       }
     ]
   },
   {
     "id": "diamond_mult_per_gem",
-    "name": "钻石倍率",
+    "name": "钻石加倍",
     "quality": "blue",
-    "description": "每持有 2💎（同上取样，向下取整），本手 +1 倍（加性倍率，非独立乘区）。",
+    "description": "每持有 3💎（同上取样，向下取整），本手 +1 倍（加性倍率，非独立乘区）。",
     "effects": [
       {
         "type": "per_run_diamond_multiplier",
         "value": 1,
-        "perRunDiamondsCost": 2
+        "perRunDiamondsCost": 3
       }
     ]
   },
@@ -851,6 +901,112 @@
         "type": "independent_multiply",
         "value": 1.5,
         "requireRunDiamondsLte": 3
+      }
+    ]
+  },
+  {
+    "id": "second_hand_joker_x2",
+    "name": "次手Joker爆发",
+    "quality": "blue",
+    "description": "本关第 2 手结算：若 Joker 参与计分，结算 ×2",
+    "effects": [
+      {
+        "type": "independent_multiply",
+        "value": 2,
+        "requireStageHandIndex": 2,
+        "triggerHasJoker": true
+      }
+    ]
+  },
+  {
+    "id": "high_straight_x3",
+    "name": "高阶顺子乘倍",
+    "quality": "blue",
+    "description": "结算时若计分牌可覆盖 JQKA（四张成顺时亦可，Joker/跨数值牌可补），结算 ×3",
+    "effects": [
+      {
+        "type": "independent_multiply",
+        "value": 3,
+        "triggerHandTypes": ["straight"],
+        "matchContainedHandTypes": true,
+        "requireStraightContainsRanks": [11, 12, 13, 14]
+      }
+    ]
+  },
+  {
+    "id": "odd_pair_score_40",
+    "name": "奇数对子加注",
+    "quality": "green",
+    "description": "结算时含单数（A/3/5/7/9/J/K）对子，+$40（含两对/葫芦等；最多触发一次）",
+    "effects": [
+      {
+        "type": "hand_add_score",
+        "value": 40,
+        "triggerHandTypes": ["one_pair"],
+        "matchContainedHandTypes": true,
+        "requireMadeGroupSize": 2,
+        "requireMadeGroupRankSet": "odd"
+      }
+    ]
+  },
+  {
+    "id": "even_pair_mult_6",
+    "name": "偶数对子加倍",
+    "quality": "green",
+    "description": "结算时含双数（2/4/6/8/10/Q）对子，+6倍（含两对/葫芦等；最多触发一次）",
+    "effects": [
+      {
+        "type": "hand_add_multiplier",
+        "value": 6,
+        "triggerHandTypes": ["one_pair"],
+        "matchContainedHandTypes": true,
+        "requireMadeGroupSize": 2,
+        "requireMadeGroupRankSet": "even"
+      }
+    ]
+  },
+  {
+    "id": "odd_trips_score_60",
+    "name": "奇数三条加注",
+    "quality": "green",
+    "description": "结算时含单数（A/3/5/7/9/J/K）三条，+$60（含葫芦等；最多触发一次）",
+    "effects": [
+      {
+        "type": "hand_add_score",
+        "value": 60,
+        "triggerHandTypes": ["three_of_a_kind"],
+        "matchContainedHandTypes": true,
+        "requireMadeGroupSize": 3,
+        "requireMadeGroupRankSet": "odd"
+      }
+    ]
+  },
+  {
+    "id": "even_trips_mult_8",
+    "name": "偶数三条加倍",
+    "quality": "green",
+    "description": "结算时含双数（2/4/6/8/10/Q）三条，+8倍（含葫芦等；最多触发一次）",
+    "effects": [
+      {
+        "type": "hand_add_multiplier",
+        "value": 8,
+        "triggerHandTypes": ["three_of_a_kind"],
+        "matchContainedHandTypes": true,
+        "requireMadeGroupSize": 3,
+        "requireMadeGroupRankSet": "even"
+      }
+    ]
+  },
+  {
+    "id": "seven_cycle_x4",
+    "name": "7 日轮回",
+    "quality": "purple",
+    "description": "获取后：本局第 1、7、14、21… 手结算时 ×4",
+    "effects": [
+      {
+        "type": "independent_multiply",
+        "value": 4,
+        "requireRunHandCycle7": true
       }
     ]
   },

@@ -99,7 +99,7 @@ export function getSkillCardFaceStats(skill: SkillDef, opts?: SkillCardFaceStats
       if (fac != null) superCardText = `当前 ×${fac.toFixed(1)}`;
     } else {
       const ef = skill.effects.find((e) => e.type === 'super_card_independent_multiply');
-      if (ef) superCardText = `每超牌 +${ef.value}`;
+      if (ef) superCardText = `每两超牌 +${ef.value}`;
     }
   }
 
@@ -261,7 +261,7 @@ export function getSkillFaceBaseNumericSegments(
  * 牌面「动态最终值」分段（× / +$ / +N 倍），超级牌乘倍仅在传入 `superCardCount` 时加入。
  */
 export function getSkillCumulativeFinalSegments(
-  skill: Pick<SkillDef, 'effects'>,
+  skill: Pick<SkillDef, 'id' | 'effects'>,
   opts?: { accumulated?: number; superCardCount?: number },
 ): SkillNumericSegment[] {
   const accumulated = opts?.accumulated ?? 0;
@@ -284,6 +284,12 @@ export function getSkillCumulativeFinalSegments(
   const hasMultAccum = skill.effects.some(
     (e) => e.type === 'accumulate_multiplier' || e.type === 'accumulate_multiplier_no_draw',
   );
+
+  // 「精英关无限制」：accumulated 用作剩余次数（牌面显示 n 次）
+  if (skill.id === 'elite_unshackled' && accumulated > 0) {
+    out.push({ kind: 'times', text: `${accumulated} 次` });
+    return out;
+  }
 
   if (hasScoreAccum) out.push({ kind: 'score', text: `+$${accumulated}` });
   else if (hasMultAccum) out.push({ kind: 'mult_add', text: `+${accumulated} 倍` });

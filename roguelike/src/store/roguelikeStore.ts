@@ -53,7 +53,7 @@ const SKILL_DIAMOND_TYCOON = 'diamond_tycoon';
 const SKILL_SELLERS_MARKET = 'sellers_market';
 
 function computeBlackEdgePityGateN(shopStageK: number, ownedBlackCount: number): number | null {
-  const gateK = 15 + 20 * ownedBlackCount;
+  const gateK = 19 + 20 * ownedBlackCount;
   return shopStageK >= gateK ? ownedBlackCount : null;
 }
 
@@ -109,6 +109,7 @@ function _commitScore(
     runDiamonds:       run.runDiamonds,
     stageTotalHands:   stage.totalHands,
     stageUsedHands:    stage.usedHands,
+    runHandsPlayedTotal: run.handsPlayedTotal ?? 0,
     randomHandAddMultiplier,
   });
 
@@ -147,6 +148,7 @@ function _commitScore(
     ...run,
     skillAccumulation: evalResult.newAccumulation,
     totalGoldEarned: run.totalGoldEarned + evalResult.finalGold,
+    handsPlayedTotal: (run.handsPlayedTotal ?? 0) + 1,
     bestHandThisRun,
     maxSingleHandGold: Math.max(prevMaxGold, fg),
   };
@@ -173,8 +175,10 @@ function _commitScore(
     newRun = applyStageWinEconomy(newRun);
 
     if (run.isEndless) {
+      // 黑边定向保底的 gateK(N) 使用“显示关数”（主线 1..20 + 无尽 21..），因此这里要用 stageIndex+1（而不是 endlessStagesCleared+1）。
+      const displayK = stage.stageIndex + 1;
       const rewardState = generateRewardForStage(
-        run.endlessStagesCleared,
+        stage.stageIndex,
         newRun.handTypeUpgrades,
         newRun.acquiredSkillIds,
         newRun.skillEnhancements,
@@ -182,7 +186,7 @@ function _commitScore(
         true,
         newRun.soldSkillIds ?? [],
         {
-          gateN: computeBlackEdgePityGateN(run.endlessStagesCleared + 1, newRun.acquiredSkillIds.filter((id) => newRun.skillEnhancements[id] === 'black').length),
+          gateN: computeBlackEdgePityGateN(displayK, newRun.acquiredSkillIds.filter((id) => newRun.skillEnhancements[id] === 'black').length),
           misses: newRun.blackEdgePityMisses ?? 0,
           cooldown: newRun.blackEdgePityCooldown ?? 0,
         },
@@ -421,6 +425,13 @@ export const useRLStore = create<RLStore>()(
           runDiamonds: clampRunDiamonds(nextDiamonds),
           diamondsSpentTotal: run.diamondsSpentTotal + price,
         };
+        // 「精英关无限制」：3 次充能（进入精英/Boss 关消耗）
+        if (skill.id === 'elite_unshackled') {
+          newRun = {
+            ...newRun,
+            skillAccumulation: { ...newRun.skillAccumulation, [skill.id]: 3 },
+          };
+        }
         const beforeRandom = hasRandomHandAddMultiplierSkill(getSkillsByIds(run.acquiredSkillIds));
         const afterRandom = hasRandomHandAddMultiplierSkill(getSkillsByIds(newRun.acquiredSkillIds));
         const hs = get().handState;
@@ -611,9 +622,36 @@ export const useRLStore = create<RLStore>()(
           });
         }
 
-        const advanced = run.isEndless
+        let advanced = run.isEndless
           ? advanceToNextEndlessStage(run, run.handTypeUpgrades, [], [])
           : advanceToNextStage(run, run.handTypeUpgrades, [], []);
+
+        // 「精英关无限制」：进入精英/Boss 关时消耗 1 次；用完后技能消失
+        if (advanced.status === 'running' && advanced.acquiredSkillIds.includes('elite_unshackled')) {
+          const st = advanced.stages[advanced.currentStageIndex];
+          if (st && (st.isElite || st.isBoss) && st.modifierId) {
+            const prev = advanced.skillAccumulation?.elite_unshackled ?? 3;
+            const next = prev - 1;
+            if (next <= 0) {
+              const newSkillIds = advanced.acquiredSkillIds.filter((id) => id !== 'elite_unshackled');
+              const newEnh = { ...advanced.skillEnhancements };
+              delete newEnh.elite_unshackled;
+              const newAcc = { ...advanced.skillAccumulation };
+              delete newAcc.elite_unshackled;
+              advanced = {
+                ...advanced,
+                acquiredSkillIds: newSkillIds,
+                skillEnhancements: newEnh,
+                skillAccumulation: newAcc,
+              };
+            } else {
+              advanced = {
+                ...advanced,
+                skillAccumulation: { ...advanced.skillAccumulation, elite_unshackled: next },
+              };
+            }
+          }
+        }
         set({ run: advanced, reward: null });
         if (advanced.status === 'running') get().dealInitialHand();
       },
@@ -704,6 +742,14 @@ export const useRLStore = create<RLStore>()(
               blackEdgePityCooldown: (p.run as RunState & { blackEdgePityCooldown?: number }).blackEdgePityCooldown ?? 0,
             },
           };
+        }
+        // v17: 「精英关无限制」改为 3 次充能；老存档若已拥有该技能但未写入次数，则补 3
+        if (version < 17 && p.run && p.run.acquiredSkillIds?.includes('elite_unshackled')) {
+          const acc = { ...(p.run.skillAccumulation ?? {}) } as Record<string, unknown>;
+          const raw = acc.elite_unshackled;
+          const n = typeof raw === 'number' && Number.isFinite(raw) ? raw : 3;
+          acc.elite_unshackled = Math.max(0, Math.min(3, Math.floor(n)));
+          p = { ...p, run: { ...p.run, skillAccumulation: acc as RunState['skillAccumulation'] } };
         }
         return p;
       },

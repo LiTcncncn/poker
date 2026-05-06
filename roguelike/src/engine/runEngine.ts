@@ -12,14 +12,46 @@ const stageTplList = stageTemplates as StageTpl[];
 /** 无限阶段递推起点：主线最后一关 targetGold（与 JSON 同步） */
 const ENDLESS_SEED_GOLD = stageTplList[stageTplList.length - 1].targetGold;
 
-// 无限阶段目标金币增长（种子 = 主线末关 `runStageTemplates.json` 的 targetGold）：普通关每关 ×NORMAL，无尽内精英关（第 3、6、9… 关）再 ×ELITE；千位取整、单调不减（较旧 1.055/1.022 更陡，缓深无尽「目标涨不过 build」）
-const ENDLESS_NORMAL_RATE = 1.075;
-const ENDLESS_ELITE_BONUS = 1.032;
+/**
+ * 无限阶段目标金币增长（种子 = 主线末关 `runStageTemplates.json` 的 targetGold）：
+ * - 递推粒度：每关一次（与“每关一次统一商店机会”一致）
+ * - 无尽精英关：无尽第 3、6、9… 关（即显示关号 23、26、29…）额外乘 ELITE
+ * - 取整：千位四舍五入
+ * - 单调：与上一关取 max
+ *
+ * 目标：21～35 偏陡以抵抗 build 成型；36～60 平滑放缓，使 60 关目标约 1.5M（取整后约 1,499,000）。
+ * 通过“显示关号 k（主线 1～20 + 无尽 21…）”驱动倍率，而非简单常量倍率。
+ */
+const ENDLESS_RATE_DECAY_START_K = 36; // 从第 36 关开始放缓
+const ENDLESS_RATE_DECAY_END_K   = 60; // 到第 60 关放缓到下限
+const ENDLESS_NORMAL_RATE_HI = 1.09;
+const ENDLESS_ELITE_BONUS_HI = 1.045;
+const ENDLESS_NORMAL_RATE_LO = 1.058;
+const ENDLESS_ELITE_BONUS_LO = 1.036;
 /** 无限关目标取整到千位（末三位为 0） */
 const ENDLESS_GOLD_ROUND = 1000;
 
 function roundEndlessGold(gold: number): number {
   return Math.round(gold / ENDLESS_GOLD_ROUND) * ENDLESS_GOLD_ROUND;
+}
+
+function clamp01(x: number): number {
+  return Math.max(0, Math.min(1, x));
+}
+
+function endlessRateT(displayK: number): number {
+  const denom = Math.max(1, ENDLESS_RATE_DECAY_END_K - ENDLESS_RATE_DECAY_START_K);
+  return clamp01((displayK - ENDLESS_RATE_DECAY_START_K) / denom);
+}
+
+function endlessNormalRate(displayK: number): number {
+  const t = endlessRateT(displayK);
+  return ENDLESS_NORMAL_RATE_HI - (ENDLESS_NORMAL_RATE_HI - ENDLESS_NORMAL_RATE_LO) * t;
+}
+
+function endlessEliteBonus(displayK: number): number {
+  const t = endlessRateT(displayK);
+  return ENDLESS_ELITE_BONUS_HI - (ENDLESS_ELITE_BONUS_HI - ENDLESS_ELITE_BONUS_LO) * t;
 }
 
 function newRunId(): string {
@@ -83,6 +115,7 @@ export function initRun(): RunState {
     isEndless: false,
     endlessStagesCleared: 0,
     totalGoldEarned: 0,
+    handsPlayedTotal: 0,
     highestSingleStageTarget: 0,
     bestHandThisRun: null,
     maxSingleHandGold: 0,
@@ -153,8 +186,9 @@ export function defeatRun(run: RunState): RunState {
 function calcEndlessTargetGold(endlessIdx: number): number {
   let gold = ENDLESS_SEED_GOLD;
   for (let i = 0; i <= endlessIdx; i++) {
+    const displayK = TOTAL_STAGES + i + 1; // 21,22,23...
     const isThisElite = (i + 1) % 3 === 0;
-    const raw = gold * ENDLESS_NORMAL_RATE * (isThisElite ? ENDLESS_ELITE_BONUS : 1);
+    const raw = gold * endlessNormalRate(displayK) * (isThisElite ? endlessEliteBonus(displayK) : 1);
     const rounded = roundEndlessGold(raw);
     gold = Math.max(gold, rounded);
   }

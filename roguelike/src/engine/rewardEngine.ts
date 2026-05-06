@@ -11,7 +11,7 @@ const BLACK_EDGE_PITY_BASE_P = 0.05;
 const BLACK_EDGE_PITY_MAX_TURNS = 10;
 const BLACK_EDGE_PITY_COOLDOWN_TURNS = 2;
 function blackEdgeGateK(n: number): number {
-  return 15 + 20 * n;
+  return 19 + 20 * n;
 }
 function blackEdgePityChance(misses: number): number {
   const t = Math.max(0, Math.min(BLACK_EDGE_PITY_MAX_TURNS, misses));

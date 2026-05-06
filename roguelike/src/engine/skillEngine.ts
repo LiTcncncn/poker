@@ -339,6 +339,90 @@ function getCardSuitsForPerCardTriggers(card: Card): Suit[] {
   return [card.suit];
 }
 
+function cardPossibleRanksForStraight(card: Card): number[] {
+  if (card.isJoker) return [];
+  const cross = card.effects?.find(e => e.type === 'cross_value') as { ranks?: number[] } | undefined;
+  if (cross?.ranks?.length) return cross.ranks;
+  return [card.rank];
+}
+
+/** 能否用计分牌（含 Joker/跨数值牌）覆盖 requiredRanks（只要求覆盖，不要求没有额外点数） */
+function canCoverRequiredRanks(scoringCards: Card[], requiredRanks: number[]): boolean {
+  const req = [...new Set(requiredRanks)];
+  if (req.length === 0) return true;
+  const idx = new Map<number, number>();
+  req.forEach((r, i) => idx.set(r, i));
+  const fullMask = (1 << req.length) - 1;
+
+  const jokers = scoringCards.filter(c => c.isJoker).length;
+  const cards = scoringCards.filter(c => !c.isJoker);
+
+  let dp = new Set<number>([0]);
+  for (const c of cards) {
+    const pr = cardPossibleRanksForStraight(c);
+    let mask = 0;
+    for (const r of pr) {
+      const j = idx.get(r);
+      if (j !== undefined) mask |= 1 << j;
+    }
+    if (mask === 0) continue;
+    const next = new Set<number>(dp);
+    for (const m of dp) {
+      // 该牌最多代表其中一个 required rank
+      for (let bit = 0; bit < req.length; bit++) {
+        const b = 1 << bit;
+        if ((mask & b) && !(m & b)) next.add(m | b);
+      }
+    }
+    dp = next;
+    if (dp.has(fullMask)) return true;
+  }
+
+  for (const m of dp) {
+    let missing = fullMask & ~m;
+    let missingCount = 0;
+    while (missing) {
+      missing &= missing - 1;
+      missingCount += 1;
+    }
+    if (missingCount <= jokers) return true;
+  }
+  return false;
+}
+
+function rankInOddSet(r: number): boolean {
+  return r === 14 || r === 11 || r === 13 || r === 3 || r === 5 || r === 7 || r === 9;
+}
+function rankInEvenSet(r: number): boolean {
+  return r === 12 || r === 2 || r === 4 || r === 6 || r === 8 || r === 10;
+}
+
+function hasMadeGroupInSet(scoringCards: Card[], groupSize: 2 | 3, setKind: 'odd' | 'even'): boolean {
+  const counts = new Map<number, number>();
+  for (const c of scoringCards) {
+    if (c.isJoker) continue;
+    counts.set(c.rank, (counts.get(c.rank) ?? 0) + 1);
+  }
+  for (const [rank, n] of counts.entries()) {
+    if (n < groupSize) continue;
+    const ok = setKind === 'odd' ? rankInOddSet(rank) : rankInEvenSet(rank);
+    if (ok) return true;
+  }
+  return false;
+}
+
+function isStrictSuitFlush(scoringCards: Card[], suit: Suit, minCount: number): boolean {
+  const nonJokers = scoringCards.filter(c => !c.isJoker);
+  if (nonJokers.length === 0) return false;
+  let count = 0;
+  for (const c of nonJokers) {
+    const suits = getCardSuitsForPerCardTriggers(c);
+    if (!suits.includes(suit)) return false;
+    count += 1;
+  }
+  return count >= minCount;
+}
+
 // ─── 辅助：判断牌是否满足 per-card 触发条件 ──────────────────
 function cardMatchesCondition(card: Card, ef: SkillEffect): boolean {
   if (ef.triggerSuits) {
@@ -408,6 +492,8 @@ export interface HandContext {
   /** 本关总手数、已打完的手数（计分时刻尚未计入本手） */
   stageTotalHands: number;
   stageUsedHands: number;
+  /** 本局已结算的手数（跨关累计，结算口径为“本手结算前已完成的手数”） */
+  runHandsPlayedTotal?: number;
   /**
    * `random_hand_add_multiplier`：本手加性倍率的骰点（闭区间整数），由 `rollRandomHandAddMultiplier` 在结算时生成；
    * 未传则该效果本手视为 0（如 Hold 预览不计随机段）。
@@ -440,7 +526,8 @@ export function rollRandomHandAddMultiplier(skills: SkillDef[]): number | undefi
 export function getSuperCardIndependentFactor(skill: SkillDef, superCardCount: number): number | null {
   const ef = skill.effects.find(e => e.type === 'super_card_independent_multiply');
   if (!ef) return null;
-  return Math.min(SUPER_CARD_INDEPENDENT_MULT_CAP, 1 + superCardCount * ef.value);
+  const pairs = Math.floor(Math.max(0, superCardCount) / 2);
+  return Math.min(SUPER_CARD_INDEPENDENT_MULT_CAP, 1 + pairs * ef.value);
 }
 
 export interface SkillHandResult extends HandResult {
@@ -464,6 +551,7 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
     runDiamonds,
     stageTotalHands,
     stageUsedHands,
+    runHandsPlayedTotal,
     randomHandAddMultiplier,
   } = ctx;
 
@@ -581,6 +669,9 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
 
         case 'hand_add_score':
           if (handTypeMatch) {
+            if (ef.requireMadeGroupSize && ef.requireMadeGroupRankSet) {
+              if (!hasMadeGroupInSet(scoringCards, ef.requireMadeGroupSize, ef.requireMadeGroupRankSet)) break;
+            }
             skillAddedScore += ef.value;
             skillLog.push({ skillId: skill.id, skillName: skill.name, addedScore: ef.value });
           }
@@ -588,6 +679,9 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
 
         case 'hand_add_multiplier':
           if (handTypeMatch) {
+            if (ef.requireMadeGroupSize && ef.requireMadeGroupRankSet) {
+              if (!hasMadeGroupInSet(scoringCards, ef.requireMadeGroupSize, ef.requireMadeGroupRankSet)) break;
+            }
             skillAddedMultiplier += ef.value;
             skillLog.push({ skillId: skill.id, skillName: skill.name, addedMultiplier: ef.value });
           }
@@ -737,6 +831,21 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
         case 'independent_multiply': {
           if (!handTypeMatch) break;
           if (ef.requireRunDiamondsLte !== undefined && runDiamonds > ef.requireRunDiamondsLte) break;
+          if (ef.requireStageHandIndex !== undefined) {
+            const curHand = stageUsedHands + 1; // 1-based
+            if (curHand !== ef.requireStageHandIndex) break;
+          }
+          if (ef.requireStrictFlushSuit) {
+            const minCount = ef.requireStrictFlushMinCount ?? 5;
+            if (!isStrictSuitFlush(scoringCards, ef.requireStrictFlushSuit, minCount)) break;
+          }
+          if (ef.requireStraightContainsRanks?.length) {
+            if (!canCoverRequiredRanks(scoringCards, ef.requireStraightContainsRanks)) break;
+          }
+          if (ef.requireRunHandCycle7) {
+            const handNo = (ctx.runHandsPlayedTotal ?? 0) + 1; // 1-based
+            if (!(handNo === 1 || handNo % 7 === 0)) break;
+          }
           independentMultiplier *= ef.value;
           skillLog.push({ skillId: skill.id, skillName: skill.name, multiplyFactor: ef.value });
           break;
@@ -744,9 +853,10 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
 
         case 'super_card_independent_multiply': {
           if (!handTypeMatch) break;
+          const pairs = Math.floor(Math.max(0, superCardCount) / 2);
           const factor = Math.min(
             SUPER_CARD_INDEPENDENT_MULT_CAP,
-            1 + superCardCount * ef.value,
+            1 + pairs * ef.value,
           );
           if (factor > 1) {
             independentMultiplier *= factor;

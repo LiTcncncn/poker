@@ -15,7 +15,7 @@ export type SkillEffectType =
   | 'add_score'                       // 无条件 +N 技能$
   | 'add_multiplier'                  // 无条件 +N 额外倍率
   | 'independent_multiply'            // 独立乘区 ×N
-  | 'super_card_independent_multiply' // 独立乘区 ×min(上限, 1+N·value)；value 为每张超级牌增量（默认 0.1），上限见 skillEngine 常量
+  | 'super_card_independent_multiply' // 独立乘区 ×min(上限, 1+floor(N/2)·value)；value 为每两张超级牌的增量（默认 0.1），上限见 skillEngine 常量
   /** 每持有 1 局内 💎（计分取样时），本手 +value 技能$；取样见 skillEngine（不含本手待发钻）；可用 `perRunDiamondsCost` 改为每 N💎 触发一次 */
   | 'per_run_diamond_score'
   /** 每持有 1 局内 💎，本手 +value 额外倍率（加性区）；可用 `perRunDiamondsCost` 改为每 N💎 触发一次 */
@@ -64,6 +64,27 @@ export interface SkillEffect {
   requireFirstHandNoHold?: boolean;      // 必须是本关第一手且未用额外 hold
   /** 仅当 `runDiamonds`（计分取样）≤ 此值时，`independent_multiply` 才生效（如超级穷鬼） */
   requireRunDiamondsLte?: number;
+  /** 必须是本关第 N 手（1-based；结算口径）。例：本关第二手 → 2 */
+  requireStageHandIndex?: number;
+  /**
+   * 仅当计分牌（scoringCards）满足“严格同花”时触发：
+   * - strictSuit: 目标花色（如 hearts）
+   * - minCount: 至少 N 张（用于“四张成花”时允许 4 张触发）
+   * 双花牌：只要包含目标花色即可计入；Joker 视为可补但不计入 strictSuit 张数。
+   */
+  requireStrictFlushSuit?: Suit;
+  requireStrictFlushMinCount?: number;
+  /**
+   * 要求计分牌可覆盖这些点数（Joker 可补缺）。
+   * 例：JQKA 需求 = [11,12,13,14]；在“四张成顺”下也可触发。
+   */
+  requireStraightContainsRanks?: number[];
+  /** 要求本手触发“对/三条”等成组结构（以计分牌为准） */
+  requireMadeGroupSize?: 2 | 3;
+  /** 成组点数集合：odd = A/3/5/7/9/J/K；even = 2/4/6/8/10/Q */
+  requireMadeGroupRankSet?: 'odd' | 'even';
+  /** 要求触发“7 日轮回”：本局第 1 手或每逢 7 的倍数手触发 */
+  requireRunHandCycle7?: boolean;
   /** `per_run_diamond_score` / `per_run_diamond_multiplier`：每 N 颗局内 💎 计 1 次（向下取整）；缺省为 1 */
   perRunDiamondsCost?: number;
   /** `random_hand_add_multiplier`：闭区间整数随机加性倍率上下限（缺省 2～20） */

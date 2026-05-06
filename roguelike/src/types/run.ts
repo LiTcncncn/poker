@@ -60,6 +60,8 @@ export interface RunState {
   // ── 成绩统计 ──────────────────────────────────
   /** 本局所有手牌累计金币 */
   totalGoldEarned: number;
+  /** 本局累计结算手数（跨关递增；用于「7 日轮回」等全局手序技能） */
+  handsPlayedTotal?: number;
   /** 本局遭遇过的最高单关目标金币 */
   highestSingleStageTarget: number;
   /**
