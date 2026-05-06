@@ -16,6 +16,10 @@ export type SkillEffectType =
   | 'add_multiplier'                  // 无条件 +N 额外倍率
   | 'independent_multiply'            // 独立乘区 ×N
   | 'super_card_independent_multiply' // 独立乘区 ×min(上限, 1+N·value)；value 为每张超级牌增量（默认 0.1），上限见 skillEngine 常量
+  /** 每持有 1 局内 💎（计分取样时），本手 +value 技能$；取样见 skillEngine（不含本手待发钻）；可用 `perRunDiamondsCost` 改为每 N💎 触发一次 */
+  | 'per_run_diamond_score'
+  /** 每持有 1 局内 💎，本手 +value 额外倍率（加性区）；可用 `perRunDiamondsCost` 改为每 N💎 触发一次 */
+  | 'per_run_diamond_multiplier'
   | 'hand_add_score'                  // 特定牌型 +N 技能$
   | 'hand_add_multiplier'             // 特定牌型 +N 额外倍率
   | 'all_cards_score'                 // 强制 5 张全部计分（限定牌型）
@@ -28,7 +32,11 @@ export type SkillEffectType =
   | 'accumulate_multiplier'           // 触发累积 +N 额外倍率（整局持续）
   /** 本手结算时未使用补牌（drawsUsedThisHand===0）：累积 value 倍率池（上限 accumulateCap），整池并入当次额外倍率 */
   | 'accumulate_multiplier_no_draw'
-  | 'modify_rule';                    // 改变成牌规则
+  | 'modify_rule'                    // 改变成牌规则
+  /** 本手结算加性倍率：整数区间由 `randomMultMin`/`randomMultMax` 定义，实际点数由 `evaluateHandWithSkills` 的 `randomHandAddMultiplier` 传入（通常由 store 每手骰一次） */
+  | 'random_hand_add_multiplier'
+  /** 剩手加倍：`max(0, stageTotalHands - stageUsedHands - 1) * value` 加性倍率（本手打完后的剩余手数 × 每手 value） */
+  | 'per_remaining_hand_add_multiplier';
 
 export interface SkillEffect {
   type: SkillEffectType;
@@ -43,7 +51,6 @@ export interface SkillEffect {
   triggerOdd?: boolean;                   // 奇数点数
   triggerEven?: boolean;                  // 偶数点数
   triggerHasJoker?: boolean;             // 手牌中有 Joker
-  triggerHighStraight?: boolean;          // 顺子且为 10JQKA
   // 累积上限
   accumulateCap?: number;
   // Hold 触发（仅限 accumulate_multiplier）
@@ -55,6 +62,13 @@ export interface SkillEffect {
   // 场景限制
   requireLastHand?: boolean;             // 必须是本关最后一手
   requireFirstHandNoHold?: boolean;      // 必须是本关第一手且未用额外 hold
+  /** 仅当 `runDiamonds`（计分取样）≤ 此值时，`independent_multiply` 才生效（如超级穷鬼） */
+  requireRunDiamondsLte?: number;
+  /** `per_run_diamond_score` / `per_run_diamond_multiplier`：每 N 颗局内 💎 计 1 次（向下取整）；缺省为 1 */
+  perRunDiamondsCost?: number;
+  /** `random_hand_add_multiplier`：闭区间整数随机加性倍率上下限（缺省 2～20） */
+  randomMultMin?: number;
+  randomMultMax?: number;
 }
 
 export interface SkillDef {
@@ -64,3 +78,5 @@ export interface SkillDef {
   description: string;
   effects: SkillEffect[];
 }
+
+export type SkillEnhancement = 'normal' | 'flash' | 'gold' | 'laser' | 'black';

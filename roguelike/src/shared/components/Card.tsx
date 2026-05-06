@@ -96,7 +96,7 @@ export const Card: React.FC<CardProps> = ({
                 cardCornerClass
               )} />
               <div className="pointer-events-none absolute inset-x-0 top-1 z-[35] flex justify-center rotate-y-0 backface-hidden">
-                <span className="rounded bg-yellow-400 px-2 py-0.5 text-xs font-black text-yellow-900 shadow-lg sm:text-sm">
+                <span className="rounded bg-yellow-400 px-2 py-0.5 text-xs font-black text-yellow-900 shadow-lg">
                   HOLD
                 </span>
               </div>
@@ -114,20 +114,21 @@ export const Card: React.FC<CardProps> = ({
         'group relative cursor-pointer select-none transition-transform duration-300',
         'hover:-translate-y-2',
         liftTranslate && '-translate-y-2',
-        !style && 'w-[min(18vw,5rem)] max-w-20 aspect-[2/3] sm:w-24',
+        /* 不占 vw：宽度随父级（手牌 flex 平分）；与 Mac 宽屏 / 真机一致 */
+        !style && 'aspect-[2/3] min-w-0 max-w-20 flex-1 basis-0',
         style && 'min-h-0',
         className
       )}
       style={{ perspective: '1000px', WebkitPerspective: '1000px', ...style }}
     >
       {useCqwTypography ? (
-        <div className="absolute inset-0 min-h-0 min-w-0 [container-type:inline-size]">
+        <div className="absolute inset-0 min-h-0 min-w-0 pb-px [container-type:inline-size]">
           <div className="h-full w-full min-h-0 min-w-0" style={{ fontSize: '25.806cqw' }}>
             {cardBody}
           </div>
         </div>
       ) : (
-        <div className="h-full w-full min-h-0 min-w-0" style={{ fontSize: baseFontSize }}>
+        <div className="h-full w-full min-h-0 min-w-0 pb-px" style={{ fontSize: baseFontSize }}>
           {cardBody}
         </div>
       )}

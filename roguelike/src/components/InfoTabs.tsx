@@ -4,6 +4,8 @@ import { getHandTypeStats, HAND_NAMES } from '../engine/handEngine';
 import { HandType } from '../shared/types/poker';
 import SkillPanel from './SkillPanel';
 import { getSkillsByIds } from '../engine/skillEngine';
+import { getEffectiveSkillSlotCap } from '../engine/runEngine';
+import { getEffectiveStage } from '../engine/stageEngine';
 import { Card } from '../shared/components/Card';
 
 // 主界面赔率区：5x2 两列展示（共 10 个牌型）
@@ -39,9 +41,13 @@ export default function InfoTabs({ run }: Props) {
 
   const acquiredSkills = getSkillsByIds(run.acquiredSkillIds);
   const attrCards = run.attributeCards ?? [];
+  const skillSlotEffective = getEffectiveSkillSlotCap(run);
+  const skillCountLabel = `${acquiredSkills.length}/${skillSlotEffective}`;
+  const rawStage = run.stages[run.currentStageIndex];
+  const effStage = rawStage ? getEffectiveStage(rawStage, run.acquiredSkillIds) : null;
 
-  const tabs: { key: TabKey; label: string; badge?: number }[] = [
-    { key: 'skills', label: '技能', badge: acquiredSkills.length || undefined },
+  const tabs: { key: TabKey; label: string; badge?: string | number }[] = [
+    { key: 'skills', label: '技能', badge: skillCountLabel },
     { key: 'odds',   label: '赔率' },
     { key: 'pool',   label: '超级牌', badge: attrCards.length || undefined },
   ];
@@ -61,10 +67,12 @@ export default function InfoTabs({ run }: Props) {
             }`}
           >
             {label}
-            {badge !== undefined && (
-              <span className={`text-[10px] rounded-full px-1.5 py-0 leading-4 font-black ${
-                tab === key ? 'bg-rl-gold text-black' : 'bg-gray-700 text-gray-400'
-              }`}>
+            {badge !== undefined && badge !== '' && (
+              <span
+                className={`text-[10px] rounded-full px-1.5 py-0 leading-4 font-black tabular-nums ${
+                  tab === key ? 'bg-rl-gold text-black' : 'bg-gray-700 text-gray-400'
+                }`}
+              >
                 {badge}
               </span>
             )}
@@ -72,23 +80,29 @@ export default function InfoTabs({ run }: Props) {
         ))}
       </div>
 
-      {/* ── 内容区 ── */}
-      <div className="p-2 h-48 overflow-y-auto">
+      {/* ── 内容区：技能 tab 内技能牌行垂直居中 ── */}
+      <div className="box-border flex h-48 flex-col overflow-y-auto p-2">
         {/* ── 技能 ── */}
         {tab === 'skills' && (
-          acquiredSkills.length > 0
-            ? (
+          acquiredSkills.length > 0 ? (
+            <div className="my-auto w-full min-w-0">
               <SkillPanel
                 skills={acquiredSkills}
+                acquiredSkillIds={run.acquiredSkillIds}
                 skillAccumulation={run.skillAccumulation}
+                skillEnhancements={run.skillEnhancements}
                 superCardCount={attrCards.length}
+                runDiamonds={run.runDiamonds}
+                stageTotalHands={effStage?.totalHands}
+                stageUsedHands={effStage?.usedHands}
+                pendingRandomHandMult={run.pendingRandomHandMult}
               />
-            )
-            : (
-              <div className="text-xs text-gray-600 text-center py-4">
-                暂无技能 · 过关后选择
-              </div>
-            )
+            </div>
+          ) : (
+            <div className="my-auto text-center text-xs text-gray-600">
+              暂无技能 · 过关后选择
+            </div>
+          )
         )}
 
         {/* ── 赔率（5x2） ── */}

@@ -21,8 +21,9 @@ export interface Card {
   baseValue: number;
   multiplier: number;
   isJoker?: boolean; // 是否为 Joker 牌（通配牌）
-  isDiamondCard?: boolean; // 是否为钻石牌（紫色品质，参与计分时每张额外奖励20钻石）
-  diamondBonus?: number; // 钻石牌额外奖励值（默认 20，金牌可提升到 40）
+  /** 紫钻超级牌等：参与计分时按 `diamondBonus` 发局内 💎（缺省 20 为历史默认；紫钻商店牌为 3） */
+  isDiamondCard?: boolean;
+  diamondBonus?: number;
 }
 
 export type HandType = 

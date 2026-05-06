@@ -4,7 +4,7 @@ import { TOTAL_STAGES } from '../engine/runEngine';
 import { HAND_NAMES, handTypeCategoryLabel } from '../engine/handEngine';
 import { HandType } from '../shared/types/poker';
 import { getSkillsByIds } from '../engine/skillEngine';
-import SkillCard from './SkillCard';
+import SkillPanel from './SkillPanel';
 
 interface Props {
   run: RunState;
@@ -22,6 +22,7 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
     s => s.stageIndex < TOTAL_STAGES && s.status === 'won',
   ).length;
   const endlessCleared     = run.endlessStagesCleared;
+  const clearedTotal = mainStagesCleared + endlessCleared;
 
   const allSkills = getSkillsByIds(run.acquiredSkillIds);
   const upgrades = (Object.entries(run.handTypeUpgrades) as [HandType, number][])
@@ -100,8 +101,8 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
       ) : isEndlessDefeat ? (
         <div className="flex flex-col items-center gap-2">
           <div className="text-5xl">💀</div>
-          <h2 className="text-3xl font-black text-rl-red">继续挑战结束</h2>
-          <p className="text-gray-400 text-sm">无限挑战第 {endlessCleared + 1} 关阵亡</p>
+          <h2 className="text-3xl font-black text-rl-red">无限模式结束</h2>
+          <p className="text-gray-400 text-sm">本次挑战成功 {clearedTotal} 关</p>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2">
@@ -118,17 +119,15 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
         <div className="flex flex-col gap-2">
           <div className="text-xs text-gray-300 font-semibold">技能</div>
           {allSkills.length > 0 ? (
-            <div className="max-h-72 overflow-y-auto pr-1 grid grid-cols-3 gap-1.5">
-              {allSkills.map(skill => (
-                <SkillCard
-                  key={skill.id}
-                  skill={skill}
-                  displayName={withAccumulatedName(skill.id, skill.name)}
-                  compact
-                  owned
-                  superCardCount={run.attributeCards.length}
-                />
-              ))}
+            <div className="w-full min-w-0">
+              <SkillPanel
+                skills={allSkills}
+                acquiredSkillIds={run.acquiredSkillIds}
+                skillAccumulation={run.skillAccumulation}
+                skillEnhancements={run.skillEnhancements}
+                superCardCount={run.attributeCards.length}
+                runDiamonds={run.runDiamonds}
+              />
             </div>
           ) : (
             <div className="text-xs text-gray-500">无</div>

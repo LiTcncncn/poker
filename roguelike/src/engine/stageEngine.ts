@@ -31,6 +31,7 @@ function applyModifierEffects(modifierId: string | undefined, defaults: {
   let bannedRankMax = 0;
   let blockHoldBefore = 0;
   let blockHoldAfter  = 0;
+  let banJokers = false;
 
   if (modifierId) {
     const mod = getModifierById(modifierId);
@@ -58,12 +59,15 @@ function applyModifierEffects(modifierId: string | undefined, defaults: {
           case 'ban_rank_max':
             if (ef.value > bannedRankMax) bannedRankMax = ef.value;
             break;
+          case 'ban_jokers':
+            banJokers = true;
+            break;
         }
       }
     }
   }
 
-  return { holdTotal, totalHands, bannedHandTypes, bannedSuits, bannedRankMax, blockHoldBefore, blockHoldAfter };
+  return { holdTotal, totalHands, bannedHandTypes, bannedSuits, bannedRankMax, blockHoldBefore, blockHoldAfter, banJokers };
 }
 
 /** 按模板初始化一个关卡（可附带词缀） */
@@ -89,6 +93,7 @@ export function initStage(stageIndex: number, modifierId?: string): StageState {
     bannedRankMax:   m.bannedRankMax,
     blockHoldBefore: m.blockHoldBefore,
     blockHoldAfter:  m.blockHoldAfter,
+    banJokers:       m.banJokers,
     status:          'active',
   };
 }
@@ -164,6 +169,7 @@ export function getEffectiveStage(stage: StageState, acquiredSkillIds: string[])
     bannedRankMax: 0,
     blockHoldBefore: 0,
     blockHoldAfter: 0,
+    banJokers: false,
   };
 }
 
@@ -192,6 +198,7 @@ export function initEndlessStage(
     bannedRankMax:   m.bannedRankMax,
     blockHoldBefore: m.blockHoldBefore,
     blockHoldAfter:  m.blockHoldAfter,
+    banJokers:       m.banJokers,
     status:          'active',
   };
 }

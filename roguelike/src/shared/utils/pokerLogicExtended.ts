@@ -708,8 +708,8 @@ function getCardScoreBase(card: Card): number {
   return getScoreValue(card.rank);
 }
 
-/** 按参与计分的牌汇总钻石奖励（与 pokerLogic.calculateHandScore 规则一致） */
-function diamondRewardForScoringCardIds(allCards: Card[], scoringCardIds: string[]): number {
+/** 按参与计分的牌汇总钻石奖励（与 pokerLogic.calculateHandScore 规则一致；`diamondBonus` 缺省按 20） */
+export function diamondRewardForScoringCardIds(allCards: Card[], scoringCardIds: string[]): number {
   if (!scoringCardIds.length) return 0;
   const idSet = new Set(scoringCardIds);
   let sum = 0;

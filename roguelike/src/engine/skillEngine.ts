@@ -1,7 +1,8 @@
 import { Card, HandType, Suit } from '../shared/types/poker';
-import { SkillDef, SkillEffect, RuleModType } from '../types/skill';
+import { SkillDef, SkillEffect, RuleModType, SkillEnhancement } from '../types/skill';
 import { HandResult, HandTypeUpgradeMap, SkillApplyLog } from '../types/run';
 import {
+  diamondRewardForScoringCardIds,
   findNCardFlush,
   findNCardStraight,
   findNCardEvenStraight,
@@ -57,10 +58,17 @@ const HAND_NAMES: Record<HandType, string> = {
   straight_flush: '同花顺',
   royal_flush: '皇家同花顺',
 };
-const SKILL_COUNT_MULT_ID = 'skill_count_mult';
+/** 「Joker几率+」技能 id */
+export const JOKER_RATE_SKILL_ID = 'joker_rate';
+/** 「JOKER 成双」：一手牌允许至多 2 张 Joker 参与计分组合（与 `capJokersInHand` / `calculateHandScore` 一致） */
+export const JOKER_DOUBLE_SKILL_ID = 'joker_double';
+/** 「技能数加倍」技能 id（牌面/详情用） */
+export const SKILL_COUNT_MULT_ID = 'skill_count_mult';
+/** 技能数加倍：每个已拥有技能贡献的额外倍率（加算层）；总贡献 = 技能数 × 本值，不设单独上限 */
+export const SKILL_COUNT_MULT_PER_SKILL = 3;
 const RAINBOW_SUITS_X2_ID = 'rainbow_suits_x2';
 /** 超级牌乘倍：独立乘区因子上限（1 + 张数×增量 不超过此值） */
-const SUPER_CARD_INDEPENDENT_MULT_CAP = 3;
+const SUPER_CARD_INDEPENDENT_MULT_CAP = 2.5;
 
 function handPriority(ht: HandType): number {
   return HAND_PRIORITY[ht] ?? 0;
@@ -203,9 +211,11 @@ function findBestFourFlushForRules(hand: Card[]): Card[] | null {
 function detectHandType(
   hand: Card[],
   ruleMods: Set<RuleModType>,
+  maxJokersInScoring: number,
 ): { handType: HandType; scoringCardIds: string[] } {
+  const scoreOpts = { maxJokersInScoring };
   // Step 1: 标准检测基准
-  const stdRaw = calculateHandScore(hand, hand.length);
+  const stdRaw = calculateHandScore(hand, hand.length, scoreOpts);
   let best: { handType: HandType; scoringCardIds: string[] } = {
     handType: stdRaw.type,
     scoringCardIds: stdRaw.scoringCardIds,
@@ -234,12 +244,12 @@ function detectHandType(
       modsBlackOnly.delete('color_flush_red');
       const modsRedOnly = new Set(ruleMods);
       modsRedOnly.delete('color_flush_black');
-      const nrB = calculateHandScore(normalizeForColorFlush(hand, modsBlackOnly), hand.length);
-      const nrR = calculateHandScore(normalizeForColorFlush(hand, modsRedOnly), hand.length);
+      const nrB = calculateHandScore(normalizeForColorFlush(hand, modsBlackOnly), hand.length, scoreOpts);
+      const nrR = calculateHandScore(normalizeForColorFlush(hand, modsRedOnly), hand.length, scoreOpts);
       nr = pickBetterColorFlushResult(nrB, nrR);
     } else {
       const normalized = normalizeForColorFlush(hand, ruleMods);
-      nr = calculateHandScore(normalized, normalized.length);
+      nr = calculateHandScore(normalized, normalized.length, scoreOpts);
     }
     // scoringCardIds 是归一化牌的 id，与原牌相同
     if (handPriority(nr.type) > handPriority(best.handType)) {
@@ -317,9 +327,24 @@ function detectHandType(
   return best;
 }
 
+/** 双花牌视为同时拥有 `double_suit` 中的花色与 `card.suit`（用于花色类 per-card 技能） */
+function getCardSuitsForPerCardTriggers(card: Card): Suit[] {
+  if (card.isJoker) return [];
+  const ds = card.effects.find(e => e.type === 'double_suit')?.suits as Suit[] | undefined;
+  if (ds?.length) {
+    const set = new Set<Suit>(ds);
+    set.add(card.suit);
+    return [...set];
+  }
+  return [card.suit];
+}
+
 // ─── 辅助：判断牌是否满足 per-card 触发条件 ──────────────────
 function cardMatchesCondition(card: Card, ef: SkillEffect): boolean {
-  if (ef.triggerSuits && !ef.triggerSuits.includes(card.suit)) return false;
+  if (ef.triggerSuits) {
+    const suits = getCardSuitsForPerCardTriggers(card);
+    if (!suits.some(s => ef.triggerSuits!.includes(s))) return false;
+  }
   if (ef.triggerRanks && !ef.triggerRanks.includes(card.rank)) return false;
   if (ef.triggerFaceCard && (card.rank < 11 || card.rank > 13)) return false;
   if (ef.triggerHighStreet && ![10, 11, 12, 13, 14].includes(card.rank)) return false;
@@ -374,6 +399,41 @@ export interface HandContext {
   drawsUsedThisHand: number;
   /** 本局已获得的超级牌（属性牌）数量，用于「超级牌乘倍」等 */
   superCardCount?: number;
+  /** 技能附加属性：skillId -> enhancement */
+  skillEnhancements?: Record<string, SkillEnhancement>;
+  /**
+   * 计分取样时的局内 💎（**不含**本手因计分牌即将入账的钻）；用于钻石估值/倍率/超级穷鬼等。
+   */
+  runDiamonds: number;
+  /** 本关总手数、已打完的手数（计分时刻尚未计入本手） */
+  stageTotalHands: number;
+  stageUsedHands: number;
+  /**
+   * `random_hand_add_multiplier`：本手加性倍率的骰点（闭区间整数），由 `rollRandomHandAddMultiplier` 在结算时生成；
+   * 未传则该效果本手视为 0（如 Hold 预览不计随机段）。
+   */
+  randomHandAddMultiplier?: number;
+}
+
+/** 是否拥有「随机加倍」类效果（不掷骰）。 */
+export function hasRandomHandAddMultiplierSkill(skills: SkillDef[]): boolean {
+  return skills.some((s) => s.effects.some((e) => e.type === 'random_hand_add_multiplier'));
+}
+
+/** 若拥有随机加倍类技能，返回本手应叠加的加性倍率整数；否则 `undefined`。 */
+export function rollRandomHandAddMultiplier(skills: SkillDef[]): number | undefined {
+  if (!hasRandomHandAddMultiplierSkill(skills)) return undefined;
+  for (const s of skills) {
+    const ef = s.effects.find((e) => e.type === 'random_hand_add_multiplier');
+    if (ef) {
+      const mn = ef.randomMultMin ?? 2;
+      const mx = ef.randomMultMax ?? 15;
+      const lo = Math.min(mn, mx);
+      const hi = Math.max(mn, mx);
+      return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+    }
+  }
+  return undefined;
 }
 
 /** 超级牌乘倍：当前独立乘区因子 min(上限, 1 + superCardCount × delta)（无此效果则 null） */
@@ -400,12 +460,26 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
     isFirstHandOfStage,
     drawsUsedThisHand,
     superCardCount = 0,
+    skillEnhancements = {},
+    runDiamonds,
+    stageTotalHands,
+    stageUsedHands,
+    randomHandAddMultiplier,
   } = ctx;
 
+  /** 钻石估值/倍率：仅正钻数参与加算（负债不反向扣技能$） */
+  const gemsForDiamondSkills = Math.max(0, runDiamonds);
+
+  function diamondSkillSteps(gems: number, cost: number | undefined): number {
+    const n = Math.max(1, cost ?? 1);
+    return Math.floor(gems / n);
+  }
+
   const ruleMods = getActiveRuleMods(acquiredSkills);
+  const maxJokersInScoring = acquiredSkills.some(s => s.id === JOKER_DOUBLE_SKILL_ID) ? 2 : 1;
 
   // ── 1. 牌型检测（带规则改写）──
-  const detected = detectHandType(hand, ruleMods);
+  const detected = detectHandType(hand, ruleMods, maxJokersInScoring);
   let { handType, scoringCardIds } = detected;
 
   // ── 2. all_cards_score：强制全部 5 张参与计分 ──
@@ -465,14 +539,10 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
 
   const hasJoker = scoringCards.some(c => c.isJoker);
 
-  // 判断是否是高街顺子（T/J/Q/K/A）
-  const isHighStraight =
-    handType === 'straight' &&
-    scoringCards.length === 5 &&
-    [10, 11, 12, 13, 14].every(r => scoringCards.some(c => c.rank === r));
   const containedHandTypes = getContainedHandTypes(handType);
 
   for (const skill of acquiredSkills) {
+    let skillTriggered = false;
     for (const ef of skill.effects) {
       // 跳过 modify_rule（已在检测阶段处理）
       if (ef.type === 'modify_rule') continue;
@@ -492,9 +562,6 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
 
       // ── requireFirstHandNoHold ──
       if (ef.requireFirstHandNoHold && !(isFirstHandOfStage && drawsUsedThisHand === 0)) continue;
-
-      // ── triggerHighStraight（用于 hand_add_multiplier 高街顺子） ──
-      if (ef.triggerHighStraight && !isHighStraight) continue;
 
       switch (ef.type) {
 
@@ -628,8 +695,48 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
           break;
         }
 
+        case 'per_run_diamond_score': {
+          const steps = diamondSkillSteps(gemsForDiamondSkills, ef.perRunDiamondsCost);
+          const add = steps * ef.value;
+          if (add !== 0) {
+            skillAddedScore += add;
+            skillLog.push({ skillId: skill.id, skillName: skill.name, addedScore: add });
+          }
+          break;
+        }
+
+        case 'per_run_diamond_multiplier': {
+          const steps = diamondSkillSteps(gemsForDiamondSkills, ef.perRunDiamondsCost);
+          const addM = steps * ef.value;
+          if (addM !== 0) {
+            skillAddedMultiplier += addM;
+            skillLog.push({ skillId: skill.id, skillName: skill.name, addedMultiplier: addM });
+          }
+          break;
+        }
+
+        case 'random_hand_add_multiplier': {
+          const rolled = randomHandAddMultiplier;
+          if (rolled !== undefined && rolled > 0) {
+            skillAddedMultiplier += rolled;
+            skillLog.push({ skillId: skill.id, skillName: skill.name, addedMultiplier: rolled });
+          }
+          break;
+        }
+
+        case 'per_remaining_hand_add_multiplier': {
+          const afterThis = Math.max(0, stageTotalHands - stageUsedHands - 1);
+          const addR = afterThis * ef.value;
+          if (addR > 0) {
+            skillAddedMultiplier += addR;
+            skillLog.push({ skillId: skill.id, skillName: skill.name, addedMultiplier: addR });
+          }
+          break;
+        }
+
         case 'independent_multiply': {
           if (!handTypeMatch) break;
+          if (ef.requireRunDiamondsLte !== undefined && runDiamonds > ef.requireRunDiamondsLte) break;
           independentMultiplier *= ef.value;
           skillLog.push({ skillId: skill.id, skillName: skill.name, multiplyFactor: ef.value });
           break;
@@ -652,17 +759,31 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
           break;
       }
     }
+    // 银边/金边/彩边（flash/gold/laser）作为技能附加词条：每手固定生效 1 次，不依赖原技能触发条件
+    const enhancement = skillEnhancements[skill.id] ?? 'normal';
+    if (enhancement === 'flash') {
+      skillAddedScore += 30;
+      skillLog.push({ skillId: `${skill.id}_flash`, skillName: `${skill.name}[银边]`, addedScore: 30 });
+    } else if (enhancement === 'gold') {
+      skillAddedMultiplier += 10;
+      skillLog.push({ skillId: `${skill.id}_gold`, skillName: `${skill.name}[金边]`, addedMultiplier: 10 });
+    } else if (enhancement === 'laser') {
+      independentMultiplier *= 1.5;
+      skillLog.push({ skillId: `${skill.id}_laser`, skillName: `${skill.name}[彩边]`, multiplyFactor: 1.5 });
+    } else if (enhancement === 'black') {
+      /* 黑边仅增加技能槽位，不参与本手数值；槽位在 store / getEffectiveSkillSlotCap */
+    }
   }
 
-  // ── 5.5 特殊技能：每拥有 1 个技能 +1 倍（包含该技能自身） ──
+  // ── 5.5 特殊技能：每拥有 1 个技能 +SKILL_COUNT_MULT_PER_SKILL 倍（包含该技能自身），不设本项上限 ──
   if (acquiredSkills.some(s => s.id === SKILL_COUNT_MULT_ID)) {
-    const add = acquiredSkills.length;
+    const add = SKILL_COUNT_MULT_PER_SKILL * acquiredSkills.length;
     if (add > 0) {
       skillAddedMultiplier += add;
       const skill = acquiredSkills.find(s => s.id === SKILL_COUNT_MULT_ID);
       skillLog.push({
         skillId: SKILL_COUNT_MULT_ID,
-        skillName: skill?.name ?? '技能数加倍率',
+        skillName: skill?.name ?? '技能数加倍',
         addedMultiplier: add,
       });
     }
@@ -697,6 +818,8 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
     (cardScoreSum + skillAddedScore) * multiplierTotal * independentMultiplier
   );
 
+  const dr = diamondRewardForScoringCardIds(hand, expandedScoring);
+
   return {
     handType,
     handName: HAND_NAMES[handType] ?? handType,
@@ -707,6 +830,7 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
     skillAddedMultiplier,
     independentMultiplier,
     finalGold,
+    diamondReward: dr > 0 ? dr : undefined,
     skillLog,
     newAccumulation,
   };

@@ -231,3 +231,326 @@
   border-radius: 9999px;
   animation: rl-goal-bar-glow 1s ease-in-out infinite;
 }
+
+/* ── 技能牌附加边：线性渐变流光（禁止锥形渐变盘；周期 1～3s） ── */
+/** 银边：background-position 推移（保持原先做法，不要求首尾同色无缝） */
+@keyframes skill-edge-flow-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+/**
+ * 金边 / 彩边：宽 200% 的渐变层 translateX(-50%)，与前半段完全相同的后半段拼接，
+ * 循环一圈位移恰好一整周期，无跳帧。
+ */
+@keyframes skill-edge-pan {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/**
+ * 技能牌附加边：仅显示距外轮廓 5px 的环带（内描边效果），中间由内层面剪切，
+ * 保证与无边牌共用同一外尺寸与同一正文安全区 inset。
+ */
+.skill-edge-mask-ring {
+  pointer-events: none;
+  box-sizing: border-box;
+  padding: 5px;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+/** 技能详情弹层 ≈3× 线性缩放：流光环带宽与小牌视觉一致 */
+.skill-edge-mask-ring--x3 {
+  padding: 15px;
+}
+
+/** 银边 flash — 2.2s（不改） */
+.skill-edge-ring-silver {
+  background-repeat: no-repeat;
+  animation-name: skill-edge-flow-shift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: 2.2s;
+  background-image: linear-gradient(
+    110deg,
+    #64748b 0%,
+    #cbd5e1 18%,
+    #f8fafc 32%,
+    #7dd3fc 42%,
+    #ffffff 50%,
+    #7dd3fc 58%,
+    #f8fafc 68%,
+    #cbd5e1 82%,
+    #475569 100%
+  );
+  background-size: 320% 320%;
+}
+
+/**
+ * 牌底边数值横条：与周缘银边同一套渐变+位移动画（无 ring mask，铺满条高）。
+ * 金/彩与 `.skill-edge-pan-gold` / `.skill-edge-pan-prismatic` 共用平移层。
+ */
+.skill-edge-value-bg-silver {
+  background-repeat: no-repeat;
+  animation-name: skill-edge-flow-shift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: 2.2s;
+  background-image: linear-gradient(
+    110deg,
+    #64748b 0%,
+    #cbd5e1 18%,
+    #f8fafc 32%,
+    #7dd3fc 42%,
+    #ffffff 50%,
+    #7dd3fc 58%,
+    #f8fafc 68%,
+    #cbd5e1 82%,
+    #475569 100%
+  );
+  background-size: 320% 320%;
+}
+
+/** 金边 gold — 平移无缝层（1.9s）；渐变 0–50% 与 50–100% 镜像同一波形 */
+.skill-edge-pan-gold {
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  animation: skill-edge-pan 1.9s linear infinite;
+  background-image: linear-gradient(
+    110deg,
+    #eab308 0%,
+    #f59e0b 8%,
+    #fbbf24 16%,
+    #fcd34d 24%,
+    #fde68a 31%,
+    #fef08a 36%,
+    #fde68a 41%,
+    #fcd34d 48%,
+    #fbbf24 49%,
+    #eab308 50%,
+    #f59e0b 58%,
+    #fbbf24 66%,
+    #fcd34d 74%,
+    #fde68a 81%,
+    #fef08a 86%,
+    #fde68a 91%,
+    #fcd34d 98%,
+    #fbbf24 99%,
+    #eab308 100%
+  );
+}
+
+/** 彩边 laser — 平移无缝层（2.6s）；无黄橙；色相较旧版略浅、明度更高 */
+.skill-edge-pan-prismatic {
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  animation: skill-edge-pan 2.6s linear infinite;
+  background-image: linear-gradient(
+    110deg,
+    #fda4af 0%,
+    #fca5a5 5%,
+    #f9a8d4 10%,
+    #d8b4fe 15%,
+    #c4b5fd 20%,
+    #a5b4fc 25%,
+    #93c5fd 30%,
+    #7dd3fc 33%,
+    #5eead4 36%,
+    #6ee7b7 39%,
+    #86efac 42%,
+    #fbcfe8 46%,
+    #fda4af 50%,
+    #fca5a5 55%,
+    #f9a8d4 60%,
+    #d8b4fe 65%,
+    #c4b5fd 70%,
+    #a5b4fc 75%,
+    #93c5fd 80%,
+    #7dd3fc 83%,
+    #5eead4 86%,
+    #6ee7b7 89%,
+    #86efac 92%,
+    #fbcfe8 96%,
+    #fda4af 100%
+  );
+}
+
+/** 黑边 black — 黑灰金属感环带 + 表层灰白圆斑微动（与 mask 环同宽） */
+.skill-edge-ring-black {
+  background-repeat: no-repeat;
+  animation-name: skill-edge-flow-shift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: 3.4s;
+  background-image: linear-gradient(
+    110deg,
+    #020617 0%,
+    #1e293b 18%,
+    #334155 32%,
+    #64748b 48%,
+    #94a3b8 50%,
+    #64748b 52%,
+    #334155 68%,
+    #0f172a 85%,
+    #020617 100%
+  );
+  background-size: 280% 280%;
+}
+
+.skill-edge-black-spots {
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.42;
+  background-repeat: no-repeat;
+  background-size: 160% 160%;
+  animation-name: skill-edge-black-spot-shift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: 4.2s;
+  background-image:
+    radial-gradient(circle at 14% 22%, rgba(255, 255, 255, 0.38) 0%, transparent 10%),
+    radial-gradient(circle at 68% 58%, rgba(226, 232, 240, 0.45) 0%, transparent 11%),
+    radial-gradient(circle at 42% 78%, rgba(148, 163, 184, 0.35) 0%, transparent 8%),
+    radial-gradient(circle at 82% 30%, rgba(255, 255, 255, 0.2) 0%, transparent 9%);
+}
+
+/** 底条内圆斑略弱，避免抢字 */
+.skill-edge-black-spots--value {
+  opacity: 0.32;
+  animation-duration: 5s;
+}
+
+.skill-edge-value-bg-black {
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  animation-name: skill-edge-flow-shift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: 3.8s;
+  background-image: linear-gradient(
+    110deg,
+    #0f172a 0%,
+    #1e293b 22%,
+    #334155 45%,
+    #475569 55%,
+    #334155 65%,
+    #1e293b 82%,
+    #020617 100%
+  );
+}
+
+@keyframes skill-edge-black-spot-shift {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 35%;
+  }
+}
+
+/**
+ * 紫色品质技能牌面：锥形 conic 慢旋（3s）。
+ * 层定位：translate(-50%,-50%) 使旋转中心与牌面几何中心重合；锥形渐变 `at` 在牌外（上沿外），扫光从外锥点射入。
+ * 色环：深紫（#6d28d9 一带）↔ 浅薰衣草（#efe8ff 一带）↔ 锚色 #c4b5fd，首尾同色无缝；叠 soft-light。
+ */
+@keyframes skill-purple-face-conic-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.skill-purple-face-shimmer-layer {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.skill-purple-face-shimmer-layer::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* 正方形略大于牌面对角线；锥形 at 在牌外上方，勿与层几何中心混同 */
+  width: 200%;
+  aspect-ratio: 1;
+  height: auto;
+  max-width: none;
+  border-radius: 50%;
+  mix-blend-mode: soft-light;
+  opacity: 0.62;
+  transform-origin: center center;
+  background: conic-gradient(
+    from 12deg at 50% -38%,
+    #c4b5fd,
+    #b4a0ec,
+    #a078f0,
+    #8b4dea,
+    #772add,
+    #6d28d9,
+    #772add,
+    #8b4dea,
+    #a078f0,
+    #b4a0ec,
+    #c4b5fd,
+    #d6c8fe,
+    #e4dcff,
+    #efe8ff,
+    #e4dcff,
+    #d6c8fe,
+    #c4b5fd
+  );
+  animation: skill-purple-face-conic-spin 3s linear infinite both;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-edge-ring-silver {
+    animation: none;
+    background-position: 40% 50%;
+  }
+
+  .skill-edge-value-bg-silver {
+    animation: none;
+    background-position: 40% 50%;
+  }
+
+  .skill-edge-pan-gold,
+  .skill-edge-pan-prismatic {
+    animation: none;
+    transform: none;
+  }
+
+  .skill-edge-ring-black,
+  .skill-edge-value-bg-black {
+    animation: none;
+    background-position: 35% 50%;
+  }
+
+  .skill-edge-black-spots,
+  .skill-edge-black-spots--value {
+    animation: none;
+    background-position: 50% 50%;
+  }
+
+  .skill-purple-face-shimmer-layer::before {
+    animation: none;
+    transform: translate(-50%, -50%) rotate(35deg);
+    opacity: 0.38;
+  }
+}

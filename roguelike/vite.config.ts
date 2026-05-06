@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
-  base: '/dist/rg/',
+  base: '/dist/rg1/',
   plugins: [react()],
   resolve: {
     alias: {
@@ -11,7 +11,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../dist/rg',
+    outDir: '../dist/rg1',
     emptyOutDir: true,
   },
   server: {

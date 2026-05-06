@@ -126,6 +126,13 @@
     "difficulty": 2,
     "effects": [{ "type": "ban_rank_max", "value": 6 }]
   },
+  {
+    "id": "ban_jokers",
+    "name": "禁小丑",
+    "description": "本关牌堆不出现 Joker",
+    "difficulty": 2,
+    "effects": [{ "type": "ban_jokers", "value": 0 }]
+  },
 
   {
     "id": "ban_high_and_pair",

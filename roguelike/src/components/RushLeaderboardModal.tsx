@@ -50,7 +50,7 @@ export function RushLeaderboardModal({ open, onClose }: Props) {
           {rows.length === 0 ? (
             <p className="text-center text-xs text-gray-500 py-8">暂无记录，完成一局后会自动上榜</p>
           ) : (
-            <div className="font-mono text-[11px] sm:text-xs text-gray-200 leading-relaxed">
+            <div className="font-mono text-[11px] text-gray-200 leading-relaxed">
               <div className="grid grid-cols-[2rem_2.5rem_minmax(3rem,1fr)_4.5rem_5.5rem] gap-x-2 gap-y-1 pb-2 border-b border-rl-border/80 text-gray-500 font-sans text-[10px]">
                 <span>排名</span>
                 <span>冲关</span>

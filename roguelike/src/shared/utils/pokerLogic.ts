@@ -227,7 +227,17 @@ const generateCombinations = (cards: Card[], index: number, currentResolved: Res
   }
 };
 
-export const calculateHandScore = (cards: Card[], cardCount?: number): HandResult => {
+/** 可选：`maxJokersInScoring` 计分时允许同时作为万能牌参与解析的 Joker 张数（缺省 1；「JOKER 成双」为 2） */
+export interface CalculateHandScoreOpts {
+  maxJokersInScoring?: number;
+}
+
+export const calculateHandScore = (
+  cards: Card[],
+  cardCount?: number,
+  opts?: CalculateHandScoreOpts,
+): HandResult => {
+  const maxJokersInScoring = Math.max(1, Math.min(5, opts?.maxJokersInScoring ?? 1));
   // 如果没有指定cardCount，使用cards.length
   const actualCardCount = cardCount ?? cards.length;
   
@@ -392,7 +402,7 @@ export const calculateHandScore = (cards: Card[], cardCount?: number): HandResul
         } else {
           rankValue = getScoreValue(rc.rank); // 使用解析后的数值
           
-          // 应用高分牌效果 (+5 绿色 / +10 蓝色)
+          // 应用 high_score（商店超级牌等，数值见 CardEffect.value）
           const highScoreEffect = card.effects.find(e => e.type === 'high_score');
           if (highScoreEffect && highScoreEffect.value) {
               rankValue += highScoreEffect.value;
@@ -401,7 +411,7 @@ export const calculateHandScore = (cards: Card[], cardCount?: number): HandResul
         
         cardScoreSum += rankValue;
 
-        // 应用倍数牌效果 (+2 绿色 / +4 蓝色) - 只计算参与牌型的牌的倍数
+        // 应用 multiplier（商店超级牌等，数值见 CardEffect.value）
         const multiplierEffect = card.effects.find(e => e.type === 'multiplier');
         if (multiplierEffect && multiplierEffect.value) {
             totalMultiplier += multiplierEffect.value;
@@ -412,10 +422,9 @@ export const calculateHandScore = (cards: Card[], cardCount?: number): HandResul
   };
 
   for (const resolvedHand of allPossibleResolvedHands) {
-    // 限制：最多只允许一张 Joker 参与计分
     const jokerCount = resolvedHand.filter(rc => rc.originalCard.isJoker).length;
-    if (jokerCount > 1) {
-      continue; // 跳过包含多张 Joker 的组合
+    if (jokerCount > maxJokersInScoring) {
+      continue;
     }
     
     // 评估时使用实际解析的牌数（可能是5、6或7张）

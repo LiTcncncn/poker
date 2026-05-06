@@ -62,20 +62,21 @@ export function dealCards(deck: Card[], n: number): { hand: Card[]; remaining: C
 }
 
 /**
- * 每手最多保留 1 张 Joker。
- * 多余的 Joker 放回 remaining 末尾，用 remaining 中首张非 Joker 替补。
+ * 每手最多保留 `maxJokers` 张 Joker（默认 1；「JOKER 成双」技能下为 2）。
+ * 多余的 Joker 放回 remaining，用 remaining 中首张非 Joker 替补。
  */
 export function capJokersInHand(
   hand: Card[],
   remaining: Card[],
+  maxJokers: number = 1,
 ): { hand: Card[]; remaining: Card[] } {
+  const cap = Math.max(0, Math.min(5, Math.floor(maxJokers)));
   const jokerIndices = hand.map((c, i) => (c.isJoker ? i : -1)).filter(i => i >= 0);
-  if (jokerIndices.length <= 1) return { hand, remaining };
+  if (jokerIndices.length <= cap) return { hand, remaining };
 
   const newHand = [...hand];
   const newRemaining = [...remaining];
-  // 保留第一张 Joker，把多余的换掉
-  for (let k = 1; k < jokerIndices.length; k++) {
+  for (let k = cap; k < jokerIndices.length; k++) {
     const idx = jokerIndices[k];
     const replaceIdx = newRemaining.findIndex(c => !c.isJoker);
     if (replaceIdx >= 0) {

@@ -1,9 +1,10 @@
 import type { HandType } from '../shared/types/poker';
 import type { RunState } from '../types/run';
+import { RUSH_LEADERBOARD_STORAGE_KEY } from '../config/storageNamespace';
 import { TOTAL_STAGES } from '../engine/runEngine';
 import { handTypeCategoryLabel } from '../engine/handEngine';
 
-const STORAGE_KEY = 'poker-roguelike-rush-leaderboard-v1';
+const STORAGE_KEY = RUSH_LEADERBOARD_STORAGE_KEY;
 const MAX_ENTRIES = 10;
 
 export interface RushLeaderboardEntry {

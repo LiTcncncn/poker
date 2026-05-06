@@ -2,6 +2,8 @@ import React, { Component, ReactNode, useEffect } from 'react';
 import { useRLStore } from './store/roguelikeStore';
 import { RunEntry } from './components/RunEntry';
 import { StageView } from './components/StageView';
+import { SkillCardShowcase } from './components/SkillCardShowcase';
+import { roguelikeLocalStorageKeysForHardReset } from './config/storageNamespace';
 
 // ── 错误边界：防止任何运行时错误导致白屏 ──────────────────────────
 class ErrorBoundary extends Component<
@@ -17,13 +19,7 @@ class ErrorBoundary extends Component<
   handleReset = () => {
     // 清除 localStorage 存档后刷新
     try {
-      ['poker-roguelike-rush-leaderboard-v1',
-       'poker-roguelike-storage-v8', 'poker-roguelike-storage-v7', 'poker-roguelike-storage-v6',
-       'poker-roguelike-storage-v5', 'poker-roguelike-storage-v4',
-       'poker-roguelike-storage-v3', 'poker-roguelike-storage-v2',
-       'poker-roguelike-storage'].forEach(k =>
-        localStorage.removeItem(k)
-      );
+      roguelikeLocalStorageKeysForHardReset().forEach((k) => localStorage.removeItem(k));
     } catch (_) { /* ignore */ }
     this.setState({ error: null });
     window.location.reload();
@@ -53,6 +49,10 @@ class ErrorBoundary extends Component<
 
 // ── 主应用 ──────────────────────────────────────────────────────
 function AppInner() {
+  const showSkillPreview =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('skillPreview') === '1';
+
   const { run, handState, reward, startNewRun, dealInitialHand } = useRLStore();
 
   const hasActiveRun =
@@ -62,10 +62,11 @@ function AppInner() {
   // 恢复兜底：run 存在但 handState 丢失时自动补发
   // 有 reward 待处理（如开局三选一）时不自动发牌
   useEffect(() => {
+    if (showSkillPreview) return;
     if (run?.status === 'running' && !handState && !reward) {
       dealInitialHand();
     }
-  }, [run, handState, reward, dealInitialHand]);
+  }, [showSkillPreview, run, handState, reward, dealInitialHand]);
 
   const content = !hasActiveRun
     ? <RunEntry onStart={startNewRun} />
@@ -84,8 +85,9 @@ function AppInner() {
         <div className="main-scene-bg-halo__layer" />
       </div>
 
-      <div className="relative z-10 flex-1">
-        {content}
+      {/* 固定手机画布宽度：Mac 宽屏也与真机同一列逻辑宽，避免 vw / 视口差导致布局走样 */}
+      <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[390px] flex-1 flex-col overflow-x-hidden">
+        {showSkillPreview ? <SkillCardShowcase /> : content}
       </div>
     </div>
   );

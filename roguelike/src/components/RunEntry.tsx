@@ -12,9 +12,9 @@ export function RunEntry({ onStart }: Props) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-8 p-6 text-center">
       <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-black text-white tracking-tight">
-          Video Poker
-          <span className="block text-rl-gold">Roguelike</span>
+        <h1 className="text-4xl font-black tracking-tight leading-tight">
+          <span className="block text-white">难上加难的</span>
+          <span className="block text-yellow-400">扑克游戏</span>
         </h1>
         <p className="text-gray-400 text-sm max-w-xs">
           {TOTAL_STAGES} 关闯关 · 每关 6 手 · 构筑你的牌型流派
@@ -26,6 +26,7 @@ export function RunEntry({ onStart }: Props) {
         <div>• 每手 5 张牌，按牌型赔率结算</div>
         <div>• 每手可通过“hold-补牌”增强牌型</div>
         <div>• 通过技能、升级、超级牌三选一构筑</div>
+        <div>• 每关赚取 💎，在商店挥霍</div>
         <div>• 第 3、6、9、12、15、18 为精英关；第 {TOTAL_STAGES} 关为 Boss</div>
       </div>
 

@@ -1,5 +1,5 @@
 import { RunState, StageState, HandTypeUpgradeMap } from '../types/run';
-import { SkillDef } from '../types/skill';
+import { SkillDef, SkillEnhancement } from '../types/skill';
 import { Card } from '../shared/types/poker';
 import { initStage, pickModifierForStageIndex, initEndlessStage, pickEndlessModifier } from './stageEngine';
 import stageTemplates from '../config/runStageTemplates.json';
@@ -12,9 +12,9 @@ const stageTplList = stageTemplates as StageTpl[];
 /** 无限阶段递推起点：主线最后一关 targetGold（与 JSON 同步） */
 const ENDLESS_SEED_GOLD = stageTplList[stageTplList.length - 1].targetGold;
 
-// 无限阶段目标金币增长参数（递推 + 千位取整；约第 30 关 ≈16 万）
-const ENDLESS_NORMAL_RATE = 1.09;
-const ENDLESS_ELITE_BONUS = 1.04;
+// 无限阶段目标金币增长（种子 = 主线末关 `runStageTemplates.json` 的 targetGold）：普通关每关 ×NORMAL，无尽内精英关（第 3、6、9… 关）再 ×ELITE；千位取整、单调不减（较旧 1.055/1.022 更陡，缓深无尽「目标涨不过 build」）
+const ENDLESS_NORMAL_RATE = 1.075;
+const ENDLESS_ELITE_BONUS = 1.032;
 /** 无限关目标取整到千位（末三位为 0） */
 const ENDLESS_GOLD_ROUND = 1000;
 
@@ -24,6 +24,23 @@ function roundEndlessGold(gold: number): number {
 
 function newRunId(): string {
   return `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** 局内 💎 绝对下限（「超级信用卡」负债） */
+export const RUN_DIAMONDS_ABS_FLOOR = -20;
+
+export function clampRunDiamonds(n: number): number {
+  return Math.max(RUN_DIAMONDS_ABS_FLOOR, n);
+}
+
+/** 「卖方市场」等为已拥有技能叠加的卖出回收价加成，单技能 id 累计上限 */
+export const SKILL_SELL_BONUS_CAP = 8;
+
+/** 将卖出加成规约到 [0, SKILL_SELL_BONUS_CAP] 的整数（持久化或非数字脏值安全） */
+export function clampSkillSellExtraDiamonds(raw: unknown): number {
+  const v = Number(raw);
+  if (!Number.isFinite(v) || v <= 0) return 0;
+  return Math.min(SKILL_SELL_BONUS_CAP, Math.floor(v));
 }
 
 /** 初始化一局新 Run，自动为精英/Boss 关分配词缀 */
@@ -48,11 +65,21 @@ export function initRun(): RunState {
     stages,
     handTypeUpgrades: {} as HandTypeUpgradeMap,
     acquiredSkillIds: [],
+    soldSkillIds: [],
+    skillEnhancements: {},
+    skillSlotCap: 5,
     attributeCards: [],
+    runDiamonds: 3,
+    skillSellBonus: {},
+    diamondsEarnedTotal: 0,
+    diamondsSpentTotal: 0,
     status: 'running',
     startedAt: Date.now(),
     skillAccumulation: {},
     stageModifiers,
+    blackEdgePityGateN: undefined,
+    blackEdgePityMisses: 0,
+    blackEdgePityCooldown: 0,
     isEndless: false,
     endlessStagesCleared: 0,
     totalGoldEarned: 0,
@@ -119,8 +146,9 @@ export function defeatRun(run: RunState): RunState {
 
 /**
  * 计算无限挑战第 endlessIdx 关（0-based）的目标金币。
- * 从主线末关 targetGold 起算，每关以上一关结果乘 NORMAL_RATE，精英关再乘 ELITE_BONUS；
- * 结果四舍五入到千位，且相对上一关单调不减。
+ * 从主线末关 `targetGold`（`ENDLESS_SEED_GOLD`，与 `runStageTemplates.json` 最后一行同步）起算；
+ * 每关在上关基础上乘 NORMAL_RATE，精英关（无尽内第 3、6、9… 关，即 (endlessIdx+1)%3===0）再乘 ELITE_BONUS；
+ * 结果四舍五入到千位，且相对上一关单调不减（例：种子 40000 时前几关约 43k→46k→51k…）。
  */
 function calcEndlessTargetGold(endlessIdx: number): number {
   let gold = ENDLESS_SEED_GOLD;
@@ -186,6 +214,23 @@ export function advanceToNextEndlessStage(
     currentStageIndex: TOTAL_STAGES,
     highestSingleStageTarget: Math.max(run.highestSingleStageTarget, nextStage.targetGold),
   };
+}
+
+/** 已上阵技能中「黑边」枚数 */
+export function countBlackEdgeSlots(
+  skillEnhancements: Record<string, SkillEnhancement>,
+  acquiredSkillIds: string[],
+): number {
+  return acquiredSkillIds.filter(id => skillEnhancements[id] === 'black').length;
+}
+
+/**
+ * 当前总技能槽（分母）：**基础 `skillSlotCap` + 黑边枚数**。
+ * 黑边牌面「技能+1」指总上限较基础多出的 **1 格即该黑边牌所占的那一格**，不会在「入队一张牌」与「黑边效果」上对分母做两次 +1（例：基础 5、0 黑时 `4/5`，购入并上阵 1 枚黑边后为 `5/6`，而非 `5/7`）。
+ * 多张黑边仍线性叠加；与扩容等来源可再加算（见策划稿）。
+ */
+export function getEffectiveSkillSlotCap(run: RunState): number {
+  return run.skillSlotCap + countBlackEdgeSlots(run.skillEnhancements, run.acquiredSkillIds);
 }
 
 export { TOTAL_STAGES };

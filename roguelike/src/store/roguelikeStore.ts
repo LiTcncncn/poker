@@ -2,21 +2,81 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { RunState, StageState, HandState, HandResult } from '../types/run';
 import { RewardState, UpgradeOption } from '../types/reward';
-import { SkillDef } from '../types/skill';
+import { SkillDef, SkillEnhancement } from '../types/skill';
 import { Card } from '../shared/types/poker';
-import { initRun, updateStageInRun, advanceToNextStage, advanceToNextEndlessStage, enterEndlessMode, defeatRun, TOTAL_STAGES } from '../engine/runEngine';
+import {
+  initRun,
+  updateStageInRun,
+  advanceToNextStage,
+  advanceToNextEndlessStage,
+  enterEndlessMode,
+  defeatRun,
+  TOTAL_STAGES,
+  countBlackEdgeSlots,
+  clampRunDiamonds,
+  clampSkillSellExtraDiamonds,
+  SKILL_SELL_BONUS_CAP,
+} from '../engine/runEngine';
 import { applyHandGold, consumeDraw, canDraw, getEffectiveStage } from '../engine/stageEngine';
 import { buildBaseDeck, injectJokers, shuffle, dealCards, replaceUnheld, capJokersInHand } from '../engine/deckEngine';
-import { applyUpgrade, generateRewardForStage, generateOpeningRewardState, generateSkillOptions } from '../engine/rewardEngine';
+import { applyUpgrade, generateRewardForStage, getDefaultDiamondRefreshCost, regenerateShopOptionsForStep } from '../engine/rewardEngine';
 import {
   evaluateHandWithSkills,
   applyHoldSkillAccumulation,
   getSkillsByIds,
   applySavedHandsStageWinBonus,
+  rollRandomHandAddMultiplier,
+  hasRandomHandAddMultiplierSkill,
+  JOKER_RATE_SKILL_ID,
+  JOKER_DOUBLE_SKILL_ID,
 } from '../engine/skillEngine';
 import { recordRunOnAbandon } from '../storage/rushLeaderboard';
+import {
+  ROGUELIKE_PERSIST_SCHEMA_VERSION,
+  ROGUELIKE_ZUSTAND_PERSIST_NAME,
+} from '../config/storageNamespace';
 
 const HAND_SIZE = 5;
+
+/** 牌堆 Joker 注入概率：基础 8%；持有「Joker几率+」为 12%；词缀禁小丑时为 0 */
+function jokerInjectProbability(acquiredSkillIds: string[], banJokers: boolean): number {
+  if (banJokers) return 0;
+  return acquiredSkillIds.includes(JOKER_RATE_SKILL_ID) ? 0.12 : 0.08;
+}
+
+function maxJokersInHandCap(acquiredSkillIds: string[]): number {
+  return acquiredSkillIds.includes(JOKER_DOUBLE_SKILL_ID) ? 2 : 1;
+}
+
+const SKILL_SUPER_CREDIT = 'super_credit_card';
+const SKILL_DIAMOND_TYCOON = 'diamond_tycoon';
+const SKILL_SELLERS_MARKET = 'sellers_market';
+
+function computeBlackEdgePityGateN(shopStageK: number, ownedBlackCount: number): number | null {
+  const gateK = 15 + 20 * ownedBlackCount;
+  return shopStageK >= gateK ? ownedBlackCount : null;
+}
+
+/** 关卡胜利后：王老五 +💎5；卖方市场给每个已拥有技能卖出价 +1（每技能 id 叠加上限 💎8） */
+function applyStageWinEconomy(r: RunState): RunState {
+  let out: RunState = { ...r };
+  if (r.acquiredSkillIds.includes(SKILL_DIAMOND_TYCOON)) {
+    out = {
+      ...out,
+      runDiamonds: clampRunDiamonds(out.runDiamonds + 5),
+      diamondsEarnedTotal: out.diamondsEarnedTotal + 5,
+    };
+  }
+  if (r.acquiredSkillIds.includes(SKILL_SELLERS_MARKET)) {
+    const bonus = { ...(r.skillSellBonus ?? {}) };
+    for (const id of r.acquiredSkillIds) {
+      const prev = clampSkillSellExtraDiamonds(bonus[id]);
+      bonus[id] = Math.min(SKILL_SELL_BONUS_CAP, prev + 1);
+    }
+    out = { ...out, skillSellBonus: bonus };
+  }
+  return out;
+}
 
 // ─── 结算辅助 ────────────────────────────────────────────────
 type SetFn = (partial: Partial<{ run: RunState | null; handState: HandState | null; reward: RewardState | null }>) => void;
@@ -30,6 +90,8 @@ function _commitScore(
   const skills = getSkillsByIds(run.acquiredSkillIds);
   const isLastHand         = stage.usedHands + 1 >= stage.totalHands;
   const isFirstHandOfStage = stage.usedHands === 0;
+  const randomHandAddMultiplier =
+    run.pendingRandomHandMult ?? rollRandomHandAddMultiplier(skills);
 
   const evalBase = evaluateHandWithSkills({
     hand: handState.hand,
@@ -43,6 +105,11 @@ function _commitScore(
     isFirstHandOfStage,
     drawsUsedThisHand: handState.drawsUsed,
     superCardCount:    run.attributeCards?.length ?? 0,
+    skillEnhancements: run.skillEnhancements,
+    runDiamonds:       run.runDiamonds,
+    stageTotalHands:   stage.totalHands,
+    stageUsedHands:    stage.usedHands,
+    randomHandAddMultiplier,
   });
 
   const wouldClearStage =
@@ -60,6 +127,7 @@ function _commitScore(
     skillAddedMultiplier:  evalResult.skillAddedMultiplier,
     independentMultiplier: evalResult.independentMultiplier,
     finalGold:             evalResult.finalGold,
+    diamondReward:         evalResult.diamondReward,
     skillLog:              evalResult.skillLog,
   };
 
@@ -74,6 +142,7 @@ function _commitScore(
   }
 
   // 更新统计数据
+  const handDiamond = evalResult.diamondReward ?? 0;
   let newRun: RunState = {
     ...run,
     skillAccumulation: evalResult.newAccumulation,
@@ -81,23 +150,42 @@ function _commitScore(
     bestHandThisRun,
     maxSingleHandGold: Math.max(prevMaxGold, fg),
   };
+  if (handDiamond > 0) {
+    newRun = {
+      ...newRun,
+      runDiamonds: clampRunDiamonds(newRun.runDiamonds + handDiamond),
+      diamondsEarnedTotal: newRun.diamondsEarnedTotal + handDiamond,
+    };
+  }
 
   const newStage = applyHandGold(stage, evalResult.finalGold);
   newRun = updateStageInRun(newRun, newStage);
 
   if (newStage.status === 'won') {
+    const diamondsGained = calcStageDiamondReward(newStage);
+    newRun = {
+      ...newRun,
+      runDiamonds: clampRunDiamonds(newRun.runDiamonds + diamondsGained),
+      diamondsEarnedTotal: newRun.diamondsEarnedTotal + diamondsGained,
+    };
     // 更新最高单关目标记录
     newRun = { ...newRun, highestSingleStageTarget: Math.max(newRun.highestSingleStageTarget, newStage.targetGold) };
+    newRun = applyStageWinEconomy(newRun);
 
     if (run.isEndless) {
-      // 无限阶段：按 endlessStagesCleared % 3 决定奖励类型（与主线节奏相同）
-      const afterElite = stage.isElite;
       const rewardState = generateRewardForStage(
         run.endlessStagesCleared,
         newRun.handTypeUpgrades,
         newRun.acquiredSkillIds,
-        afterElite,
-        true
+        newRun.skillEnhancements,
+        false,
+        true,
+        newRun.soldSkillIds ?? [],
+        {
+          gateN: computeBlackEdgePityGateN(run.endlessStagesCleared + 1, newRun.acquiredSkillIds.filter((id) => newRun.skillEnhancements[id] === 'black').length),
+          misses: newRun.blackEdgePityMisses ?? 0,
+          cooldown: newRun.blackEdgePityCooldown ?? 0,
+        },
       );
       set({ run: newRun, handState: newHandState, reward: rewardState });
     } else {
@@ -107,14 +195,19 @@ function _commitScore(
         const victoryRun: RunState = { ...newRun, status: 'victory' };
         set({ run: victoryRun, handState: newHandState, reward: null });
       } else {
-        // 按关卡位置（stageIndex % 3）决定奖励类型
-        const afterElite = stage.isElite || stage.isBoss;
         const rewardState = generateRewardForStage(
           stage.stageIndex,
           newRun.handTypeUpgrades,
           newRun.acquiredSkillIds,
-          afterElite,
-          false
+          newRun.skillEnhancements,
+          false,
+          false,
+          newRun.soldSkillIds ?? [],
+          {
+            gateN: computeBlackEdgePityGateN(stage.stageIndex + 1, newRun.acquiredSkillIds.filter((id) => newRun.skillEnhancements[id] === 'black').length),
+            misses: newRun.blackEdgePityMisses ?? 0,
+            cooldown: newRun.blackEdgePityCooldown ?? 0,
+          },
         );
         set({ run: newRun, handState: newHandState, reward: rewardState });
       }
@@ -144,20 +237,35 @@ interface RLStore {
   scoreHand:       () => void;          // 结算（hold阶段 → result）
 
   // ── 奖励（三步） ──────────────────────────
-  chooseSkill:          (skill: SkillDef) => void;
-  skipSkill:            () => void;
+  chooseSkill:          (skill: SkillDef, enhancement: SkillEnhancement, price: number) => void;
+  sellSkill:            (skillId: string) => void;
   chooseUpgrade:        (option: UpgradeOption) => void;
   chooseAttributeCard:  (card: Card) => void;
-  skipAttributeCard:    () => void;
+  refreshRewardWithDiamonds: () => void;
+  proceedRewardStep:    () => void;
 
   // ── 计算 ──────────────────────────────────
   currentStage: () => StageState | null;
 }
 
+function calcSkillSellValue(quality: SkillDef['quality'], enhancement: SkillEnhancement): number {
+  const qualityVal: Record<SkillDef['quality'], number> = { green: 1, blue: 2, purple: 3 };
+  const enhancementVal: Record<SkillEnhancement, number> = { normal: 0, flash: 1, gold: 2, laser: 3, black: 2 };
+  return qualityVal[quality] + enhancementVal[enhancement];
+}
+
+function calcStageDiamondReward(stage: StageState): number {
+  const base = stage.isElite || stage.isBoss ? 5 : 3;
+  const handsLeft = stage.totalHands - stage.usedHands;
+  const handBonus = handsLeft >= 2 ? 2 : handsLeft === 1 ? 1 : 0;
+  const holdLeft = stage.holdTotal - stage.holdUsed;
+  const holdBonus = holdLeft >= 1 ? 1 : 0;
+  return base + handBonus + holdBonus;
+}
+
 // ─── 构建一手牌组（含 Joker 概率） ─────────────────────────────────
 function buildDeck(acquiredSkillIds: string[]): ReturnType<typeof dealCards> & { deck_: ReturnType<typeof buildBaseDeck> } {
-  const hasJokerRate = acquiredSkillIds.includes('joker_rate');
-  const jokerProb = hasJokerRate ? 0.06 : 0.03;
+  const jokerProb = jokerInjectProbability(acquiredSkillIds, false);
   const base = buildBaseDeck();
   const withJokers = injectJokers(base, jokerProb);
   return { deck_: withJokers } as unknown as ReturnType<typeof dealCards> & { deck_: ReturnType<typeof buildBaseDeck> };
@@ -173,15 +281,15 @@ export const useRLStore = create<RLStore>()(
       // ─── 开始新 Run ────────────────────────────────────────────
       startNewRun: () => {
         const run = initRun();
-        // 先发一手面朝下的牌
-        const deck = shuffle(injectJokers(buildBaseDeck(), 0.03));
+        const stage0 = getEffectiveStage(run.stages[0], run.acquiredSkillIds);
+        const jP = jokerInjectProbability(run.acquiredSkillIds, stage0.banJokers === true);
+        const maxJ = maxJokersInHandCap(run.acquiredSkillIds);
+        const deck = shuffle(injectJokers(buildBaseDeck(), jP));
         const dealt = dealCards(deck, HAND_SIZE);
-        const { hand, remaining } = capJokersInHand(dealt.hand, dealt.remaining);
-        // 开局技能三选一（isOpeningReward）
-        const startReward = generateOpeningRewardState([]);
+        const { hand, remaining } = capJokersInHand(dealt.hand, dealt.remaining, maxJ);
         set({
           run,
-          reward: startReward,
+          reward: null,
           handState: { deck: remaining, hand, heldIndices: [], phase: 'deal', drawsUsed: 0, lastResult: null },
         });
       },
@@ -205,14 +313,20 @@ export const useRLStore = create<RLStore>()(
       dealInitialHand: () => {
         const { run } = get();
         if (!run || run.status !== 'running') return;
-        const hasJokerRate = run.acquiredSkillIds.includes('joker_rate');
-        const jokerProb = hasJokerRate ? 0.06 : 0.03;
+        const rawStage = run.stages[run.currentStageIndex];
+        if (!rawStage) return;
+        const stage = getEffectiveStage(rawStage, run.acquiredSkillIds);
+        const jokerProb = jokerInjectProbability(run.acquiredSkillIds, stage.banJokers === true);
+        const maxJ = maxJokersInHandCap(run.acquiredSkillIds);
         // 属性牌混入牌池（防御 undefined）
         const base = injectJokers(buildBaseDeck(), jokerProb);
         const deck = shuffle([...base, ...(run.attributeCards ?? [])]);
         const dealt = dealCards(deck, HAND_SIZE);
-        const { hand, remaining } = capJokersInHand(dealt.hand, dealt.remaining);
+        const { hand, remaining } = capJokersInHand(dealt.hand, dealt.remaining, maxJ);
+        const nextRun = { ...run };
+        delete nextRun.pendingRandomHandMult;
         set({
+          run: nextRun,
           handState: { deck: remaining, hand, heldIndices: [], phase: 'deal', drawsUsed: 0, lastResult: null },
           reward: null,
         });
@@ -220,9 +334,14 @@ export const useRLStore = create<RLStore>()(
 
       // ─── 翻牌：deal → hold ────────────────────────────────────
       flipCards: () => {
-        const { handState } = get();
-        if (!handState || handState.phase !== 'deal') return;
-        set({ handState: { ...handState, phase: 'hold' } });
+        const { handState, run } = get();
+        if (!handState || !run || handState.phase !== 'deal') return;
+        const skills = getSkillsByIds(run.acquiredSkillIds);
+        const rolled = rollRandomHandAddMultiplier(skills);
+        const nextRun = { ...run };
+        if (rolled !== undefined) nextRun.pendingRandomHandMult = rolled;
+        else delete nextRun.pendingRandomHandMult;
+        set({ run: nextRun, handState: { ...handState, phase: 'hold' } });
       },
 
       // ─── 切换 hold（hold 阶段选/取消选牌）──────────────────────
@@ -251,7 +370,8 @@ export const useRLStore = create<RLStore>()(
 
         // 换牌
         const replaced = replaceUnheld(handState.hand, handState.heldIndices, handState.deck);
-        const { hand: newHand, remaining } = capJokersInHand(replaced.newHand, replaced.remaining);
+        const maxJ = maxJokersInHandCap(run.acquiredSkillIds);
+        const { hand: newHand, remaining } = capJokersInHand(replaced.newHand, replaced.remaining, maxJ);
 
         // 触发 hold 型技能积累
         const heldCards = handState.heldIndices.map(i => handState.hand[i]);
@@ -282,114 +402,220 @@ export const useRLStore = create<RLStore>()(
         _commitScore(handState, run, stage, set);
       },
 
-      // ─── 选择技能（开局奖励 / 精英双步技能 / 单步技能） ──────
-      chooseSkill: (skill: SkillDef) => {
+      // ─── 购买技能 ─────────────────────────────────────────────
+      chooseSkill: (skill: SkillDef, enhancement: SkillEnhancement, price: number) => {
         const { run, reward } = get();
-        if (!run || !reward || reward.step !== 'skill') return;
-        const newRun: RunState = { ...run, acquiredSkillIds: [...run.acquiredSkillIds, skill.id] };
+        if (!run || !reward || (reward.step !== 'skill' && reward.step !== 'unified')) return;
+        if (run.runDiamonds < price) return;
+        if (run.acquiredSkillIds.includes(skill.id)) return;
+        const blacksAfter =
+          countBlackEdgeSlots(run.skillEnhancements, run.acquiredSkillIds) + (enhancement === 'black' ? 1 : 0);
+        if (run.acquiredSkillIds.length >= run.skillSlotCap + blacksAfter) return;
 
-        if (reward.isOpeningReward) {
-          // 开局奖励：记录技能，清奖励，留在关卡 0 等待翻牌
-          set({ run: newRun, reward: null });
-          return;
+        let nextDiamonds = run.runDiamonds - price;
+        if (skill.id === SKILL_SUPER_CREDIT) nextDiamonds += 20;
+        let newRun: RunState = {
+          ...run,
+          acquiredSkillIds: [...run.acquiredSkillIds, skill.id],
+          skillEnhancements: { ...run.skillEnhancements, [skill.id]: enhancement },
+          runDiamonds: clampRunDiamonds(nextDiamonds),
+          diamondsSpentTotal: run.diamondsSpentTotal + price,
+        };
+        const beforeRandom = hasRandomHandAddMultiplierSkill(getSkillsByIds(run.acquiredSkillIds));
+        const afterRandom = hasRandomHandAddMultiplierSkill(getSkillsByIds(newRun.acquiredSkillIds));
+        const hs = get().handState;
+        if (!beforeRandom && afterRandom && hs?.phase === 'hold') {
+          const r = rollRandomHandAddMultiplier(getSkillsByIds(newRun.acquiredSkillIds));
+          if (r !== undefined) newRun = { ...newRun, pendingRandomHandMult: r };
         }
-
-        const pending = reward.pendingSteps ?? [];
-        if (pending.length > 0) {
-          // 还有后续步骤（如精英双技能的第二步）：切换并动态生成新选项
-          const [nextStep, ...remaining] = pending;
-          const freshSkillOptions = nextStep === 'skill'
-            ? generateSkillOptions(newRun.acquiredSkillIds, reward.afterElite ?? false)
-            : [];
-          set({
-            run: newRun,
-            reward: { ...reward, step: nextStep, skillOptions: freshSkillOptions, pendingSteps: remaining },
-          });
-        } else {
-          // 无后续步骤：推进到下一关
-          const advanced = newRun.isEndless
-            ? advanceToNextEndlessStage(newRun, newRun.handTypeUpgrades, [], [])
-            : advanceToNextStage(newRun, newRun.handTypeUpgrades, [], []);
-          set({ run: advanced, reward: null });
-          if (advanced.status === 'running') get().dealInitialHand();
-        }
+        const newSkillOptions = reward.skillOptions.map(s =>
+          s.skill.id === skill.id ? { ...s, purchased: true } : s
+        );
+        set({ run: newRun, reward: { ...reward, skillOptions: newSkillOptions } });
       },
 
-      // ─── 跳过技能选择 ─────────────────────────────────────────
-      skipSkill: () => {
-        const { run, reward } = get();
-        if (!run || !reward || reward.step !== 'skill') return;
-
-        if (reward.isOpeningReward) {
-          set({ reward: null });
-          return;
-        }
-
-        const pending = reward.pendingSteps ?? [];
-        if (pending.length > 0) {
-          // 跳过当前技能步骤，切换到下一步，仍生成新选项
-          const [nextStep, ...remaining] = pending;
-          const freshSkillOptions = nextStep === 'skill'
-            ? generateSkillOptions(run.acquiredSkillIds, reward.afterElite ?? false)
-            : [];
-          set({ reward: { ...reward, step: nextStep, skillOptions: freshSkillOptions, pendingSteps: remaining } });
-        } else {
-          const advanced = run.isEndless
-            ? advanceToNextEndlessStage(run, run.handTypeUpgrades, [], [])
-            : advanceToNextStage(run, run.handTypeUpgrades, [], []);
-          set({ run: advanced, reward: null });
-          if (advanced.status === 'running') get().dealInitialHand();
-        }
+      // ─── 卖出技能（先卖后买）────────────────────────────────────
+      sellSkill: (skillId: string) => {
+        const { run } = get();
+        if (!run) return;
+        if (!run.acquiredSkillIds.includes(skillId)) return;
+        const skill = getSkillsByIds([skillId])[0];
+        if (!skill) return;
+        const enhancement = run.skillEnhancements[skillId] ?? 'normal';
+        const sellExtra = clampSkillSellExtraDiamonds(run.skillSellBonus?.[skillId]);
+        const refund = calcSkillSellValue(skill.quality, enhancement) + sellExtra;
+        let nextDiamonds = run.runDiamonds + refund;
+        if (skillId === SKILL_SUPER_CREDIT) nextDiamonds -= 20;
+        const newSkillIds = run.acquiredSkillIds.filter(id => id !== skillId);
+        const newEnhancements = { ...run.skillEnhancements };
+        delete newEnhancements[skillId];
+        const newAccumulation = { ...run.skillAccumulation };
+        delete newAccumulation[skillId];
+        const newSellBonus = { ...(run.skillSellBonus ?? {}) };
+        delete newSellBonus[skillId];
+        const soldSkillIds = run.soldSkillIds.includes(skillId)
+          ? run.soldSkillIds
+          : [...run.soldSkillIds, skillId];
+        const beforeRandom = hasRandomHandAddMultiplierSkill(getSkillsByIds(run.acquiredSkillIds));
+        const afterRandom = hasRandomHandAddMultiplierSkill(getSkillsByIds(newSkillIds));
+        const nextRun: RunState = {
+          ...run,
+          acquiredSkillIds: newSkillIds,
+          soldSkillIds,
+          skillEnhancements: newEnhancements,
+          skillAccumulation: newAccumulation,
+          skillSellBonus: newSellBonus,
+          runDiamonds: clampRunDiamonds(nextDiamonds),
+        };
+        if (beforeRandom && !afterRandom) delete nextRun.pendingRandomHandMult;
+        set({ run: nextRun });
       },
 
-      // ─── 选择升级（若有 pendingSteps 则切步骤，否则推进到下一关） ──
+      // ─── 购买升级 ─────────────────────────────────────────────
       chooseUpgrade: (option: UpgradeOption) => {
         const { run, reward } = get();
-        if (!run || !reward || reward.step !== 'upgrade') return;
-
+        if (!run || !reward || (reward.step !== 'upgrade' && reward.step !== 'unified')) return;
+        const target = reward.upgradeOptions.find(u =>
+          u.option.handType === option.handType && u.option.handName === option.handName
+        );
+        if (!target) return;
+        if (target.purchased) return;
+        if (run.runDiamonds < target.price) return;
         const newUpgrades = applyUpgrade(run.handTypeUpgrades, option);
-        const newRun: RunState = { ...run, handTypeUpgrades: newUpgrades };
-
-        const pending = reward.pendingSteps ?? [];
-        if (pending.length > 0) {
-          // 还有后续步骤（如属性牌），切换到下一步
-          const [nextStep, ...remaining] = pending;
-          set({
-            run: newRun,
-            reward: { ...reward, step: nextStep, pendingSteps: remaining },
-          });
-        } else {
-          // 无后续步骤，推进到下一关
-          const advanced = newRun.isEndless
-            ? advanceToNextEndlessStage(newRun, newRun.handTypeUpgrades, [], [])
-            : advanceToNextStage(newRun, newRun.handTypeUpgrades, [], []);
-          set({ run: advanced, reward: null });
-          if (advanced.status === 'running') get().dealInitialHand();
-        }
+        set({
+          run: {
+            ...run,
+            handTypeUpgrades: newUpgrades,
+            runDiamonds: clampRunDiamonds(run.runDiamonds - target.price),
+            diamondsSpentTotal: run.diamondsSpentTotal + target.price,
+          },
+          reward: {
+            ...reward,
+            upgradeOptions: reward.upgradeOptions.map(u =>
+              u.option.handType === option.handType && u.option.handName === option.handName
+                ? { ...u, purchased: true }
+                : u
+            ),
+          },
+        });
       },
 
-      // ─── 选择属性牌（奖励第三步），推进到下一关 ──────────────
+      // ─── 购买超级牌 ───────────────────────────────────────────
       chooseAttributeCard: (card: Card) => {
         const { run, reward } = get();
-        if (!run || !reward || reward.step !== 'attribute') return;
-
-        const newRun = run.isEndless
-          ? advanceToNextEndlessStage(run, run.handTypeUpgrades, [], [card])
-          : advanceToNextStage(run, run.handTypeUpgrades, [], [card]);
-        set({ run: newRun, reward: null });
-        if (newRun.status === 'running') get().dealInitialHand();
+        if (!run || !reward || (reward.step !== 'attribute' && reward.step !== 'unified')) return;
+        const target = reward.attributeOptions.find(a => a.card.id === card.id);
+        if (!target) return;
+        if (target.purchased) return;
+        if (run.runDiamonds < target.price) return;
+        set({
+          run: {
+            ...run,
+            attributeCards: [...run.attributeCards, card],
+            runDiamonds: clampRunDiamonds(run.runDiamonds - target.price),
+            diamondsSpentTotal: run.diamondsSpentTotal + target.price,
+          },
+          reward: {
+            ...reward,
+            attributeOptions: reward.attributeOptions.map(a =>
+              a.card.id === card.id ? { ...a, purchased: true } : a
+            ),
+          },
+        });
       },
 
-      // ─── 跳过属性牌选择 ──────────────────────────────────────
-      skipAttributeCard: () => {
+      // ─── 钻石刷新（每阶段仅 1 次）─────────────────────────────
+      refreshRewardWithDiamonds: () => {
         const { run, reward } = get();
-        if (!run || !reward || reward.step !== 'attribute') return;
+        if (!run || !reward) return;
+        if (reward.refreshUsedWithDiamonds) return;
+        const refreshCost = Math.max(0, reward.diamondRefreshCost ?? getDefaultDiamondRefreshCost());
+        if (run.runDiamonds < refreshCost) return;
+        const afterElite = reward.afterElite ?? false;
+        const ownedBlack = run.acquiredSkillIds.filter((id) => run.skillEnhancements[id] === 'black').length;
+        const gateN = reward.shopStageK != null ? computeBlackEdgePityGateN(reward.shopStageK, ownedBlack) : null;
+        const refreshed = regenerateShopOptionsForStep(
+          reward.step,
+          run.handTypeUpgrades,
+          run.acquiredSkillIds,
+          run.skillEnhancements,
+          afterElite,
+          false,
+          reward.shopStageK,
+          run.soldSkillIds ?? [],
+          true,
+          gateN != null ? { gateN, misses: run.blackEdgePityMisses ?? 0, cooldown: run.blackEdgePityCooldown ?? 0 } : undefined,
+        );
+        const nextReward: RewardState = {
+          ...reward,
+          ...refreshed,
+          refreshUsedWithDiamonds: true,
+          blackEdgeSeenThisShop:
+            (reward.blackEdgeSeenThisShop ?? false) || refreshed.skillOptions.some((o) => o.enhancement === 'black'),
+        };
+        set({
+          run: {
+            ...run,
+            runDiamonds: clampRunDiamonds(run.runDiamonds - refreshCost),
+            diamondsSpentTotal: run.diamondsSpentTotal + refreshCost,
+          },
+          reward: nextReward,
+        });
+      },
 
-        const newRun = run.isEndless
+      // ─── 继续奖励下一步 / 下一关 ──────────────────────────────
+      proceedRewardStep: () => {
+        const { run, reward } = get();
+        if (!run || !reward) return;
+
+        // 黑边定向保底：在离开本关商店时更新 pity/cooldown（每关一次）
+        if (reward.step === 'unified' && reward.shopStageK != null) {
+          const k = reward.shopStageK;
+          const ownedBefore = reward.blackEdgeOwnedAtOpen ?? 0;
+          const ownedAfter = run.acquiredSkillIds.filter((id) => run.skillEnhancements[id] === 'black').length;
+          const gateN = computeBlackEdgePityGateN(k, ownedAfter);
+          const prevGateN = run.blackEdgePityGateN ?? null;
+          let misses = run.blackEdgePityMisses ?? 0;
+          let cooldown = run.blackEdgePityCooldown ?? 0;
+
+          // 段切换：重置
+          if (gateN !== prevGateN) {
+            misses = 0;
+            cooldown = 0;
+          }
+
+          if (gateN != null) {
+            const seenBlack = reward.blackEdgeSeenThisShop ?? false;
+            const boughtBlack = ownedAfter > ownedBefore;
+
+            if (seenBlack && boughtBlack) {
+              misses = 0;
+              cooldown = 0;
+            } else {
+              // 未达成“拥有更多黑边”：misses 继续累加
+              misses += 1;
+              // cooldown 自然衰减
+              if (cooldown > 0) cooldown = Math.max(0, cooldown - 1);
+              // 特例：出现但未买 → 接下来两关不强行注入
+              if (seenBlack && !boughtBlack) cooldown = 2;
+            }
+          }
+
+          set({
+            run: {
+              ...run,
+              blackEdgePityGateN: gateN ?? undefined,
+              blackEdgePityMisses: misses,
+              blackEdgePityCooldown: cooldown,
+            },
+          });
+        }
+
+        const advanced = run.isEndless
           ? advanceToNextEndlessStage(run, run.handTypeUpgrades, [], [])
           : advanceToNextStage(run, run.handTypeUpgrades, [], []);
-        set({ run: newRun, reward: null });
-        if (newRun.status === 'running') get().dealInitialHand();
+        set({ run: advanced, reward: null });
+        if (advanced.status === 'running') get().dealInitialHand();
       },
 
       // ─── 获取当前关卡 ─────────────────────────────────────────
@@ -400,7 +626,7 @@ export const useRLStore = create<RLStore>()(
       },
     }),
     {
-      name: 'poker-roguelike-storage-v8',  // v8: 主线 20 关；v7: 统一补牌次数，去除 rehold，简化手牌 phase
+      name: ROGUELIKE_ZUSTAND_PERSIST_NAME,
       partialize: (state) => ({
         run:       state.run,
         handState: state.handState,
@@ -408,15 +634,80 @@ export const useRLStore = create<RLStore>()(
       }),
       // 旧版存档直接丢弃，避免类型不兼容
       migrate: (persisted: unknown, version: number) => {
-        if (version < 7) return { run: null, handState: null, reward: null };
-        const p = persisted as { run: RunState | null; handState: unknown; reward: unknown };
-        // 主线关数变更：进行中/无尽存档与 20 关模板不兼容，强制清局
-        if (version < 8 && p.run) {
-          return { ...p, run: null, handState: null, reward: null };
+        if (version < 9) return { run: null, handState: null, reward: null };
+        let p = persisted as { run: RunState | null; handState: unknown; reward: unknown };
+        if (version < 10 && p.run && p.run.skillSlotCap === 6 && p.run.acquiredSkillIds.length <= 5) {
+          p = { ...p, run: { ...p.run, skillSlotCap: 5 } };
+        }
+        if (version < 11 && p.run && p.run.skillSellBonus === undefined) {
+          p = { ...p, run: { ...p.run, skillSellBonus: {} } };
+        }
+        if (version < 12 && p.run) {
+          const bonus = { ...(p.run.skillSellBonus ?? {}) };
+          for (const k of Object.keys(bonus)) {
+            bonus[k] = clampSkillSellExtraDiamonds(bonus[k]);
+          }
+          p = {
+            ...p,
+            run: {
+              ...p.run,
+              soldSkillIds: p.run.soldSkillIds ?? [],
+              skillSellBonus: bonus,
+            },
+          };
+        }
+        if (version < 13 && p.run && p.run.skillSellBonus) {
+          const bonus = { ...p.run.skillSellBonus };
+          for (const k of Object.keys(bonus)) {
+            bonus[k] = clampSkillSellExtraDiamonds(bonus[k]);
+          }
+          p = { ...p, run: { ...p.run, skillSellBonus: bonus } };
+        }
+        if (version < 14 && p.run?.stages) {
+          p = {
+            ...p,
+            run: {
+              ...p.run,
+              stages: p.run.stages.map((s: StageState) => ({
+                ...s,
+                banJokers: (s as StageState & { banJokers?: boolean }).banJokers ?? false,
+              })),
+            },
+          };
+        }
+        if (version < 15 && p.run) {
+          const REM = 'two_pairs_all';
+          const ids = p.run.acquiredSkillIds.filter((id: string) => id !== REM);
+          const enh = { ...p.run.skillEnhancements };
+          delete enh[REM];
+          const acc = { ...p.run.skillAccumulation };
+          delete acc[REM];
+          const sold = (p.run.soldSkillIds ?? []).filter((id: string) => id !== REM);
+          p = {
+            ...p,
+            run: {
+              ...p.run,
+              acquiredSkillIds: ids,
+              skillEnhancements: enh,
+              skillAccumulation: acc,
+              soldSkillIds: sold,
+            },
+          };
+        }
+        if (version < 16 && p.run) {
+          p = {
+            ...p,
+            run: {
+              ...p.run,
+              blackEdgePityGateN: (p.run as RunState & { blackEdgePityGateN?: number }).blackEdgePityGateN ?? undefined,
+              blackEdgePityMisses: (p.run as RunState & { blackEdgePityMisses?: number }).blackEdgePityMisses ?? 0,
+              blackEdgePityCooldown: (p.run as RunState & { blackEdgePityCooldown?: number }).blackEdgePityCooldown ?? 0,
+            },
+          };
         }
         return p;
       },
-      version: 8,
+      version: ROGUELIKE_PERSIST_SCHEMA_VERSION,
     }
   )
 );

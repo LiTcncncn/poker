@@ -7,7 +7,8 @@ export type ModifierEffectType =
   | 'block_hold_after'   // 后 N 手不可补牌
   | 'reduce_hand_count'  // 本关手数 -N
   | 'ban_suits'          // 指定花色牌的牌面分不计入
-  | 'ban_rank_max';      // ≤ value 的牌（小牌）牌面分不计入
+  | 'ban_rank_max'       // ≤ value 的牌（小牌）牌面分不计入
+  | 'ban_jokers';        // 本关不向牌堆注入 Joker（注入概率为 0）
 
 export interface ModifierEffect {
   type: ModifierEffectType;

@@ -30,21 +30,6 @@
     ]
   },
   {
-    "id": "two_pairs_all",
-    "name": "两对全计分",
-    "quality": "green",
-    "description": "两对时所有 5 张牌均计分",
-    "effects": [
-      {
-        "type": "all_cards_score",
-        "value": 0,
-        "triggerHandTypes": [
-          "two_pairs"
-        ]
-      }
-    ]
-  },
-  {
     "id": "trips_all",
     "name": "三条全计分",
     "quality": "green",
@@ -63,11 +48,11 @@
     "id": "ten_score",
     "name": "逢10加注",
     "quality": "green",
-    "description": "计分时每张 10 额外 +$20",
+    "description": "计分时每张 10 额外 +$30",
     "effects": [
       {
         "type": "per_scoring_card_score",
-        "value": 20,
+        "value": 30,
         "triggerRanks": [
           10
         ]
@@ -78,11 +63,11 @@
     "id": "j_mult",
     "name": "逢J加倍率",
     "quality": "green",
-    "description": "计分时每张 J 额外 +2 倍",
+    "description": "计分时每张 J 额外 +3 倍",
     "effects": [
       {
         "type": "per_scoring_card_multiplier",
-        "value": 2,
+        "value": 3,
         "triggerRanks": [
           11
         ]
@@ -93,11 +78,11 @@
     "id": "q_score",
     "name": "逢Q加注",
     "quality": "green",
-    "description": "计分时每张 Q 额外 +$20",
+    "description": "计分时每张 Q 额外 +$30",
     "effects": [
       {
         "type": "per_scoring_card_score",
-        "value": 20,
+        "value": 30,
         "triggerRanks": [
           12
         ]
@@ -108,11 +93,11 @@
     "id": "k_mult",
     "name": "逢K加倍率",
     "quality": "green",
-    "description": "计分时每张 K 额外 +2 倍",
+    "description": "计分时每张 K 额外 +3 倍",
     "effects": [
       {
         "type": "per_scoring_card_multiplier",
-        "value": 2,
+        "value": 3,
         "triggerRanks": [
           13
         ]
@@ -181,7 +166,7 @@
   },
   {
     "id": "unscored_bonus",
-    "name": "未计分牌加倍率",
+    "name": "未计分加倍率",
     "quality": "green",
     "description": "每手未计分牌每张贡献 +3 倍",
     "effects": [
@@ -192,30 +177,14 @@
     ]
   },
   {
-    "id": "high_street_bonus",
-    "name": "高街顺子加倍率",
-    "quality": "green",
-    "description": "顺子为 10/J/Q/K/A 时额外 +10 倍",
-    "effects": [
-      {
-        "type": "hand_add_multiplier",
-        "value": 10,
-        "triggerHandTypes": [
-          "straight"
-        ],
-        "triggerHighStraight": true
-      }
-    ]
-  },
-  {
     "id": "flat_score",
     "name": "额外加注",
     "quality": "green",
-    "description": "计分时额外 +$20",
+    "description": "计分时额外 +$30",
     "effects": [
       {
         "type": "add_score",
-        "value": 20
+        "value": 30
       }
     ]
   },
@@ -223,11 +192,11 @@
     "id": "flat_mult",
     "name": "额外加倍率",
     "quality": "green",
-    "description": "计分时额外 +3 倍",
+    "description": "计分时额外 +4 倍",
     "effects": [
       {
         "type": "add_multiplier",
-        "value": 3
+        "value": 4
       }
     ]
   },
@@ -235,11 +204,11 @@
     "id": "full_house_mult_bonus",
     "name": "含葫芦加倍率",
     "quality": "green",
-    "description": "计分牌含葫芦时额外 +8 倍",
+    "description": "计分牌含葫芦时额外 +10 倍",
     "effects": [
       {
         "type": "hand_add_multiplier",
-        "value": 8,
+        "value": 10,
         "matchContainedHandTypes": true,
         "triggerHandTypes": [
           "full_house"
@@ -283,11 +252,11 @@
     "id": "trips_mult_bonus",
     "name": "含三条加倍率",
     "quality": "green",
-    "description": "计分牌含三条时额外 +6 倍",
+    "description": "计分牌含三条时额外 +10 倍",
     "effects": [
       {
         "type": "hand_add_multiplier",
-        "value": 6,
+        "value": 10,
         "matchContainedHandTypes": true,
         "triggerHandTypes": [
           "three_of_a_kind"
@@ -299,11 +268,11 @@
     "id": "two_pairs_mult_bonus",
     "name": "含两对加倍率",
     "quality": "green",
-    "description": "计分牌含两对时额外 +4 倍",
+    "description": "计分牌含两对时额外 +8 倍",
     "effects": [
       {
         "type": "hand_add_multiplier",
-        "value": 4,
+        "value": 8,
         "matchContainedHandTypes": true,
         "triggerHandTypes": [
           "two_pairs"
@@ -371,11 +340,11 @@
     "id": "two_pairs_score_30",
     "name": "含两对加注",
     "quality": "green",
-    "description": "计分牌含两对时额外 +$30",
+    "description": "计分牌含两对时额外 +$50",
     "effects": [
       {
         "type": "hand_add_score",
-        "value": 30,
+        "value": 50,
         "matchContainedHandTypes": true,
         "triggerHandTypes": ["two_pairs"]
       }
@@ -385,11 +354,11 @@
     "id": "trips_score_30",
     "name": "含三条加注",
     "quality": "green",
-    "description": "计分牌含三条时额外 +$30",
+    "description": "计分牌含三条时额外 +$60",
     "effects": [
       {
         "type": "hand_add_score",
-        "value": 30,
+        "value": 60,
         "matchContainedHandTypes": true,
         "triggerHandTypes": ["three_of_a_kind"]
       }
@@ -427,11 +396,11 @@
     "id": "full_house_score_60",
     "name": "含葫芦加注",
     "quality": "green",
-    "description": "计分牌含葫芦时额外 +$60",
+    "description": "计分牌含葫芦时额外 +$80",
     "effects": [
       {
         "type": "hand_add_score",
-        "value": 60,
+        "value": 80,
         "matchContainedHandTypes": true,
         "triggerHandTypes": ["full_house"]
       }
@@ -502,26 +471,33 @@
     "id": "joker_rate",
     "name": "Joker几率+",
     "quality": "blue",
-    "description": "牌堆中 Joker 出现几率提升",
+    "description": "牌堆中 Joker 注入概率由基础 8% 提升至 12%（词缀「禁小丑」本关仍为 0）",
+    "effects": []
+  },
+  {
+    "id": "joker_double",
+    "name": "JOKER 成双",
+    "quality": "blue",
+    "description": "一手牌中至多可有 2 张 Joker 参与计分；发牌/补牌时手牌内至多保留 2 张 Joker（无本技能时仍为 1 张）",
     "effects": []
   },
   {
     "id": "skill_count_mult",
-    "name": "技能数加倍率",
+    "name": "技能数加倍",
     "quality": "blue",
-    "description": "每拥有 1 个技能，额外 +1 倍（含该技能自身）",
+    "description": "每拥有 1 个技能，额外 +3 倍（含该技能自身）；总贡献 = 技能数×3，不设上限。牌面显示当前实际 +N 倍。",
     "effects": []
   },
   {
     "id": "pair_accum",
     "name": "对子累积",
     "quality": "purple",
-    "description": "每次结算对子，累积 +$10（上限 100），并加入本次得分",
+    "description": "每次结算对子，累积 +$10（上限 $200），并加入本次得分",
     "effects": [
       {
         "type": "accumulate_score",
         "value": 10,
-        "accumulateCap": 100,
+        "accumulateCap": 200,
         "triggerHandTypes": [
           "one_pair"
         ]
@@ -532,12 +508,12 @@
     "id": "trips_accum",
     "name": "三条累积",
     "quality": "purple",
-    "description": "每次结算三条，累积 +$20（上限 100），并加入本次得分",
+    "description": "每次结算三条，累积 +$20（上限 $200），并加入本次得分",
     "effects": [
       {
         "type": "accumulate_score",
         "value": 20,
-        "accumulateCap": 100,
+        "accumulateCap": 200,
         "triggerHandTypes": [
           "three_of_a_kind"
         ]
@@ -546,14 +522,14 @@
   },
   {
     "id": "nine_accum",
-    "name": "9累积",
+    "name": "逢9累积",
     "quality": "purple",
-    "description": "每次结算含 9，每张 9 累积 +$10（上限 100），并加入本次得分",
+    "description": "每次结算含 9，每张 9 累积 +$20（上限 $200），并加入本次得分",
     "effects": [
       {
         "type": "accumulate_score",
-        "value": 10,
-        "accumulateCap": 100,
+        "value": 20,
+        "accumulateCap": 200,
         "triggerRanks": [
           9
         ]
@@ -564,11 +540,11 @@
     "id": "eight_hold_accum",
     "name": "HOLD8积累",
     "quality": "purple",
-    "description": "每 hold 1 张 8，该技能倍率 +1（上限 20）；每次计分时加入额外倍率",
+    "description": "每 hold 1 张 8，该技能倍率 +2（上限 +20 倍）；每次计分时加入额外倍率",
     "effects": [
       {
         "type": "accumulate_multiplier",
-        "value": 1,
+        "value": 2,
         "accumulateCap": 20,
         "triggerOnHold": true,
         "triggerHoldRank": 8
@@ -579,7 +555,7 @@
     "id": "three_hold_accum",
     "name": "HOLD三张积累",
     "quality": "purple",
-    "description": "每次 hold 恰好 3 张，该技能倍率 +1（上限 20）；每次计分时加入额外倍率",
+    "description": "每次 hold 恰好 3 张，该技能倍率 +1（上限 +20 倍）；每次计分时加入额外倍率",
     "effects": [
       {
         "type": "accumulate_multiplier",
@@ -607,7 +583,7 @@
     "id": "saved_hold_mult",
     "name": "省补倍率",
     "quality": "purple",
-    "description": "每省一次 hold（本手未使用补牌），累积 +1 倍（上限 20）；每次计分时加入额外倍率",
+    "description": "每省一次补牌（本手未使用补牌），累积 +1 倍（上限 +20 倍）；每次计分时加入额外倍率",
     "effects": [
       {
         "type": "accumulate_multiplier_no_draw",
@@ -709,7 +685,7 @@
   },
   {
     "id": "no_hold_double",
-    "name": "首手无 HOLD翻倍",
+    "name": "开门红乘倍",
     "quality": "purple",
     "description": "每关第一手且未使用额外 hold 时，结算 ×3",
     "effects": [
@@ -754,11 +730,11 @@
     "id": "full_house_x15",
     "name": "葫芦乘倍",
     "quality": "purple",
-    "description": "每手葫芦，结算 ×1.5",
+    "description": "每手葫芦，结算 ×2",
     "effects": [
       {
         "type": "independent_multiply",
-        "value": 1.5,
+        "value": 2,
         "triggerHandTypes": [
           "full_house"
         ]
@@ -797,7 +773,7 @@
     "id": "super_card_mult",
     "name": "超级牌乘倍",
     "quality": "purple",
-    "description": "每拥有一张超级牌，结算独立乘区倍率 +0.1（因子最高 ×3；界面显示当前乘倍）",
+    "description": "每拥有一张超级牌，结算独立乘区倍率 +0.1（因子最高 ×2.5；界面显示当前乘倍）",
     "effects": [
       {
         "type": "super_card_independent_multiply",
@@ -816,7 +792,92 @@
     "id": "elite_unshackled",
     "name": "精英关无限制",
     "quality": "purple",
-    "description": "精英/Boss 关：牌型/花色/小牌禁止与补牌时段限制不生效；削减手数/补牌总次数仍生效（主线与无限均生效）",
+    "description": "精英/Boss 关：牌型/花色/小牌禁止、禁小丑（不出现 Joker）与补牌时段限制不生效；削减手数/补牌总次数仍生效（主线与无限均生效）",
     "effects": []
+  },
+  {
+    "id": "super_credit_card",
+    "name": "超级信用卡",
+    "quality": "green",
+    "description": "购入时净得 +20💎；仅卖出该技能时再 −20。局内 💎 不低于 −20。商店：通关前 5 关对应商店（k=1～5）不出现本技能。",
+    "effects": []
+  },
+  {
+    "id": "diamond_tycoon",
+    "name": "钻石王老五",
+    "quality": "green",
+    "description": "每次关卡胜利（含无限下一关、BOSS 通关）+5💎。",
+    "effects": []
+  },
+  {
+    "id": "sellers_market",
+    "name": "卖方市场",
+    "quality": "blue",
+    "description": "每次关卡胜利：每个已拥有技能的卖出回收价 +1💎（不改变商店购买价）；每个技能 id 该项累计至多加成 💎8。",
+    "effects": []
+  },
+  {
+    "id": "diamond_score_per_gem",
+    "name": "钻石估值",
+    "quality": "blue",
+    "description": "每持有 1💎（计分取样时刻，不含本手待发钻），本手 +$3。",
+    "effects": [
+      {
+        "type": "per_run_diamond_score",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "diamond_mult_per_gem",
+    "name": "钻石倍率",
+    "quality": "blue",
+    "description": "每持有 2💎（同上取样，向下取整），本手 +1 倍（加性倍率，非独立乘区）。",
+    "effects": [
+      {
+        "type": "per_run_diamond_multiplier",
+        "value": 1,
+        "perRunDiamondsCost": 2
+      }
+    ]
+  },
+  {
+    "id": "super_broke",
+    "name": "超级穷鬼",
+    "quality": "blue",
+    "description": "计分时若局内 💎≤3，独立乘区 ×1.5。",
+    "effects": [
+      {
+        "type": "independent_multiply",
+        "value": 1.5,
+        "requireRunDiamondsLte": 3
+      }
+    ]
+  },
+  {
+    "id": "random_double_hand",
+    "name": "随机加倍",
+    "quality": "green",
+    "description": "每手翻牌时随机 +2～+15 倍（加性倍率，整数闭区间；本手内预览与结算一致）。",
+    "effects": [
+      {
+        "type": "random_hand_add_multiplier",
+        "value": 0,
+        "randomMultMin": 2,
+        "randomMultMax": 15
+      }
+    ]
+  },
+  {
+    "id": "remaining_hands_mult",
+    "name": "剩手加倍",
+    "quality": "blue",
+    "description": "本手结算：每还剩 1 手未打（不含本手），加性倍率 +2；例：共 6 手、当前第 1 手 → +10 倍，第 5 手 → +2 倍，末手 → +0。",
+    "effects": [
+      {
+        "type": "per_remaining_hand_add_multiplier",
+        "value": 2
+      }
+    ]
   }
 ]

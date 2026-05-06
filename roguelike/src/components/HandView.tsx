@@ -8,21 +8,17 @@ function formatMultiplierDisplay(n: number): string {
   return n.toFixed(1);
 }
 
-interface Props {
-  hand: CardType[];
-  heldIndices: number[];
-  phase: 'deal' | 'hold' | 'drew' | 'result';
-  lastResult: HandResult | null;
-  /** hold 阶段：与正式结算同布局的半透预览（整手评估，不把 hold 当过滤） */
-  previewResult?: HandResult | null;
-  onToggleHold: (index: number) => void;
+interface SettlementBlockProps {
+  r: HandResult;
+  preview: boolean;
 }
 
-function SettlementBlock({ r, preview }: { r: HandResult; preview: boolean }) {
+/** 与原先嵌入 HandView 时完全一致的结算区 UI（字号、间距、skillLog 容器均未改） */
+export function SettlementBlock({ r, preview }: SettlementBlockProps) {
   const baseMultiplier = +(r.multiplierTotal - r.skillAddedMultiplier).toFixed(2);
   const wrapCls = preview
-    ? 'mb-[15px] flex flex-col items-center gap-1.5 text-center w-full max-w-xs opacity-30 pointer-events-none text-white'
-    : 'animate-score-pop mb-[15px] flex flex-col items-center gap-1.5 text-center w-full max-w-xs';
+    ? 'flex flex-col items-center gap-1.5 text-center w-full max-w-xs opacity-30 pointer-events-none text-white'
+    : 'animate-score-pop flex flex-col items-center gap-1.5 text-center w-full max-w-xs';
 
   return (
     <div className={wrapCls}>
@@ -77,8 +73,20 @@ function SettlementBlock({ r, preview }: { r: HandResult; preview: boolean }) {
         <span className={preview ? 'text-white font-black' : 'text-rl-gold font-black'}>{r.finalGold.toLocaleString()}</span>
       </div>
 
+      {(r.diamondReward ?? 0) > 0 && (
+        <div
+          className={
+            preview
+              ? 'text-sm font-bold text-amber-200/90'
+              : 'text-sm font-black text-amber-300 drop-shadow-sm'
+          }
+        >
+          本手局内 💎 +{r.diamondReward}
+        </div>
+      )}
+
       {r.skillLog.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-1 mt-0.5">
+        <div className="flex max-h-[72px] flex-wrap justify-center gap-1 mt-0.5 overflow-y-auto overscroll-contain">
           {r.skillLog.slice(0, 6).map((log, i) => (
             <span
               key={i}
@@ -113,31 +121,32 @@ function SettlementBlock({ r, preview }: { r: HandResult; preview: boolean }) {
   );
 }
 
+interface HandViewProps {
+  hand: CardType[];
+  heldIndices: number[];
+  phase: 'deal' | 'hold' | 'drew' | 'result';
+  lastResult: HandResult | null;
+  onToggleHold: (index: number) => void;
+}
+
+/** 仅手牌区（结算在 StageView 中部独立展示） */
 export function HandView({
   hand,
   heldIndices,
   phase,
   lastResult,
-  previewResult,
   onToggleHold,
-}: Props) {
+}: HandViewProps) {
   const scoringIds = new Set(lastResult?.scoringCardIds ?? []);
-  const r = lastResult;
   const isResult = phase === 'result';
   const isDeal = phase === 'deal';
   const canToggle = phase === 'hold' || phase === 'drew';
-  const isHold = phase === 'hold';
 
   return (
-    <div className="flex flex-col items-center">
-      {isHold && previewResult && (
-        <SettlementBlock r={previewResult} preview />
-      )}
-
-      {isResult && r && <SettlementBlock r={r} preview={false} />}
-
-      {/* 手牌 */}
-      <div className={`flex gap-1.5 sm:gap-2 justify-center ${isResult ? 'pt-2' : ''}`}>
+    <div className="flex w-full min-w-0 flex-col items-center">
+      <div
+        className={`flex w-full min-w-0 gap-1.5 justify-center px-0.5 ${isResult ? 'pt-2' : 'pt-1'}`}
+      >
         {hand.map((card, i) => {
           const held = heldIndices.includes(i);
           const scoring = isResult && scoringIds.has(card.id);

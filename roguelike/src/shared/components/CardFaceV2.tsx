@@ -4,7 +4,6 @@
  */
 import type { FC } from 'react';
 import clsx from 'clsx';
-import { Gem } from 'lucide-react';
 import type { Card as CardType, Rank } from '../types/poker';
 import { getRankDisplay } from '../utils/pokerLogic';
 
@@ -175,8 +174,8 @@ export const CardFaceV2: FC<{
               <span key={i} className="shrink-0 font-black text-[#16A34A] text-[0.95em]">+{e.value ?? 0}</span>
             ))}
             {card.isDiamondCard && (
-              <span className="inline-flex items-center gap-0.5 font-black text-[#A16207] text-[0.95em]">
-                <Gem className="h-[1em] w-[1em] shrink-0" strokeWidth={2.5} />+{card.diamondBonus ?? 20}
+              <span className="shrink-0 font-black text-[#A16207] text-[0.95em]">
+                +💎{card.diamondBonus ?? 20}
               </span>
             )}
           </div>
@@ -237,8 +236,8 @@ export const CardFaceV2: FC<{
             <span key={i} className="shrink-0 font-black text-[#16A34A] drop-shadow-sm text-[0.95em]">+{e.value ?? 0}</span>
           ))}
           {card.isDiamondCard && (
-            <span className="inline-flex items-center gap-0.5 font-black text-[#A16207] text-[0.95em]">
-              <Gem className="h-[1em] w-[1em] shrink-0" strokeWidth={2.5} />+{card.diamondBonus ?? 20}
+            <span className="shrink-0 font-black text-[#A16207] text-[0.95em]">
+              +💎{card.diamondBonus ?? 20}
             </span>
           )}
         </div>

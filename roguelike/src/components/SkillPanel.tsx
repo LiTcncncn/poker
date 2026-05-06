@@ -1,88 +1,122 @@
-import React, { useState } from 'react';
-import { SkillDef } from '../types/skill';
-import SkillCard from './SkillCard';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { SkillDef, SkillEnhancement } from '../types/skill';
+import { SkillPlayingCard } from './SkillPlayingCard';
+import { SkillPlayingCardDetailModal } from './SkillPlayingCardDetailModal';
+
+const ROW_GAP_PX = 4;
+const SLOT_COUNT = 5;
 
 interface Props {
   skills: SkillDef[];
   skillAccumulation?: Record<string, number>;
   /** 本局超级牌张数，用于「超级牌乘倍」显示当前 × */
   superCardCount?: number;
+  /** 局内 💎；钻石估值/倍率牌面 */
+  runDiamonds?: number;
+  /** 剩手加倍牌面 */
+  stageTotalHands?: number;
+  stageUsedHands?: number;
+  pendingRandomHandMult?: number;
+  skillEnhancements?: Record<string, SkillEnhancement>;
+  /** 与 `skills` 同局的已装备 id 列表（用于「技能数加倍」牌面/详情等） */
+  acquiredSkillIds?: string[];
 }
 
-function withAccumulatedName(skill: SkillDef, skillAccumulation: Record<string, number>): string {
-  const accumulated = skillAccumulation[skill.id] ?? 0;
-  const hasScoreAccum = skill.effects.some(
-    e => e.type === 'accumulate_score' || e.type === 'accumulate_score_saved_hands',
-  );
-  const hasMultAccum = skill.effects.some(
-    e => e.type === 'accumulate_multiplier' || e.type === 'accumulate_multiplier_no_draw',
+export default function SkillPanel({
+  skills,
+  skillAccumulation = {},
+  superCardCount,
+  runDiamonds,
+  stageTotalHands,
+  stageUsedHands,
+  pendingRandomHandMult,
+  skillEnhancements = {},
+  acquiredSkillIds,
+}: Props) {
+  const [detail, setDetail] = useState<{ skill: SkillDef; enhancement: SkillEnhancement } | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [rowWidth, setRowWidth] = useState(() =>
+    typeof window !== 'undefined' ? Math.min(window.innerWidth, 384) - 32 : 320,
   );
 
-  if (hasScoreAccum) return `${skill.name}+$${accumulated}`;
-  if (hasMultAccum) return `${skill.name}+${accumulated}倍`;
-  return skill.name;
-}
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setRowWidth(el.clientWidth));
+    ro.observe(el);
+    setRowWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, [skills.length]);
 
-export default function SkillPanel({ skills, skillAccumulation = {}, superCardCount }: Props) {
-  const [detailOpen, setDetailOpen] = useState(false);
+  const { cardWidthPx, marginLeftPx } = useMemo(() => {
+    const w = Math.max(0, rowWidth - (SLOT_COUNT - 1) * ROW_GAP_PX);
+    const slot = w / SLOT_COUNT;
+    const n = skills.length;
+    if (n === 0) return { cardWidthPx: 0, marginLeftPx: (_i: number) => 0 };
+    if (n <= SLOT_COUNT) {
+      return {
+        cardWidthPx: slot,
+        marginLeftPx: (i: number) => (i === 0 ? 0 : ROW_GAP_PX),
+      };
+    }
+    const footprint = SLOT_COUNT * slot + (SLOT_COUNT - 1) * ROW_GAP_PX;
+    const stride = (footprint - slot) / (n - 1);
+    const ml = stride - slot;
+    return {
+      cardWidthPx: slot,
+      marginLeftPx: (i: number) => (i === 0 ? 0 : ml),
+    };
+  }, [rowWidth, skills.length]);
 
   if (skills.length === 0) return null;
-  const visibleSkills = skills.slice(0, 15);
 
   return (
-    <div className="mt-2 relative pb-6">
-      {/* 概览：每行等宽 3 个技能 */}
-      <div className="grid grid-cols-3 gap-1.5">
-        {visibleSkills.map(s => (
-          <SkillCard
+    <div className="relative w-full min-w-0">
+      {/* 扑克技能牌单行：≤5 张等分不重叠；>5 张重叠，整体居中（仅手机宽度场景） */}
+      <div ref={rowRef} className="flex w-full min-w-0 flex-nowrap items-center justify-center">
+        {skills.map((s, i) => (
+          <div
             key={s.id}
-            skill={s}
-            displayName={withAccumulatedName(s, skillAccumulation)}
-            compact
-            owned
-            superCardCount={superCardCount}
-          />
+            className="relative shrink-0"
+            style={{
+              width: cardWidthPx > 0 ? cardWidthPx : undefined,
+              marginLeft: marginLeftPx(i),
+              zIndex: i,
+            }}
+          >
+            <SkillPlayingCard
+              skill={s}
+              enhancement={skillEnhancements[s.id] ?? 'normal'}
+              accumulated={skillAccumulation[s.id]}
+              superCardCount={superCardCount}
+              runDiamonds={runDiamonds}
+              stageTotalHands={stageTotalHands}
+              stageUsedHands={stageUsedHands}
+              pendingRandomHandMult={pendingRandomHandMult}
+              acquiredSkillIds={acquiredSkillIds ?? skills.map((x) => x.id)}
+              className="!max-w-none w-full"
+              onClick={() =>
+                setDetail({ skill: s, enhancement: skillEnhancements[s.id] ?? 'normal' })
+              }
+            />
+          </div>
         ))}
       </div>
 
-      {/* 全屏技能详情弹层 */}
-      {detailOpen && (
-        <div className="fixed inset-0 z-[120] bg-slate-950/45 backdrop-blur-md">
-          <div className="h-full w-full overflow-y-auto p-4 sm:p-6">
-            <div className="mx-auto w-full max-w-md">
-              <div className="relative mb-3">
-                <h3 className="text-center text-lg font-black text-white">技能详情</h3>
-                <button
-                  onClick={() => setDetailOpen(false)}
-                  className="absolute right-0 top-0 h-6 w-6 inline-flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-                  aria-label="关闭技能详情"
-                >
-                  <span className="text-2xl leading-none">×</span>
-                </button>
-              </div>
-              <div className="grid grid-cols-1 gap-2">
-                {skills.map(s => (
-                  <SkillCard
-                    key={s.id}
-                    skill={s}
-                    displayName={withAccumulatedName(s, skillAccumulation)}
-                    owned
-                    superCardCount={superCardCount}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 底部居中：详细按钮 */}
-      <button
-        onClick={() => setDetailOpen(true)}
-        className="absolute left-1/2 -translate-x-1/2 bottom-0 text-xs text-gray-400 hover:text-gray-200 transition-colors"
-      >
-        详细 ↓
-      </button>
+      {detail ? (
+        <SkillPlayingCardDetailModal
+          skill={detail.skill}
+          enhancement={detail.enhancement}
+          accumulated={skillAccumulation[detail.skill.id]}
+          superCardCount={superCardCount}
+          runDiamonds={runDiamonds}
+          stageTotalHands={stageTotalHands}
+          stageUsedHands={stageUsedHands}
+          pendingRandomHandMult={pendingRandomHandMult}
+          acquiredSkillIds={acquiredSkillIds ?? skills.map((s) => s.id)}
+          onClose={() => setDetail(null)}
+        />
+      ) : null}
     </div>
   );
 }
