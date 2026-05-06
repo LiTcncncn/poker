@@ -872,8 +872,8 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
     // 银边/金边/彩边（flash/gold/laser）作为技能附加词条：每手固定生效 1 次，不依赖原技能触发条件
     const enhancement = skillEnhancements[skill.id] ?? 'normal';
     if (enhancement === 'flash') {
-      skillAddedScore += 30;
-      skillLog.push({ skillId: `${skill.id}_flash`, skillName: `${skill.name}[银边]`, addedScore: 30 });
+      skillAddedScore += 40;
+      skillLog.push({ skillId: `${skill.id}_flash`, skillName: `${skill.name}[银边]`, addedScore: 40 });
     } else if (enhancement === 'gold') {
       skillAddedMultiplier += 10;
       skillLog.push({ skillId: `${skill.id}_gold`, skillName: `${skill.name}[金边]`, addedMultiplier: 10 });

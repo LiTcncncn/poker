@@ -18,7 +18,7 @@ export function enhancementBonusLine(e: SkillEnhancement): string | null {
 /** 拆分名称与数值（文案拼接即 enhancementBonusLine） */
 export function enhancementBadgeParts(e: SkillEnhancement): { label: string; value: string } | null {
   if (e === 'normal') return null;
-  if (e === 'flash') return { label: '银边', value: '+$30' };
+  if (e === 'flash') return { label: '银边', value: '+$40' };
   if (e === 'gold') return { label: '金边', value: '+10 倍' };
   if (e === 'laser') return { label: '彩边', value: '×1.5' };
   return { label: '黑边', value: '技能+1' };
