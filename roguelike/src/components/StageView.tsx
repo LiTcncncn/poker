@@ -6,7 +6,7 @@ import { RunResult } from './RunResult';
 import InfoTabs from './InfoTabs';
 import { UpgradeOption } from '../types/reward';
 import { Card as CardType } from '../shared/types/poker';
-import { getModifierById, canDraw, remainingHold, getEffectiveStage, isModifierSuppressed } from '../engine/stageEngine';
+import { getModifierById, canDraw, remainingHold, getEffectiveStage, isModifierSuppressed, getStageTargetGold } from '../engine/stageEngine';
 import { evaluateHandWithSkills, getSkillsByIds } from '../engine/skillEngine';
 import { TOTAL_STAGES, getEffectiveSkillSlotCap } from '../engine/runEngine';
 import type { HandResult } from '../types/run';
@@ -69,6 +69,8 @@ export function StageView() {
       bannedHandTypes: effectiveStage.bannedHandTypes,
       bannedSuits: effectiveStage.bannedSuits,
       bannedRankMax: effectiveStage.bannedRankMax,
+      banFaceCardScore: effectiveStage.banFaceCardScore,
+      handTypeLevelDownshift: effectiveStage.handTypeLevelDownshift,
       isLastHand: effectiveStage.usedHands + 1 >= effectiveStage.totalHands,
       isFirstHandOfStage: effectiveStage.usedHands === 0,
       drawsUsedThisHand: handState.drawsUsed,
@@ -117,13 +119,14 @@ export function StageView() {
   const isDeal    = phase === 'deal';
   const isHold    = phase === 'hold';
   const stageDone = stage.status === 'won' || stage.status === 'lost';
+  const stageTargetGold = getStageTargetGold(effectiveStage);
   /** 预览结算即可达标但尚未入账，或结算后累计严格超过目标（超分） */
   const showGoalBarGlow =
     (isHold &&
       previewHandResult != null &&
-      stage.accumulatedGold < stage.targetGold &&
-      stage.accumulatedGold + previewHandResult.finalGold >= stage.targetGold) ||
-    (isResult && stage.accumulatedGold > stage.targetGold);
+      stage.accumulatedGold < stageTargetGold &&
+      stage.accumulatedGold + previewHandResult.finalGold >= stageTargetGold) ||
+    (isResult && stage.accumulatedGold > stageTargetGold);
   const holdLeft  = remainingHold(effectiveStage); // 剩余补牌次数
   const canDrawNow = isHold && canDraw(effectiveStage);
 
@@ -137,11 +140,11 @@ export function StageView() {
     return base;
   })();
   const handsLeft = effectiveStage.totalHands - effectiveStage.usedHands;
-  const progressPct = Math.min(stage.accumulatedGold / stage.targetGold, 1);
+  const progressPct = Math.min(stage.accumulatedGold / stageTargetGold, 1);
 
   const previewProgressPct =
     previewHandResult != null
-      ? Math.min((stage.accumulatedGold + previewHandResult.finalGold) / stage.targetGold, 1)
+      ? Math.min((stage.accumulatedGold + previewHandResult.finalGold) / stageTargetGold, 1)
       : progressPct;
   // 圆点：剩余为实心，用掉为空心
   const holdDots = Array.from({ length: effectiveStage.holdTotal }, (_, i) => i < holdLeft);
@@ -262,7 +265,7 @@ export function StageView() {
         {/* 目标 + 精英词缀 */}
         <div className="flex items-center justify-between text-sm px-1">
           <span className="text-gray-300">
-            本关目标 <span className="text-rl-gold font-bold">${stage.accumulatedGold.toLocaleString()}/{stage.targetGold.toLocaleString()}</span>
+            本关目标 <span className="text-rl-gold font-bold">${stage.accumulatedGold.toLocaleString()}/{stageTargetGold.toLocaleString()}</span>
           </span>
           {(stage.isElite || stage.isBoss) && modifier && (
             <button

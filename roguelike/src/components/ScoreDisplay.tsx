@@ -1,13 +1,15 @@
 import React from 'react';
 import { StageState } from '../types/run';
 import { TOTAL_STAGES } from '../engine/runEngine';
+import { getStageTargetGold } from '../engine/stageEngine';
 
 interface Props {
   stage: StageState;
 }
 
 export function ScoreDisplay({ stage }: Props) {
-  const pct = Math.min(stage.accumulatedGold / stage.targetGold, 1);
+  const targetGold = getStageTargetGold(stage);
+  const pct = Math.min(stage.accumulatedGold / targetGold, 1);
   const handsLeft = stage.totalHands - stage.usedHands;
 
   return (
@@ -17,7 +19,7 @@ export function ScoreDisplay({ stage }: Props) {
         <span className="text-gray-400">本关目标</span>
         <span className="font-bold text-rl-gold">
           {stage.accumulatedGold.toLocaleString()}
-          <span className="text-gray-400 font-normal"> / {stage.targetGold.toLocaleString()}</span>
+          <span className="text-gray-400 font-normal"> / {targetGold.toLocaleString()}</span>
         </span>
       </div>
       {/* 进度条 */}

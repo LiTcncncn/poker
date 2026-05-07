@@ -477,6 +477,10 @@ export interface HandContext {
   bannedSuits: Suit[];
   /** 词缀：≤ 此点数的牌牌面分不计入 baseCardSum（0 = 不限制） */
   bannedRankMax: number;
+  /** 词缀：J/Q/K 的牌面分不计入 baseCardSum */
+  banFaceCardScore?: boolean;
+  /** 词缀：结算时读取牌型升级等级临时 -N（最低 Lv1；不改变牌型判定/技能触发） */
+  handTypeLevelDownshift?: number;
   isLastHand: boolean;
   isFirstHandOfStage: boolean;
   /** 本手已用补牌次数（0 = 未补牌，用于技能触发条件） */
@@ -543,6 +547,8 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
     bannedHandTypes,
     bannedSuits,
     bannedRankMax,
+    banFaceCardScore = false,
+    handTypeLevelDownshift = 0,
     isLastHand,
     isFirstHandOfStage,
     drawsUsedThisHand,
@@ -608,11 +614,15 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
   }
 
   // ── 4. 基础分值（牌面$ + 牌型基础$）──
-  const stats = getHandTypeStats(handType, upgradeMap);
+  const down = Math.max(0, Math.floor(handTypeLevelDownshift));
+  const currentLevel = upgradeMap[handType] ?? 1;
+  const effectiveLevel = Math.max(1, currentLevel - down);
+  const stats = getHandTypeStats(handType, down > 0 ? { ...upgradeMap, [handType]: effectiveLevel } : upgradeMap);
   const baseCardSum = scoringCards.reduce((s, c) => {
     if (c.isJoker) return s + c.baseValue; // Joker 不受花色/点数限制
     if (bannedSuits.length > 0 && bannedSuits.includes(c.suit)) return s;
     if (bannedRankMax > 0 && c.rank <= bannedRankMax) return s;
+    if (banFaceCardScore && c.rank >= 11 && c.rank <= 13) return s;
     return s + c.baseValue;
   }, 0);
   const cardScoreSum = baseCardSum + stats.baseScore;
@@ -828,6 +838,39 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
           break;
         }
 
+        case 'stage_decay_add_multiplier': {
+          if (!handTypeMatch) break;
+          const cur = Number(newAccumulation[skill.id] ?? 0);
+          if (Number.isFinite(cur) && cur > 0) {
+            skillAddedMultiplier += cur;
+            skillLog.push({ skillId: skill.id, skillName: skill.name, addedMultiplier: cur });
+          }
+          break;
+        }
+
+        case 'hand_decay_add_score': {
+          if (!handTypeMatch) break;
+          const cur = Number(newAccumulation[skill.id] ?? 0);
+          if (Number.isFinite(cur) && cur > 0) {
+            skillAddedScore += cur;
+            skillLog.push({ skillId: skill.id, skillName: skill.name, addedScore: cur });
+          }
+          break;
+        }
+
+        case 'shop_refresh_independent_bonus': {
+          if (!handTypeMatch) break;
+          const cnt = Number(newAccumulation[skill.id] ?? 0);
+          if (Number.isFinite(cnt) && cnt > 0) {
+            const factor = Math.min(2, 1 + cnt * ef.value);
+            if (factor > 1) {
+              independentMultiplier *= factor;
+              skillLog.push({ skillId: skill.id, skillName: skill.name, multiplyFactor: factor });
+            }
+          }
+          break;
+        }
+
         case 'independent_multiply': {
           if (!handTypeMatch) break;
           if (ef.requireRunDiamondsLte !== undefined && runDiamonds > ef.requireRunDiamondsLte) break;
@@ -918,6 +961,20 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
         skillId: `attrcard_${card.id}`,
         skillName: '属性牌',
         addedMultiplier: card.multiplier,
+      });
+    }
+  }
+
+  // ── 6.1 金色属性牌：参与计分则独立 ×N（可叠乘） ──
+  for (const card of scoringCards) {
+    if (card.isJoker) continue;
+    const ef = card.effects.find(e => e.type === 'independent_multiply' && typeof e.value === 'number');
+    if (ef && ef.value && ef.value > 0) {
+      independentMultiplier *= ef.value;
+      skillLog.push({
+        skillId: `attrcard_${card.id}_indep`,
+        skillName: '属性牌',
+        multiplyFactor: ef.value,
       });
     }
   }

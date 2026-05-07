@@ -292,6 +292,16 @@ export function getSkillCumulativeFinalSegments(
     return out;
   }
 
+  // 「刷新商店乘倍」：accumulated 作为成功 💎 刷新次数；仅当 count>0 时显示 ×(1+count*0.2)
+  if (skill.id === 'refresh_shop_mult') {
+    const cnt = Number.isFinite(Number(accumulated)) ? Math.max(0, Math.floor(Number(accumulated))) : 0;
+    if (cnt > 0) {
+      const fac = Math.min(2, 1 + cnt * 0.2);
+      out.push({ kind: 'times', text: formatIndependentFactorShort(fac) });
+    }
+    return out;
+  }
+
   if (hasScoreAccum) out.push({ kind: 'score', text: `+$${accumulated}` });
   else if (hasMultAccum) out.push({ kind: 'mult_add', text: `+${accumulated} 倍` });
 

@@ -41,10 +41,10 @@ const SKILL_ENHANCEMENT_EXTRA: Record<SkillEnhancement, number> = {
   black: 4,
 };
 const UPGRADE_PRICE = 4;
-const ATTRIBUTE_PRICE_BY_QUALITY: Partial<Record<CardQuality, number>> = { green: 1, blue: 2, purple: 3 };
+const ATTRIBUTE_PRICE_BY_QUALITY: Partial<Record<CardQuality, number>> = { green: 1, blue: 2, purple: 3, gold: 4 };
 const DEFAULT_DIAMOND_REFRESH_COST = 5;
 
-/** 随机抽取 3 张不重复的升级卡选项（排除皇家同花顺，其数值与同花顺相同） */
+/** 随机抽取 3 张不重复的升级卡选项（排除皇家同花顺） */
 export function generateUpgradeOptions(upgradeMap: HandTypeUpgradeMap): UpgradeOption[] {
   const pool = upgradeCards.filter(c => c.handType !== 'royal_flush');
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
@@ -319,9 +319,11 @@ const CROSS_VALUE_GROUPS: Rank[][] = [[8, 9, 10], [11, 12, 13]];
 export function generateOneAttributeCard(quality?: CardQuality): Card {
   const q: CardQuality = quality ?? (() => {
     const r = Math.random();
-    if (r < 0.30) return 'green';
+    // 绿:蓝:紫:金 = 20%:50%:25%:5%
+    if (r < 0.20) return 'green';
     if (r < 0.70) return 'blue';
-    return 'purple';
+    if (r < 0.95) return 'purple';
+    return 'gold';
   })();
 
   const suit  = randomFrom(SUITS);
@@ -333,7 +335,7 @@ export function generateOneAttributeCard(quality?: CardQuality): Card {
 
   if (q === 'green') {
     const isHigh = Math.random() < 0.5;
-    const effectValue = isHigh ? 10 : 3;
+    const effectValue = isHigh ? 10 : 2;
     const effectType  = isHigh ? 'high_score' as const : 'multiplier' as const;
     return {
       ...noDiamond,
@@ -345,58 +347,65 @@ export function generateOneAttributeCard(quality?: CardQuality): Card {
   }
 
   if (q === 'blue') {
+    // 单花单数值 : 双花 : 跨数值 = 50% : 25% : 25%
     const branch = Math.random();
-    // 仅跨数值 / 双花 各 50%（原 30:30 放大为占满蓝牌）
-    if (branch < 0.5) {
+    if (branch < 0.50) {
+      // 蓝色单花单数值：可 +$30 或 +4 倍（各 50%）
       const isHigh = Math.random() < 0.5;
-      const ranks = randomFrom(CROSS_VALUE_GROUPS);
-      const baseCross = Math.max(...ranks.map(r => scoreValue(r as Rank)));
       if (isHigh) {
         return {
           ...noDiamond,
           id: makeAttrId(), suit, rank, quality: q,
-          effects: [
-            { type: 'cross_value', ranks },
-            { type: 'high_score', value: 10 },
-          ],
-          baseValue: baseCross + 10,
+          effects: [{ type: 'high_score', value: 30 }],
+          baseValue: baseV + 30,
           multiplier: 0,
         };
       }
       return {
         ...noDiamond,
         id: makeAttrId(), suit, rank, quality: q,
-        effects: [
-          { type: 'cross_value', ranks },
-          { type: 'multiplier', value: 2 },
-        ],
-        baseValue: baseCross,
-        multiplier: 2,
+        effects: [{ type: 'multiplier', value: 4 }],
+        baseValue: baseV,
+        multiplier: 4,
       };
     }
-    const isHigh = Math.random() < 0.5;
-    const otherSuit = randomFrom(SUITS.filter(s => s !== suit));
-    if (isHigh) {
+    if (branch < 0.75) {
+      // 蓝色双花：仅双花结构，不附带 +$ / +倍
+      const otherSuit = randomFrom(SUITS.filter(s => s !== suit));
       return {
         ...noDiamond,
         id: makeAttrId(), suit, rank, quality: q,
-        effects: [
-          { type: 'double_suit', suits: [suit, otherSuit] },
-          { type: 'high_score', value: 10 },
-        ],
-        baseValue: baseV + 10,
+        effects: [{ type: 'double_suit', suits: [suit, otherSuit] }],
+        baseValue: baseV,
         multiplier: 0,
       };
     }
+    // 蓝色跨数值：仅跨数值结构，不附带 +$ / +倍
+    const ranks = randomFrom(CROSS_VALUE_GROUPS);
+    const baseCross = Math.max(...ranks.map(r => scoreValue(r as Rank)));
     return {
       ...noDiamond,
       id: makeAttrId(), suit, rank, quality: q,
-      effects: [
-        { type: 'double_suit', suits: [suit, otherSuit] },
-        { type: 'multiplier', value: 2 },
-      ],
-      baseValue: baseV,
-      multiplier: 2,
+      effects: [{ type: 'cross_value', ranks }],
+      baseValue: baseCross,
+      multiplier: 0,
+    };
+  }
+
+  if (q === 'gold') {
+    // 金色属性牌：单花单数值，点数仅 8-A；参与计分则独立 ×1.5（显示 ×1.5）
+    const goldRanks: Rank[] = [8, 9, 10, 11, 12, 13, 14];
+    const r = randomFrom(goldRanks);
+    const bv = scoreValue(r);
+    return {
+      ...noDiamond,
+      id: makeAttrId(),
+      suit,
+      rank: r,
+      quality: q,
+      effects: [{ type: 'independent_multiply', value: 1.5 }],
+      baseValue: bv,
+      multiplier: 0,
     };
   }
 

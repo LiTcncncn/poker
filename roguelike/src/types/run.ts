@@ -77,6 +77,8 @@ export interface RunState {
 export interface StageState {
   stageIndex: number;          // 0-based
   targetGold: number;
+  /** 本关目标倍率（词缀 high_target）；最终目标 = ceil(targetGold * multiplier) */
+  targetGoldMultiplier?: number;
   totalHands: number;          // 本关总手数
   usedHands: number;
   /** 本关可用补牌总次数（词缀可能减少） */
@@ -97,8 +99,14 @@ export interface StageState {
   bannedSuits: Suit[];
   /** 词缀禁止的最大点数（≤ 此值的牌牌面分不计入，0 = 不限制） */
   bannedRankMax: number;
+  /** 词缀：J/Q/K 的牌面分不计入（牌型仍正常判断与计分） */
+  banFaceCardScore?: boolean;
   /** 词缀：本关不向牌堆注入 Joker（`injectJokers` 概率为 0） */
   banJokers: boolean;
+  /** 词缀：结算时读取牌型升级等级临时 -N（最低 Lv1；不改变牌型判定/技能触发） */
+  handTypeLevelDownshift?: number;
+  /** 词缀：本关通关结算的基础💎为 0 */
+  shopBaseDiamondRewardZero?: boolean;
   status: 'pending' | 'active' | 'won' | 'lost';
 }
 

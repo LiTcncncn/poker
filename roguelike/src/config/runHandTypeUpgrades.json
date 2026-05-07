@@ -8,9 +8,9 @@
     "flush":            { "baseScore": 60,  "multiplier": 5 },
     "full_house":       { "baseScore": 80,  "multiplier": 6 },
     "four_of_a_kind":   { "baseScore": 100, "multiplier": 8 },
-    "five_of_a_kind":   { "baseScore": 120, "multiplier": 8 },
-    "straight_flush":   { "baseScore": 200, "multiplier": 10 },
-    "royal_flush":      { "baseScore": 200, "multiplier": 10 }
+    "five_of_a_kind":   { "baseScore": 400, "multiplier": 20 },
+    "straight_flush":   { "baseScore": 800, "multiplier": 30 },
+    "royal_flush":      { "baseScore": 2000,"multiplier": 50 }
   },
   "perLevelGrowth": {
     "high_card":        { "baseScoreDelta": 10, "multiplierDelta": 1 },
@@ -21,9 +21,9 @@
     "flush":            { "baseScoreDelta": 30, "multiplierDelta": 3 },
     "full_house":       { "baseScoreDelta": 60, "multiplierDelta": 6 },
     "four_of_a_kind":   { "baseScoreDelta": 60, "multiplierDelta": 8 },
-    "five_of_a_kind":   { "baseScoreDelta": 100,"multiplierDelta": 8 },
-    "straight_flush":   { "baseScoreDelta": 200,"multiplierDelta": 10 },
-    "royal_flush":      { "baseScoreDelta": 200,"multiplierDelta": 10 }
+    "five_of_a_kind":   { "baseScoreDelta": 200,"multiplierDelta": 10 },
+    "straight_flush":   { "baseScoreDelta": 400,"multiplierDelta": 20 },
+    "royal_flush":      { "baseScoreDelta": 800,"multiplierDelta": 50 }
   },
   "upgradeCards": [
     { "id": "upgrade_high_card",       "handType": "high_card",       "name": "高牌升级卡"   },

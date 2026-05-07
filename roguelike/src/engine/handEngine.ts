@@ -42,9 +42,8 @@ export const HAND_TYPE_STRENGTH: Record<HandType, number> = {
   royal_flush: 13,
 };
 
-/** 结算等用牌型类目名；皇家同花顺显示为「同花顺」 */
+/** 结算等用牌型类目名 */
 export function handTypeCategoryLabel(handType: HandType): string {
-  if (handType === 'royal_flush') return HAND_NAMES.straight_flush;
   return HAND_NAMES[handType] ?? handType;
 }
 

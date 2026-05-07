@@ -133,6 +133,34 @@
     "difficulty": 2,
     "effects": [{ "type": "ban_jokers", "value": 0 }]
   },
+  {
+    "id": "no_face_cards_score",
+    "name": "人头无效",
+    "description": "本关 J/Q/K 的牌面分不计入",
+    "difficulty": 2,
+    "effects": [{ "type": "no_face_cards_score", "value": 0 }]
+  },
+  {
+    "id": "downshift_hand_type_level_1",
+    "name": "牌型降级 I",
+    "description": "本关结算时牌型等级视为 -1（最低 Lv1）",
+    "difficulty": 2,
+    "effects": [{ "type": "downshift_hand_type_level", "value": 1 }]
+  },
+  {
+    "id": "high_target_12",
+    "name": "高阶目标 I",
+    "description": "本关目标金币 ×1.2（向上取整）",
+    "difficulty": 2,
+    "effects": [{ "type": "high_target", "value": 1.2 }]
+  },
+  {
+    "id": "shop_diamond_income_0",
+    "name": "商店无收益",
+    "description": "本关通关结算基础💎为 0",
+    "difficulty": 2,
+    "effects": [{ "type": "shop_diamond_income_0", "value": 0 }]
+  },
 
   {
     "id": "ban_high_and_pair",
@@ -164,5 +192,19 @@
       { "type": "reduce_hold", "value": 1 },
       { "type": "block_hold_before", "value": 1 }
     ]
+  },
+  {
+    "id": "downshift_hand_type_level_2",
+    "name": "牌型降级 II",
+    "description": "本关结算时牌型等级视为 -2（最低 Lv1）",
+    "difficulty": 3,
+    "effects": [{ "type": "downshift_hand_type_level", "value": 2 }]
+  },
+  {
+    "id": "high_target_14",
+    "name": "高阶目标 II",
+    "description": "本关目标金币 ×1.4（向上取整）",
+    "difficulty": 3,
+    "effects": [{ "type": "high_target", "value": 1.4 }]
   }
 ]

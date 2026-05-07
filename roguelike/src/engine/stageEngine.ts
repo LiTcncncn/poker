@@ -32,6 +32,10 @@ function applyModifierEffects(modifierId: string | undefined, defaults: {
   let blockHoldBefore = 0;
   let blockHoldAfter  = 0;
   let banJokers = false;
+  let banFaceCardScore = false;
+  let handTypeLevelDownshift = 0;
+  let targetGoldMultiplier = 1;
+  let shopBaseDiamondRewardZero = false;
 
   if (modifierId) {
     const mod = getModifierById(modifierId);
@@ -62,12 +66,47 @@ function applyModifierEffects(modifierId: string | undefined, defaults: {
           case 'ban_jokers':
             banJokers = true;
             break;
+          case 'no_face_cards_score':
+            banFaceCardScore = true;
+            break;
+          case 'downshift_hand_type_level':
+            handTypeLevelDownshift = Math.max(handTypeLevelDownshift, Math.max(0, ef.value));
+            break;
+          case 'high_target':
+            // value 为倍率（如 1.2 / 1.4），取最大作为最终倍率
+            if (typeof ef.value === 'number' && Number.isFinite(ef.value) && ef.value > targetGoldMultiplier) {
+              targetGoldMultiplier = ef.value;
+            }
+            break;
+          case 'shop_diamond_income_0':
+            shopBaseDiamondRewardZero = true;
+            break;
         }
       }
     }
   }
 
-  return { holdTotal, totalHands, bannedHandTypes, bannedSuits, bannedRankMax, blockHoldBefore, blockHoldAfter, banJokers };
+  return {
+    holdTotal,
+    totalHands,
+    bannedHandTypes,
+    bannedSuits,
+    bannedRankMax,
+    blockHoldBefore,
+    blockHoldAfter,
+    banJokers,
+    banFaceCardScore,
+    handTypeLevelDownshift,
+    targetGoldMultiplier,
+    shopBaseDiamondRewardZero,
+  };
+}
+
+/** 本关实际目标金币（含高阶目标倍率），向上取整 */
+export function getStageTargetGold(stage: StageState): number {
+  const mult = stage.targetGoldMultiplier ?? 1;
+  const m = Number.isFinite(mult) && mult > 0 ? mult : 1;
+  return Math.ceil(stage.targetGold * m);
 }
 
 /** 按模板初始化一个关卡（可附带词缀） */
@@ -80,6 +119,7 @@ export function initStage(stageIndex: number, modifierId?: string): StageState {
   return {
     stageIndex,
     targetGold:      t.targetGold,
+    targetGoldMultiplier: m.targetGoldMultiplier,
     totalHands:      m.totalHands,
     usedHands:       0,
     holdTotal:       m.holdTotal,
@@ -94,6 +134,9 @@ export function initStage(stageIndex: number, modifierId?: string): StageState {
     blockHoldBefore: m.blockHoldBefore,
     blockHoldAfter:  m.blockHoldAfter,
     banJokers:       m.banJokers,
+    banFaceCardScore: m.banFaceCardScore,
+    handTypeLevelDownshift: m.handTypeLevelDownshift,
+    shopBaseDiamondRewardZero: m.shopBaseDiamondRewardZero,
     status:          'active',
   };
 }
@@ -123,7 +166,7 @@ export function applyHandGold(stage: StageState, gold: number): StageState {
     usedHands:       stage.usedHands + 1,
   };
 
-  if (next.accumulatedGold >= next.targetGold) {
+  if (next.accumulatedGold >= getStageTargetGold(next)) {
     next.status = 'won';
   } else if (next.usedHands >= next.totalHands) {
     next.status = 'lost';
@@ -170,6 +213,10 @@ export function getEffectiveStage(stage: StageState, acquiredSkillIds: string[])
     blockHoldBefore: 0,
     blockHoldAfter: 0,
     banJokers: false,
+    banFaceCardScore: false,
+    handTypeLevelDownshift: 0,
+    targetGoldMultiplier: 1,
+    shopBaseDiamondRewardZero: false,
   };
 }
 
@@ -185,6 +232,7 @@ export function initEndlessStage(
   return {
     stageIndex,
     targetGold,
+    targetGoldMultiplier: m.targetGoldMultiplier,
     totalHands:      m.totalHands,
     usedHands:       0,
     holdTotal:       m.holdTotal,
@@ -199,6 +247,9 @@ export function initEndlessStage(
     blockHoldBefore: m.blockHoldBefore,
     blockHoldAfter:  m.blockHoldAfter,
     banJokers:       m.banJokers,
+    banFaceCardScore: m.banFaceCardScore,
+    handTypeLevelDownshift: m.handTypeLevelDownshift,
+    shopBaseDiamondRewardZero: m.shopBaseDiamondRewardZero,
     status:          'active',
   };
 }

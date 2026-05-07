@@ -158,7 +158,7 @@ export function RewardModal({
                         <SkillPlayingCard
                           skill={opt.skill}
                           enhancement={opt.enhancement}
-                          accumulated={skillAccumulation[opt.skill.id]}
+                          accumulated={opt.skill.id === 'elite_unshackled' ? 3 : skillAccumulation[opt.skill.id]}
                           superCardCount={ownedAttributeCards.length}
                           runDiamonds={diamonds}
                           acquiredSkillIds={acquiredSkillIdsForDetail}
@@ -252,7 +252,7 @@ export function RewardModal({
                           <SkillPlayingCard
                             skill={opt.skill}
                             enhancement={opt.enhancement}
-                            accumulated={skillAccumulation[opt.skill.id]}
+                          accumulated={opt.skill.id === 'elite_unshackled' ? 3 : skillAccumulation[opt.skill.id]}
                             superCardCount={ownedAttributeCards.length}
                             runDiamonds={diamonds}
                             acquiredSkillIds={acquiredSkillIdsForDetail}

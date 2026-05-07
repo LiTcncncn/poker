@@ -3,7 +3,12 @@ export type Rank = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14; // 11
 
 export type CardQuality = 'white' | 'green' | 'blue' | 'purple' | 'gold' | 'orange' | 'super';
 
-export type GreenCardType = 'high_score' | 'multiplier' | 'double_suit' | 'cross_value';
+export type GreenCardType =
+  | 'high_score'
+  | 'multiplier'
+  | 'double_suit'
+  | 'cross_value'
+  | 'independent_multiply';
 
 export interface CardEffect {
   type: GreenCardType;

@@ -17,7 +17,7 @@ import {
   clampSkillSellExtraDiamonds,
   SKILL_SELL_BONUS_CAP,
 } from '../engine/runEngine';
-import { applyHandGold, consumeDraw, canDraw, getEffectiveStage } from '../engine/stageEngine';
+import { applyHandGold, consumeDraw, canDraw, getEffectiveStage, getStageTargetGold } from '../engine/stageEngine';
 import { buildBaseDeck, injectJokers, shuffle, dealCards, replaceUnheld, capJokersInHand } from '../engine/deckEngine';
 import { applyUpgrade, generateRewardForStage, getDefaultDiamondRefreshCost, regenerateShopOptionsForStep } from '../engine/rewardEngine';
 import {
@@ -52,6 +52,10 @@ const SKILL_SUPER_CREDIT = 'super_credit_card';
 const SKILL_DIAMOND_TYCOON = 'diamond_tycoon';
 const SKILL_SELLERS_MARKET = 'sellers_market';
 const SKILL_ELITE_UNSHACKLED = 'elite_unshackled';
+const SKILL_REFRESH_SHOP_MULT = 'refresh_shop_mult';
+const SKILL_DIMINISHING_EFFECT = 'diminishing_effect';
+const SKILL_FADING_BOOST = 'fading_boost';
+const SKILL_FORWARD_RUSH = 'forward_rush';
 
 /** 「精英关无限制」用完最后一券后从卡槽移除（进关时已扣到 0，本关内须仍持有 id 以抵消词缀） */
 function stripEliteUnshackledIfDepleted(run: RunState): RunState {
@@ -62,6 +66,31 @@ function stripEliteUnshackledIfDepleted(run: RunState): RunState {
   const newAcc = { ...run.skillAccumulation };
   delete newAcc[SKILL_ELITE_UNSHACKLED];
   return { ...run, acquiredSkillIds: newSkillIds, skillEnhancements: newEnh, skillAccumulation: newAcc };
+}
+
+function removeSkillFromRun(run: RunState, skillId: string): RunState {
+  const newSkillIds = run.acquiredSkillIds.filter((id) => id !== skillId);
+  const newEnh = { ...run.skillEnhancements };
+  delete newEnh[skillId];
+  const newAcc = { ...run.skillAccumulation };
+  delete newAcc[skillId];
+  const newSellBonus = { ...(run.skillSellBonus ?? {}) };
+  delete newSellBonus[skillId];
+  return {
+    ...run,
+    acquiredSkillIds: newSkillIds,
+    skillEnhancements: newEnh,
+    skillAccumulation: newAcc,
+    skillSellBonus: newSellBonus,
+  };
+}
+
+function applyForwardRushToStageIfNeeded(stage: StageState, acquiredSkillIds: string[]): StageState {
+  if (!acquiredSkillIds.includes(SKILL_FORWARD_RUSH)) return stage;
+  // 每关都生效：手数 +2，补牌总量 -1（最低 0）
+  const totalHands = Math.max(1, stage.totalHands + 2);
+  const holdTotal = Math.max(0, stage.holdTotal - 1);
+  return { ...stage, totalHands, holdTotal };
 }
 
 function computeBlackEdgePityGateN(shopStageK: number, ownedBlackCount: number): number | null {
@@ -113,6 +142,8 @@ function _commitScore(
     bannedHandTypes: stage.bannedHandTypes,
     bannedSuits:     stage.bannedSuits,
     bannedRankMax:   stage.bannedRankMax,
+    banFaceCardScore: stage.banFaceCardScore,
+    handTypeLevelDownshift: stage.handTypeLevelDownshift,
     isLastHand,
     isFirstHandOfStage,
     drawsUsedThisHand: handState.drawsUsed,
@@ -126,7 +157,7 @@ function _commitScore(
   });
 
   const wouldClearStage =
-    stage.accumulatedGold + evalBase.finalGold >= stage.targetGold;
+    stage.accumulatedGold + evalBase.finalGold >= getStageTargetGold(stage);
   const savedHands = wouldClearStage ? stage.totalHands - (stage.usedHands + 1) : 0;
   const evalResult = applySavedHandsStageWinBonus(evalBase, skills, savedHands);
 
@@ -170,6 +201,21 @@ function _commitScore(
       runDiamonds: clampRunDiamonds(newRun.runDiamonds + handDiamond),
       diamondsEarnedTotal: newRun.diamondsEarnedTotal + handDiamond,
     };
+  }
+
+  // 「后劲不足」：按手递减的 +$（获得后下一手为第 1 手）；用 skillAccumulation 记录当前值
+  if (newRun.acquiredSkillIds.includes(SKILL_FADING_BOOST)) {
+    const curRaw = Number(newRun.skillAccumulation?.[SKILL_FADING_BOOST] ?? 100);
+    const cur = Number.isFinite(curRaw) ? curRaw : 100;
+    const next = cur - 5;
+    if (next > 0) {
+      newRun = {
+        ...newRun,
+        skillAccumulation: { ...newRun.skillAccumulation, [SKILL_FADING_BOOST]: next },
+      };
+    } else {
+      newRun = removeSkillFromRun(newRun, SKILL_FADING_BOOST);
+    }
   }
 
   const newStage = applyHandGold(stage, evalResult.finalGold);
@@ -280,6 +326,7 @@ function calcSkillSellValue(quality: SkillDef['quality'], enhancement: SkillEnha
 }
 
 function calcStageDiamondReward(stage: StageState): number {
+  if (stage.shopBaseDiamondRewardZero) return 0;
   const base = stage.isElite || stage.isBoss ? 5 : 3;
   const handsLeft = stage.totalHands - stage.usedHands;
   const handBonus = handsLeft >= 2 ? 2 : handsLeft === 1 ? 1 : 0;
@@ -456,6 +503,25 @@ export const useRLStore = create<RLStore>()(
           runDiamonds: clampRunDiamonds(nextDiamonds),
           diamondsSpentTotal: run.diamondsSpentTotal + price,
         };
+        // 新技能初始化（用于递减/计数类技能的 skillAccumulation）
+        if (skill.id === SKILL_DIMINISHING_EFFECT) {
+          // “获得后下一关”为第 1 关：进入下一关前会先 -4，因此这里设为 24（24→20）
+          newRun = {
+            ...newRun,
+            skillAccumulation: { ...newRun.skillAccumulation, [skill.id]: 24 },
+          };
+        } else if (skill.id === SKILL_FADING_BOOST) {
+          // “获得后下一手”为第 1 手：首手结算读 100，然后在 _commitScore 末尾递减
+          newRun = {
+            ...newRun,
+            skillAccumulation: { ...newRun.skillAccumulation, [skill.id]: 100 },
+          };
+        } else if (skill.id === SKILL_REFRESH_SHOP_MULT) {
+          newRun = {
+            ...newRun,
+            skillAccumulation: { ...newRun.skillAccumulation, [skill.id]: 0 },
+          };
+        }
         // 「精英关无限制」：3 次充能（进入精英/Boss 关消耗）
         if (skill.id === SKILL_ELITE_UNSHACKLED) {
           newRun = {
@@ -596,11 +662,25 @@ export const useRLStore = create<RLStore>()(
             (reward.blackEdgeSeenThisShop ?? false) || refreshed.skillOptions.some((o) => o.enhancement === 'black'),
         };
         set({
-          run: {
-            ...run,
-            runDiamonds: clampRunDiamonds(run.runDiamonds - refreshCost),
-            diamondsSpentTotal: run.diamondsSpentTotal + refreshCost,
-          },
+          run: (() => {
+            let nextRun: RunState = {
+              ...run,
+              runDiamonds: clampRunDiamonds(run.runDiamonds - refreshCost),
+              diamondsSpentTotal: run.diamondsSpentTotal + refreshCost,
+            };
+            // 「刷新商店乘倍」：仅统计 💎 刷新成功次数，本局永久叠加；count 写入 skillAccumulation[skillId]
+            if (nextRun.acquiredSkillIds.includes(SKILL_REFRESH_SHOP_MULT)) {
+              const prev = Number(nextRun.skillAccumulation?.[SKILL_REFRESH_SHOP_MULT] ?? 0);
+              const cnt = Number.isFinite(prev) ? Math.max(0, Math.floor(prev)) : 0;
+              // 上限 ×2：count 至多 5（1 + 5×0.2 = 2）
+              const nextCnt = Math.min(5, cnt + 1);
+              nextRun = {
+                ...nextRun,
+                skillAccumulation: { ...nextRun.skillAccumulation, [SKILL_REFRESH_SHOP_MULT]: nextCnt },
+              };
+            }
+            return nextRun;
+          })(),
           reward: nextReward,
         });
       },
@@ -656,6 +736,30 @@ export const useRLStore = create<RLStore>()(
         let advanced = run.isEndless
           ? advanceToNextEndlessStage(run, run.handTypeUpgrades, [], [])
           : advanceToNextStage(run, run.handTypeUpgrades, [], []);
+
+        // ── 递减效应（按关）：进入下一关前先衰减一次，使“获得后下一关”为第 1 档（20,16,12...）
+        if (advanced.status === 'running' && advanced.acquiredSkillIds.includes(SKILL_DIMINISHING_EFFECT)) {
+          const prev = Number(advanced.skillAccumulation?.[SKILL_DIMINISHING_EFFECT] ?? 24);
+          const cur = Number.isFinite(prev) ? prev : 24;
+          const next = cur - 4;
+          if (next > 0) {
+            advanced = {
+              ...advanced,
+              skillAccumulation: { ...advanced.skillAccumulation, [SKILL_DIMINISHING_EFFECT]: next },
+            };
+          } else {
+            advanced = removeSkillFromRun(advanced, SKILL_DIMINISHING_EFFECT);
+          }
+        }
+
+        // ── 勇往直前：对新关卡参数生效（每关都生效）
+        if (advanced.status === 'running') {
+          const st = advanced.stages[advanced.currentStageIndex];
+          if (st) {
+            const patched = applyForwardRushToStageIfNeeded(st, advanced.acquiredSkillIds);
+            if (patched !== st) advanced = updateStageInRun(advanced, patched);
+          }
+        }
 
         // 「精英关无限制」：进入精英/Boss 关时消耗 1 次；用完后技能消失
         if (advanced.status === 'running' && advanced.acquiredSkillIds.includes(SKILL_ELITE_UNSHACKLED)) {

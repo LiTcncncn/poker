@@ -36,7 +36,28 @@ export type SkillEffectType =
   /** 本手结算加性倍率：整数区间由 `randomMultMin`/`randomMultMax` 定义，实际点数由 `evaluateHandWithSkills` 的 `randomHandAddMultiplier` 传入（通常由 store 每手骰一次） */
   | 'random_hand_add_multiplier'
   /** 剩手加倍：`max(0, stageTotalHands - stageUsedHands - 1) * value` 加性倍率（本手打完后的剩余手数 × 每手 value） */
-  | 'per_remaining_hand_add_multiplier';
+  | 'per_remaining_hand_add_multiplier'
+  /**
+   * 刷新商店乘倍：每次成功使用 💎 刷新商店，`skillAccumulation[skillId] += 1`；
+   * 结算时独立乘区因子 = 1 + count * value（如 value=0.2：1 次=×1.2，2 次=×1.4）。
+   */
+  | 'shop_refresh_independent_bonus'
+  /**
+   * 递减效应（按关）：在进入下一关时将 `skillAccumulation[skillId] -= decayStep`；
+   * 本关结算时将当前 `skillAccumulation[skillId]` 作为加性倍率加入（>0 才生效），≤0 时技能移除。
+   */
+  | 'stage_decay_add_multiplier'
+  /**
+   * 后劲不足（按手）：每手结算将当前 `skillAccumulation[skillId]` 作为技能$加入（>0 才生效），
+   * 然后 `skillAccumulation[skillId] -= decayStep`，≤0 时技能移除。
+   */
+  | 'hand_decay_add_score'
+  /**
+   * 勇往直前：每关进入时修正关卡参数（totalHands/holdTotal）。
+   * - addHands：本关总手数增量（可为正）
+   * - addHolds：本关补牌总量增量（可为负，最低可到 0）
+   */
+  | 'stage_modify_hands_and_holds';
 
 export interface SkillEffect {
   type: SkillEffectType;
@@ -90,6 +111,13 @@ export interface SkillEffect {
   /** `random_hand_add_multiplier`：闭区间整数随机加性倍率上下限（缺省 2～20） */
   randomMultMin?: number;
   randomMultMax?: number;
+
+  /** `stage_decay_add_multiplier` / `hand_decay_add_score`：每步递减量（固定步长） */
+  decayStep?: number;
+  /** `stage_modify_hands_and_holds`：本关总手数增量 */
+  addHands?: number;
+  /** `stage_modify_hands_and_holds`：本关补牌总量增量 */
+  addHolds?: number;
 }
 
 export interface SkillDef {

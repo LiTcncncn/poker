@@ -95,6 +95,7 @@ export const CardFaceV2: FC<{
   const doubleSuit = card.effects.find((e) => e.type === 'double_suit' && e.suits?.length);
   const hasHigh = card.effects.some((e) => e.type === 'high_score');
   const hasMult = card.effects.some((e) => e.type === 'multiplier');
+  const hasIndepMult = card.effects.some((e) => e.type === 'independent_multiply');
   const isSuper = card.quality === 'super';
   const whiteBorder =
     card.quality === 'white'
@@ -170,6 +171,9 @@ export const CardFaceV2: FC<{
             {hasMult && card.effects.filter(e => e.type === 'multiplier').map((e, i) => (
               <span key={i} className="shrink-0 font-black text-[#9333EA] drop-shadow-sm text-[0.95em]">×{e.value ?? 0}</span>
             ))}
+            {hasIndepMult && card.effects.filter(e => e.type === 'independent_multiply').map((e, i) => (
+              <span key={i} className="shrink-0 font-black text-[#9333EA] drop-shadow-sm text-[0.95em]">×{e.value ?? 0}</span>
+            ))}
             {hasHigh && card.effects.filter(e => e.type === 'high_score').map((e, i) => (
               <span key={i} className="shrink-0 font-black text-[#16A34A] text-[0.95em]">+{e.value ?? 0}</span>
             ))}
@@ -230,6 +234,9 @@ export const CardFaceV2: FC<{
         </div>
         <div className="flex min-h-0 flex-nowrap items-center justify-center gap-[0.2em] whitespace-nowrap px-0.5 pb-0.5">
           {hasMult && card.effects.filter(e => e.type === 'multiplier').map((e, i) => (
+            <span key={i} className="shrink-0 font-black text-[#9333EA] drop-shadow-sm text-[0.95em]">×{e.value ?? 0}</span>
+          ))}
+          {hasIndepMult && card.effects.filter(e => e.type === 'independent_multiply').map((e, i) => (
             <span key={i} className="shrink-0 font-black text-[#9333EA] drop-shadow-sm text-[0.95em]">×{e.value ?? 0}</span>
           ))}
           {hasHigh && card.effects.filter(e => e.type === 'high_score').map((e, i) => (
