@@ -51,6 +51,18 @@ function maxJokersInHandCap(acquiredSkillIds: string[]): number {
 const SKILL_SUPER_CREDIT = 'super_credit_card';
 const SKILL_DIAMOND_TYCOON = 'diamond_tycoon';
 const SKILL_SELLERS_MARKET = 'sellers_market';
+const SKILL_ELITE_UNSHACKLED = 'elite_unshackled';
+
+/** 「精英关无限制」用完最后一券后从卡槽移除（进关时已扣到 0，本关内须仍持有 id 以抵消词缀） */
+function stripEliteUnshackledIfDepleted(run: RunState): RunState {
+  if (!run.acquiredSkillIds.includes(SKILL_ELITE_UNSHACKLED)) return run;
+  const newSkillIds = run.acquiredSkillIds.filter((id) => id !== SKILL_ELITE_UNSHACKLED);
+  const newEnh = { ...run.skillEnhancements };
+  delete newEnh[SKILL_ELITE_UNSHACKLED];
+  const newAcc = { ...run.skillAccumulation };
+  delete newAcc[SKILL_ELITE_UNSHACKLED];
+  return { ...run, acquiredSkillIds: newSkillIds, skillEnhancements: newEnh, skillAccumulation: newAcc };
+}
 
 function computeBlackEdgePityGateN(shopStageK: number, ownedBlackCount: number): number | null {
   const gateK = 19 + 20 * ownedBlackCount;
@@ -162,6 +174,15 @@ function _commitScore(
 
   const newStage = applyHandGold(stage, evalResult.finalGold);
   newRun = updateStageInRun(newRun, newStage);
+
+  if (
+    (newStage.status === 'won' || newStage.status === 'lost') &&
+    (stage.isElite || stage.isBoss) &&
+    newRun.acquiredSkillIds.includes(SKILL_ELITE_UNSHACKLED) &&
+    (newRun.skillAccumulation?.[SKILL_ELITE_UNSHACKLED] ?? 3) === 0
+  ) {
+    newRun = stripEliteUnshackledIfDepleted(newRun);
+  }
 
   if (newStage.status === 'won') {
     const diamondsGained = calcStageDiamondReward(newStage);
@@ -315,10 +336,20 @@ export const useRLStore = create<RLStore>()(
 
       // ─── 发初始手牌（新一手，含属性牌） ─────────────────────────
       dealInitialHand: () => {
-        const { run } = get();
+        let { run } = get();
         if (!run || run.status !== 'running') return;
         const rawStage = run.stages[run.currentStageIndex];
         if (!rawStage) return;
+        // 最后一券已耗尽但异常留在非精英关（极少见）：清掉占位技能
+        if (
+          run.acquiredSkillIds.includes(SKILL_ELITE_UNSHACKLED) &&
+          (run.skillAccumulation?.[SKILL_ELITE_UNSHACKLED] ?? 3) === 0 &&
+          !rawStage.isElite &&
+          !rawStage.isBoss
+        ) {
+          run = stripEliteUnshackledIfDepleted(run);
+          set({ run });
+        }
         const stage = getEffectiveStage(rawStage, run.acquiredSkillIds);
         const jokerProb = jokerInjectProbability(run.acquiredSkillIds, stage.banJokers === true);
         const maxJ = maxJokersInHandCap(run.acquiredSkillIds);
@@ -426,7 +457,7 @@ export const useRLStore = create<RLStore>()(
           diamondsSpentTotal: run.diamondsSpentTotal + price,
         };
         // 「精英关无限制」：3 次充能（进入精英/Boss 关消耗）
-        if (skill.id === 'elite_unshackled') {
+        if (skill.id === SKILL_ELITE_UNSHACKLED) {
           newRun = {
             ...newRun,
             skillAccumulation: { ...newRun.skillAccumulation, [skill.id]: 3 },
@@ -627,29 +658,15 @@ export const useRLStore = create<RLStore>()(
           : advanceToNextStage(run, run.handTypeUpgrades, [], []);
 
         // 「精英关无限制」：进入精英/Boss 关时消耗 1 次；用完后技能消失
-        if (advanced.status === 'running' && advanced.acquiredSkillIds.includes('elite_unshackled')) {
+        if (advanced.status === 'running' && advanced.acquiredSkillIds.includes(SKILL_ELITE_UNSHACKLED)) {
           const st = advanced.stages[advanced.currentStageIndex];
           if (st && (st.isElite || st.isBoss) && st.modifierId) {
-            const prev = advanced.skillAccumulation?.elite_unshackled ?? 3;
-            const next = prev - 1;
-            if (next <= 0) {
-              const newSkillIds = advanced.acquiredSkillIds.filter((id) => id !== 'elite_unshackled');
-              const newEnh = { ...advanced.skillEnhancements };
-              delete newEnh.elite_unshackled;
-              const newAcc = { ...advanced.skillAccumulation };
-              delete newAcc.elite_unshackled;
-              advanced = {
-                ...advanced,
-                acquiredSkillIds: newSkillIds,
-                skillEnhancements: newEnh,
-                skillAccumulation: newAcc,
-              };
-            } else {
-              advanced = {
-                ...advanced,
-                skillAccumulation: { ...advanced.skillAccumulation, elite_unshackled: next },
-              };
-            }
+            const prev = advanced.skillAccumulation?.[SKILL_ELITE_UNSHACKLED] ?? 3;
+            const next = Math.max(0, prev - 1);
+            advanced = {
+              ...advanced,
+              skillAccumulation: { ...advanced.skillAccumulation, [SKILL_ELITE_UNSHACKLED]: next },
+            };
           }
         }
         set({ run: advanced, reward: null });

@@ -285,9 +285,10 @@ export function getSkillCumulativeFinalSegments(
     (e) => e.type === 'accumulate_multiplier' || e.type === 'accumulate_multiplier_no_draw',
   );
 
-  // 「精英关无限制」：accumulated 用作剩余次数（牌面显示 n 次）
-  if (skill.id === 'elite_unshackled' && accumulated > 0) {
-    out.push({ kind: 'times', text: `${accumulated} 次` });
+  // 「精英关无限制」：accumulated 用作剩余次数（含最后一关已扣至 0、尚未结算移除时显示 0 次）
+  if (skill.id === 'elite_unshackled') {
+    const charge = accumulated != null && Number.isFinite(Number(accumulated)) ? Number(accumulated) : 3;
+    out.push({ kind: 'times', text: `${charge} 次` });
     return out;
   }
 
