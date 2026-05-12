@@ -1,10 +1,25 @@
-import { MainlineRunDef, RunConfig } from '../types/profile';
+import { FRAME_DEFS, MainlineRunDef, RunConfig } from '../types/profile';
+import type { SkillEnhancement } from '../types/skill';
 
 // ─── 工具函数 ─────────────────────────────────────────────────
 
 /** 生成解锁顺序 1..n 的数组 */
 function orders(max: number): number[] {
   return Array.from({ length: max }, (_, i) => i + 1);
+}
+
+const FRAME_TO_SKILL_ENHANCEMENT: Partial<Record<string, SkillEnhancement>> = {
+  silver: 'flash',
+  gold: 'gold',
+  rainbow: 'laser',
+  black: 'black',
+};
+
+export function getAllowedSkillEnhancementsAfterNormalRun(highestNormalCleared: number): SkillEnhancement[] {
+  return FRAME_DEFS
+    .filter((frame) => frame.unlockRunNo > 0 && highestNormalCleared >= frame.unlockRunNo)
+    .map((frame) => FRAME_TO_SKILL_ENHANCEMENT[frame.id])
+    .filter((enhancement): enhancement is SkillEnhancement => enhancement != null);
 }
 
 /** 普通模式默认配置（基准） */
@@ -24,6 +39,7 @@ function normalBase(
     allHandTypesLv2: false,
     skillSlotBonus: 0,
     allowedSkillOrders: orders(1),
+    allowedSkillEnhancements: [],
     shopRefreshCostDelta: 0,
     shopPriceDelta: 0,
     stageBaseDiamondZero: false,
@@ -920,6 +936,7 @@ export function buildRunConfig(
     runNo,
     difficulty,
     ...baseConfig,
+    allowedSkillEnhancements: getAllowedSkillEnhancementsAfterNormalRun(highestNormalCleared),
   };
 }
 
@@ -938,6 +955,7 @@ export function buildFreeplayConfig(): RunConfig {
     allHandTypesLv2: false,
     skillSlotBonus: 0,
     allowedSkillOrders: Array.from({ length: 27 }, (_, i) => i + 1),
+    allowedSkillEnhancements: ['flash', 'gold', 'laser', 'black'],
     shopRefreshCostDelta: 0,
     shopPriceDelta: 0,
     stageBaseDiamondZero: false,

@@ -162,7 +162,7 @@ export function StageView() {
   const showStageModifierStrip = (stage.isElite || stage.isBoss) && !!modifier;
 
   const displayStageNumber = run.isEndless
-    ? TOTAL_STAGES + 1 + run.endlessStagesCleared
+    ? (run.runStageCount ?? TOTAL_STAGES) + 1 + run.endlessStagesCleared
     : stage.stageIndex + 1;
   const stageTitle = (() => {
     const base = `第 ${displayStageNumber} 关`;
@@ -195,6 +195,8 @@ export function StageView() {
   const iaaState = run?.iaa;
   const stageIdx = stage?.stageIndex ?? 0;
   const iaaPerStage = iaaState?.perStage[stageIdx] ?? {};
+  const iaaDiamondRefillCount = iaaState?.diamondRefillCount ?? Math.floor((iaaState?.diamondsFromIaa ?? 0) / 3);
+  const canIaaClaimDiamonds = iaaDiamondRefillCount < 2;
 
   const currentHandIdx = effectiveStage.usedHands;
   const holdBlockedByStageRule =
@@ -359,7 +361,7 @@ export function StageView() {
                   >
                     💎{run.runDiamonds}
                   </span>
-                  {!iaaPerStage.diamondRefillUsed && (
+                  {canIaaClaimDiamonds && (
                     <button
                       type="button"
                       onClick={iaaClaimDiamonds}
@@ -496,7 +498,7 @@ export function StageView() {
           diamonds={run.runDiamonds}
           skillSlotCap={getEffectiveSkillSlotCap(run)}
           stageIndex={run.currentStageIndex}
-          iaaClaimDiamondsUsed={run.iaa?.perStage[run.currentStageIndex]?.diamondRefillUsed ?? false}
+          iaaClaimDiamondsUsed={!canIaaClaimDiamonds}
           onChooseSkill={chooseSkill}
           onSellSkill={sellSkill}
           onChooseUpgrade={(opt) => chooseUpgrade(opt as UpgradeOption)}

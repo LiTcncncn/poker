@@ -3,6 +3,17 @@ import { useRLStore } from '../store/roguelikeStore';
 import { getSkillsByIds } from '../engine/skillEngine';
 import SkillPanel from './SkillPanel';
 import { getUnlockedOrdersAfterNormalRun, SKILL_UNLOCK_ORDER_MAP } from '../config/skillUnlockOrders';
+import { FRAME_DEFS, FrameId } from '../types/profile';
+import type { SkillEnhancement } from '../types/skill';
+import { enhancementBonusLine } from '../utils/skillEnhancementDisplay';
+import { SkillPlayingCardDetailShell } from './SkillPlayingCard';
+
+const FRAME_TO_SKILL_ENHANCEMENT: Partial<Record<FrameId, SkillEnhancement>> = {
+  silver: 'flash',
+  gold: 'gold',
+  rainbow: 'laser',
+  black: 'black',
+};
 
 interface Props {
   open: boolean;
@@ -34,6 +45,10 @@ export function EndlessChoiceModal({ open, onContinueEndless, onReturnToMenu }: 
     newlyUnlockedOrders.flatMap(order => SKILL_UNLOCK_ORDER_MAP[order] ?? []),
   ));
   const unlockedSkills = getSkillsByIds(newlyUnlockedSkillIds);
+  const newlyUnlockedFrames =
+    run && difficulty === 'normal'
+      ? FRAME_DEFS.filter(frame => frame.unlockRunNo === runNo && frame.id !== 'default')
+      : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
@@ -67,6 +82,35 @@ export function EndlessChoiceModal({ open, onContinueEndless, onReturnToMenu }: 
                 acquiredSkillIds={newlyUnlockedSkillIds}
                 skillEnhancements={{}}
               />
+            </div>
+          </div>
+        )}
+
+        {/* 解锁技能边展示：展示空白带边牌，不绑定任何具体技能 */}
+        {run && newlyUnlockedFrames.length > 0 && (
+          <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-black/10 px-3 py-3">
+            <div className="text-xs font-bold text-gray-300">解锁的技能边</div>
+            <div className="flex gap-3 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+              {newlyUnlockedFrames.map((frame) => {
+                const enhancement = FRAME_TO_SKILL_ENHANCEMENT[frame.id];
+                if (!enhancement || enhancement === 'normal') return null;
+                return (
+                  <div key={frame.id} className="flex w-24 shrink-0 flex-col items-center gap-2 text-center">
+                    <SkillPlayingCardDetailShell
+                      quality="purple"
+                      enhancement={enhancement}
+                      className="aspect-[2/3] w-20 rounded-[14px] shadow-[0_4px_12px_rgba(15,23,40,0.22)]"
+                    >
+                      <div className="h-full w-full bg-white/15" aria-label={`${frame.label}空白技能牌`} />
+                    </SkillPlayingCardDetailShell>
+                    <div className="flex flex-col gap-0.5 text-[11px] leading-snug">
+                      <span className="font-black text-rl-gold">{frame.label}已解锁</span>
+                      <span className="text-gray-400">{enhancementBonusLine(enhancement)}</span>
+                      <span className="text-gray-500">后续商店可出现该边技能牌</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

@@ -14,7 +14,7 @@ function storagePathSlug(): string {
 export const RG_STORAGE_SLUG = storagePathSlug();
 
 /** 与 `roguelikeStore` persist `version` / migrate 同步递增 */
-export const ROGUELIKE_PERSIST_SCHEMA_VERSION = 19 as const;
+export const ROGUELIKE_PERSIST_SCHEMA_VERSION = 20 as const;
 
 /** zustand persist 的 `name`（localStorage 键名） */
 export const ROGUELIKE_ZUSTAND_PERSIST_NAME = `poker-roguelike-${RG_STORAGE_SLUG}-storage-v${ROGUELIKE_PERSIST_SCHEMA_VERSION}`;

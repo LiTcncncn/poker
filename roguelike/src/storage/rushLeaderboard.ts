@@ -17,8 +17,9 @@ export interface RushLeaderboardEntry {
 }
 
 export function clearedStagesTotal(run: RunState): number {
+  const mainStageCount = run.runStageCount ?? TOTAL_STAGES;
   const mainWon = run.stages.filter(
-    s => s.stageIndex < TOTAL_STAGES && s.status === 'won',
+    s => s.stageIndex < mainStageCount && s.status === 'won',
   ).length;
   return mainWon + run.endlessStagesCleared;
 }

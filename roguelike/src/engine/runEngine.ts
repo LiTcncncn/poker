@@ -155,6 +155,7 @@ export function initRun(config?: RunConfig): RunState {
     runShopRefreshCostDelta: config?.shopRefreshCostDelta ?? 0,
     runShopPriceDelta: config?.shopPriceDelta ?? 0,
     allowedSkillOrders: config?.allowedSkillOrders ?? Array.from({ length: 27 }, (_, i) => i + 1),
+    allowedSkillEnhancements: config?.allowedSkillEnhancements ?? ['flash', 'gold', 'laser', 'black'],
     runTargetMultiplier: targetMult,
     runStageCount: stageCount,
   };
@@ -232,10 +233,10 @@ export function defeatRun(run: RunState): RunState {
  * 每关在上关基础上乘 NORMAL_RATE，精英关（无尽内第 3、6、9… 关，即 (endlessIdx+1)%3===0）再乘 ELITE_BONUS；
  * 结果四舍五入到千位，且相对上一关单调不减（例：种子 40000 时前几关约 43k→46k→51k…）。
  */
-function calcEndlessTargetGold(endlessIdx: number): number {
+function calcEndlessTargetGold(endlessIdx: number, mainStageCount = TOTAL_STAGES): number {
   let gold = ENDLESS_SEED_GOLD;
   for (let i = 0; i <= endlessIdx; i++) {
-    const displayK = TOTAL_STAGES + i + 1; // 21,22,23...
+    const displayK = mainStageCount + i + 1; // 标准局 21,22,23...；新手局 11,12,13...
     const isThisElite = (i + 1) % 3 === 0;
     const raw = gold * endlessNormalRate(displayK) * (isThisElite ? endlessEliteBonus(displayK) : 1);
     const rounded = roundEndlessGold(raw);
@@ -244,36 +245,44 @@ function calcEndlessTargetGold(endlessIdx: number): number {
   return gold;
 }
 
+/** 当前 run 的无尽关固定槽位：等于本局主线关数（新手局 10，标准局 20） */
+export function getEndlessStageIndex(run: Pick<RunState, 'runStageCount'>): number {
+  return run.runStageCount ?? TOTAL_STAGES;
+}
+
 /** 生成无限阶段的第 endlessIdx 关（0-based） */
-function buildEndlessStage(endlessIdx: number): StageState {
+function buildEndlessStage(endlessIdx: number, mainStageCount = TOTAL_STAGES): StageState {
   const isElite   = (endlessIdx + 1) % 3 === 0;
-  const targetGold = calcEndlessTargetGold(endlessIdx);
+  const targetGold = calcEndlessTargetGold(endlessIdx, mainStageCount);
   // endlessEliteIdx：当前是第几个精英关
   const endlessEliteIdx = Math.floor(endlessIdx / 3);
   const modId = isElite ? pickEndlessModifier(endlessEliteIdx) : undefined;
-  return initEndlessStage(TOTAL_STAGES + endlessIdx, targetGold, isElite, modId);
+  return initEndlessStage(mainStageCount + endlessIdx, targetGold, isElite, modId);
 }
 
 /**
  * 主线胜利后进入无限挑战模式。
- * 立即生成第一个无限关（index = TOTAL_STAGES），status 回到 'running'。
+ * 立即生成第一个无限关（index = runStageCount），status 回到 'running'。
  */
 export function enterEndlessMode(run: RunState): RunState {
-  const firstEndlessStage = buildEndlessStage(0);
+  const endlessStageIndex = getEndlessStageIndex(run);
+  const firstEndlessStage = buildEndlessStage(0, endlessStageIndex);
+  const stages = [...run.stages];
+  stages[endlessStageIndex] = firstEndlessStage;
   return {
     ...run,
     isEndless: true,
     endlessStagesCleared: 0,
     status: 'running',
-    stages: [...run.stages, firstEndlessStage],
-    currentStageIndex: TOTAL_STAGES,
+    stages,
+    currentStageIndex: endlessStageIndex,
     highestSingleStageTarget: Math.max(run.highestSingleStageTarget, firstEndlessStage.targetGold),
   };
 }
 
 /**
  * 无限阶段关卡胜利后，累计技能/升级/属性牌并推进到下一无限关。
- * 新关卡覆写 stages[TOTAL_STAGES]，currentStageIndex 保持 TOTAL_STAGES。
+ * 新关卡覆写 stages[runStageCount]，currentStageIndex 保持该无尽槽位。
  */
 export function advanceToNextEndlessStage(
   run: RunState,
@@ -282,10 +291,11 @@ export function advanceToNextEndlessStage(
   newAttributeCards: Card[] = [],
 ): RunState {
   const newEndlessCount = run.endlessStagesCleared + 1;
-  const nextStage = buildEndlessStage(newEndlessCount);
+  const endlessStageIndex = getEndlessStageIndex(run);
+  const nextStage = buildEndlessStage(newEndlessCount, endlessStageIndex);
 
   const updatedStages = [...run.stages];
-  updatedStages[TOTAL_STAGES] = nextStage; // 覆写无限关槽位
+  updatedStages[endlessStageIndex] = nextStage; // 覆写无限关槽位
 
   return {
     ...run,
@@ -294,7 +304,7 @@ export function advanceToNextEndlessStage(
     attributeCards:   [...run.attributeCards, ...newAttributeCards],
     endlessStagesCleared: newEndlessCount,
     stages: updatedStages,
-    currentStageIndex: TOTAL_STAGES,
+    currentStageIndex: endlessStageIndex,
     highestSingleStageTarget: Math.max(run.highestSingleStageTarget, nextStage.targetGold),
   };
 }

@@ -11,6 +11,7 @@ import {
   advanceToNextStage,
   advanceToNextEndlessStage,
   enterEndlessMode,
+  getEndlessStageIndex,
   defeatRun,
   TOTAL_STAGES,
   countBlackEdgeSlots,
@@ -37,8 +38,25 @@ import {
   ROGUELIKE_PERSIST_SCHEMA_VERSION,
   ROGUELIKE_ZUSTAND_PERSIST_NAME,
 } from '../config/storageNamespace';
+import { getAllowedSkillEnhancementsAfterNormalRun } from '../config/mainlineRuns';
 
 const HAND_SIZE = 5;
+const IAA_DIAMOND_REFILL_LIMIT = 2;
+
+function fallbackHighestNormalClearedForEdgeGate(run: RunState): number {
+  if (run.difficulty === 'freeplay') return Number.MAX_SAFE_INTEGER;
+  if (run.isEndless || run.status === 'victory' || run.difficulty === 'hard') return Math.max(0, run.runNo);
+  return Math.max(0, run.runNo - 1);
+}
+
+function getAllowedSkillEnhancementSet(run: RunState): Set<SkillEnhancement> | undefined {
+  if (run.difficulty === 'freeplay') return undefined;
+  const stored = (run as RunState & { allowedSkillEnhancements?: SkillEnhancement[] }).allowedSkillEnhancements;
+  const allowed = Array.isArray(stored)
+    ? stored
+    : getAllowedSkillEnhancementsAfterNormalRun(fallbackHighestNormalClearedForEdgeGate(run));
+  return new Set(allowed);
+}
 
 /** 牌堆 Joker 注入概率：基础 8%；持有「Joker几率+」为 12%；词缀禁小丑时为 0 */
 function jokerInjectProbability(acquiredSkillIds: string[], banJokers: boolean): number {
@@ -248,6 +266,8 @@ function _commitScore(
       newRun.difficulty !== 'freeplay' && newRun.allowedSkillOrders?.length
         ? getAllowedSkillIds(newRun.allowedSkillOrders)
         : undefined;
+    const allowedSkillEnhancements = getAllowedSkillEnhancementSet(newRun);
+    const blackEdgePityAllowed = allowedSkillEnhancements == null || allowedSkillEnhancements.has('black');
 
     if (run.isEndless) {
       // 黑边定向保底的 gateK(N) 使用“显示关数”（主线 1..20 + 无尽 21..），因此这里要用 stageIndex+1（而不是 endlessStagesCleared+1）。
@@ -261,11 +281,14 @@ function _commitScore(
         true,
         newRun.soldSkillIds ?? [],
         {
-          gateN: computeBlackEdgePityGateN(displayK, newRun.acquiredSkillIds.filter((id) => newRun.skillEnhancements[id] === 'black').length),
+          gateN: blackEdgePityAllowed
+            ? computeBlackEdgePityGateN(displayK, newRun.acquiredSkillIds.filter((id) => newRun.skillEnhancements[id] === 'black').length)
+            : null,
           misses: newRun.blackEdgePityMisses ?? 0,
           cooldown: newRun.blackEdgePityCooldown ?? 0,
         },
         allowedSkillIds,
+        allowedSkillEnhancements,
       );
       set({ run: newRun, handState: newHandState, reward: rewardState });
     } else {
@@ -285,11 +308,14 @@ function _commitScore(
           false,
           newRun.soldSkillIds ?? [],
           {
-            gateN: computeBlackEdgePityGateN(stage.stageIndex + 1, newRun.acquiredSkillIds.filter((id) => newRun.skillEnhancements[id] === 'black').length),
+            gateN: blackEdgePityAllowed
+              ? computeBlackEdgePityGateN(stage.stageIndex + 1, newRun.acquiredSkillIds.filter((id) => newRun.skillEnhancements[id] === 'black').length)
+              : null,
             misses: newRun.blackEdgePityMisses ?? 0,
             cooldown: newRun.blackEdgePityCooldown ?? 0,
           },
           allowedSkillIds,
+          allowedSkillEnhancements,
         );
         set({ run: newRun, handState: newHandState, reward: rewardState });
       }
@@ -329,7 +355,7 @@ interface RLStore {
   // ── IAA ───────────────────────────────────
   /** IAA 刷新商店（每关限 1 次，与💎刷新独立） */
   iaaRefreshReward:   () => void;
-  /** IAA 补钻 +3（每关限 1 次） */
+  /** IAA 补钻 +3（商店/关内共享，每局限 2 次） */
   iaaClaimDiamonds:   () => void;
   /** IAA 购买初始 Roll 中标记的 IAA 商品（每关限 1 次） */
   iaaBuyItem:         () => void;
@@ -399,7 +425,11 @@ export const useRLStore = create<RLStore>()(
         if (!run || run.status !== 'victory' || run.isEndless) return;
         const runWithFreshUnlocks =
           run.difficulty === 'normal' && run.runNo > 0
-            ? { ...run, allowedSkillOrders: getUnlockedOrdersAfterNormalRun(run.runNo) }
+            ? {
+                ...run,
+                allowedSkillOrders: getUnlockedOrdersAfterNormalRun(run.runNo),
+                allowedSkillEnhancements: getAllowedSkillEnhancementsAfterNormalRun(run.runNo),
+              }
             : run;
         const endlessRun = enterEndlessMode(runWithFreshUnlocks);
         set({ run: endlessRun, reward: null });
@@ -410,7 +440,12 @@ export const useRLStore = create<RLStore>()(
       dealInitialHand: () => {
         let { run } = get();
         if (!run || run.status !== 'running') return;
-        const rawStage = run.stages[run.currentStageIndex];
+        let rawStage = run.stages[run.currentStageIndex];
+        if (!rawStage && run.isEndless) {
+          const endlessStageIndex = getEndlessStageIndex(run);
+          rawStage = run.stages[endlessStageIndex];
+          if (rawStage) run = { ...run, currentStageIndex: endlessStageIndex };
+        }
         if (!rawStage) return;
         // 最后一券已耗尽但异常留在非精英关（极少见）：清掉占位技能
         if (
@@ -684,8 +719,12 @@ export const useRLStore = create<RLStore>()(
         const refreshCost = Math.max(0, reward.diamondRefreshCost ?? getDefaultDiamondRefreshCost());
         if (run.runDiamonds < refreshCost) return;
         const afterElite = reward.afterElite ?? false;
+        const allowedSkillEnhancementsForRefresh = getAllowedSkillEnhancementSet(run);
         const ownedBlack = run.acquiredSkillIds.filter((id) => run.skillEnhancements[id] === 'black').length;
-        const gateN = reward.shopStageK != null ? computeBlackEdgePityGateN(reward.shopStageK, ownedBlack) : null;
+        const gateN =
+          reward.shopStageK != null && (allowedSkillEnhancementsForRefresh == null || allowedSkillEnhancementsForRefresh.has('black'))
+            ? computeBlackEdgePityGateN(reward.shopStageK, ownedBlack)
+            : null;
         const allowedSkillIdsForRefresh =
           run.difficulty !== 'freeplay' && run.allowedSkillOrders?.length
             ? getAllowedSkillIds(run.allowedSkillOrders)
@@ -702,6 +741,7 @@ export const useRLStore = create<RLStore>()(
           true,
           gateN != null ? { gateN, misses: run.blackEdgePityMisses ?? 0, cooldown: run.blackEdgePityCooldown ?? 0 } : undefined,
           allowedSkillIdsForRefresh,
+          allowedSkillEnhancementsForRefresh,
         );
         const nextReward: RewardState = {
           ...reward,
@@ -744,10 +784,12 @@ export const useRLStore = create<RLStore>()(
           const k = reward.shopStageK;
           const ownedBefore = reward.blackEdgeOwnedAtOpen ?? 0;
           const ownedAfter = run.acquiredSkillIds.filter((id) => run.skillEnhancements[id] === 'black').length;
-          const gateN = computeBlackEdgePityGateN(k, ownedAfter);
+          const allowedSkillEnhancements = getAllowedSkillEnhancementSet(run);
+          const blackEdgePityAllowed = allowedSkillEnhancements == null || allowedSkillEnhancements.has('black');
+          const gateN = blackEdgePityAllowed ? computeBlackEdgePityGateN(k, ownedAfter) : null;
           const prevGateN = run.blackEdgePityGateN ?? null;
-          let misses = run.blackEdgePityMisses ?? 0;
-          let cooldown = run.blackEdgePityCooldown ?? 0;
+          let misses = blackEdgePityAllowed ? (run.blackEdgePityMisses ?? 0) : 0;
+          let cooldown = blackEdgePityAllowed ? (run.blackEdgePityCooldown ?? 0) : 0;
 
           // 段切换：重置
           if (gateN !== prevGateN) {
@@ -843,8 +885,12 @@ export const useRLStore = create<RLStore>()(
         if (prevIaa.perStage[stageIdx]?.iaaRefreshUsed) return;
 
         const afterElite = reward.afterElite ?? false;
+        const allowedEnhancements = getAllowedSkillEnhancementSet(run);
         const ownedBlack = run.acquiredSkillIds.filter((id) => run.skillEnhancements[id] === 'black').length;
-        const gateN = reward.shopStageK != null ? computeBlackEdgePityGateN(reward.shopStageK, ownedBlack) : null;
+        const gateN =
+          reward.shopStageK != null && (allowedEnhancements == null || allowedEnhancements.has('black'))
+            ? computeBlackEdgePityGateN(reward.shopStageK, ownedBlack)
+            : null;
         const allowedIds = run.difficulty !== 'freeplay' && run.allowedSkillOrders?.length
           ? getAllowedSkillIds(run.allowedSkillOrders) : undefined;
         const refreshed = regenerateShopOptionsForStep(
@@ -853,6 +899,7 @@ export const useRLStore = create<RLStore>()(
           run.soldSkillIds ?? [], true,
           gateN != null ? { gateN, misses: run.blackEdgePityMisses ?? 0, cooldown: run.blackEdgePityCooldown ?? 0 } : undefined,
           allowedIds,
+          allowedEnhancements,
         );
         const newIaa: RunIaaState = {
           ...prevIaa, iaaAssisted: true,
@@ -874,25 +921,22 @@ export const useRLStore = create<RLStore>()(
         });
       },
 
-      // ─── IAA：补钻 +3（每关限 1 次）──────────────────────────
+      // ─── IAA：补钻 +3（商店/关内共享，每局限 2 次）──────────
       iaaClaimDiamonds: () => {
         const { run } = get();
         if (!run || run.status !== 'running') return;
-        const stageIdx = run.currentStageIndex;
         const prevIaa: RunIaaState = run.iaa ?? {
           iaaAssisted: false, runReviveUsed: false,
           totalAdsWatched: 0, diamondsFromIaa: 0, perStage: {},
         };
-        if (prevIaa.perStage[stageIdx]?.diamondRefillUsed) return;
+        const usedCount = prevIaa.diamondRefillCount ?? Math.floor((prevIaa.diamondsFromIaa ?? 0) / 3);
+        if (usedCount >= IAA_DIAMOND_REFILL_LIMIT) return;
         const gained = 3;
         const newIaa: RunIaaState = {
           ...prevIaa, iaaAssisted: true,
           totalAdsWatched: prevIaa.totalAdsWatched + 1,
+          diamondRefillCount: usedCount + 1,
           diamondsFromIaa: prevIaa.diamondsFromIaa + gained,
-          perStage: {
-            ...prevIaa.perStage,
-            [stageIdx]: { ...prevIaa.perStage[stageIdx], diamondRefillUsed: true },
-          },
         };
         set({
           run: {
@@ -1076,6 +1120,8 @@ export const useRLStore = create<RLStore>()(
 
         const allowedIds = newRun.difficulty !== 'freeplay' && newRun.allowedSkillOrders?.length
           ? getAllowedSkillIds(newRun.allowedSkillOrders) : undefined;
+        const allowedEnhancements = getAllowedSkillEnhancementSet(newRun);
+        const blackEdgePityAllowed = allowedEnhancements == null || allowedEnhancements.has('black');
         const ownedBlack = newRun.acquiredSkillIds.filter((id) => newRun.skillEnhancements[id] === 'black').length;
         const rewardState = generateRewardForStage(
           stageIdx,
@@ -1086,11 +1132,12 @@ export const useRLStore = create<RLStore>()(
           newRun.isEndless,
           newRun.soldSkillIds ?? [],
           {
-            gateN: computeBlackEdgePityGateN(stageIdx + 1, ownedBlack),
+            gateN: blackEdgePityAllowed ? computeBlackEdgePityGateN(stageIdx + 1, ownedBlack) : null,
             misses: newRun.blackEdgePityMisses ?? 0,
             cooldown: newRun.blackEdgePityCooldown ?? 0,
           },
           allowedIds,
+          allowedEnhancements,
         );
         set({ run: newRun, handState, reward: rewardState });
       },
@@ -1099,7 +1146,9 @@ export const useRLStore = create<RLStore>()(
       currentStage: () => {
         const { run } = get();
         if (!run) return null;
-        return run.stages[run.currentStageIndex] ?? null;
+        return run.stages[run.currentStageIndex]
+          ?? (run.isEndless ? run.stages[getEndlessStageIndex(run)] : null)
+          ?? null;
       },
     }),
     {
@@ -1207,6 +1256,27 @@ export const useRLStore = create<RLStore>()(
               allowedSkillOrders: (p.run as RunState & { allowedSkillOrders?: number[] }).allowedSkillOrders ?? Array.from({ length: 27 }, (_, i) => i + 1),
               runTargetMultiplier: (p.run as RunState & { runTargetMultiplier?: number }).runTargetMultiplier ?? 1.0,
               runStageCount: (p.run as RunState & { runStageCount?: number }).runStageCount ?? 20,
+            },
+          };
+        }
+        // v20: 技能附加边跟随普通局进度解锁；老存档补充本局允许边
+        if (version < 20 && p.run) {
+          const run = p.run as RunState & { allowedSkillEnhancements?: SkillEnhancement[] };
+          const fallbackCleared =
+            run.difficulty === 'freeplay'
+              ? Number.MAX_SAFE_INTEGER
+              : (run.isEndless || run.status === 'victory' || run.difficulty === 'hard')
+                ? Math.max(0, run.runNo ?? 0)
+                : Math.max(0, (run.runNo ?? 0) - 1);
+          p = {
+            ...p,
+            run: {
+              ...p.run,
+              allowedSkillEnhancements:
+                run.allowedSkillEnhancements
+                  ?? (run.difficulty === 'freeplay'
+                    ? ['flash', 'gold', 'laser', 'black']
+                    : getAllowedSkillEnhancementsAfterNormalRun(fallbackCleared)),
             },
           };
         }

@@ -11,6 +11,8 @@ import { Suit, Rank } from '../shared/types/poker';
  * odd_only    - 仅奇数点数：A,3,5,7,9,J,K
  * even_only   - 仅偶数点数：2,4,6,8,10,Q
  */
+import type { SkillEnhancement } from './skill';
+
 export type DeckRule =
   | 'standard'
   | 'two_suits_hs'
@@ -46,6 +48,8 @@ export interface RunConfig {
   skillSlotBonus: number;
   /** 本局可用的技能解锁顺序集合（如 [1, 2, 3]） */
   allowedSkillOrders: number[];
+  /** 本局商店可 Roll 出的技能附加边（不含 normal） */
+  allowedSkillEnhancements: SkillEnhancement[];
   /** 商店刷新费用增量（如 +3） */
   shopRefreshCostDelta: number;
   /** 商店商品价格增量（如 +2） */

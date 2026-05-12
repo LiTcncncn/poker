@@ -29,9 +29,9 @@ interface Props {
   handTypeUpgrades: HandTypeUpgradeMap;
   diamonds: number;
   skillSlotCap: number;
-  /** 当前关卡 stageIndex（用于判断 IAA 每关限次） */
+  /** 当前关卡 stageIndex（保留给商店上下文使用） */
   stageIndex?: number;
-  /** 本关 IAA 补钻是否已用 */
+  /** 本局 IAA 补钻是否已达到共享上限 */
   iaaClaimDiamondsUsed?: boolean;
   onChooseSkill:        (skill: SkillDef, enhancement: SkillEnhancement, price: number) => void;
   onSellSkill:          (skillId: string) => void;

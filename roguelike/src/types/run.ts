@@ -5,7 +5,7 @@ import { DeckRule } from './profile';
 // ─── Run 全局 ────────────────────────────────────────────────
 export interface RunState {
   runId: string;
-  currentStageIndex: number;   // 0-based, 主线 0..TOTAL_STAGES-1，无限阶段固定为 TOTAL_STAGES
+  currentStageIndex: number;   // 0-based，主线 0..runStageCount-1；无尽阶段固定为 runStageCount
   stages: StageState[];
   handTypeUpgrades: HandTypeUpgradeMap;  // 已累积的牌型等级
   acquiredSkillIds: string[];
@@ -31,6 +31,8 @@ export interface RunState {
   runShopPriceDelta: number;
   /** 本局可用技能解锁顺序集合 */
   allowedSkillOrders: number[];
+  /** 本局商店可 Roll 出的技能附加边（不含 normal） */
+  allowedSkillEnhancements: SkillEnhancement[];
   /** 本局目标分外层倍率（已乘入每关 targetGold，此处仅供信息显示） */
   runTargetMultiplier: number;
   /** 本局主线关卡总数（10 或 20） */
@@ -179,7 +181,7 @@ export type HandTypeUpgradeMap = Partial<Record<HandType, number>>;  // HandType
 // ─── IAA 状态 ─────────────────────────────────────────────────
 /** 每关 IAA 使用记录 */
 export interface StageIaaState {
-  /** 本关是否已用 IAA 补钻 +3 */
+  /** @deprecated IAA 补钻已改为每局共享次数；旧存档可能仍有该字段 */
   diamondRefillUsed?: boolean;
   /** 本关是否已用 IAA 刷新商店 */
   iaaRefreshUsed?: boolean;
@@ -201,6 +203,8 @@ export interface RunIaaState {
   runReviveUsed: boolean;
   /** 本局累计观看广告次数 */
   totalAdsWatched: number;
+  /** 本局 IAA 补钻已使用次数（商店与关内入口共享，上限 2 次） */
+  diamondRefillCount?: number;
   /** 本局 IAA 获得的钻石总量 */
   diamondsFromIaa: number;
   /** 各关 IAA 使用记录（stageIndex → 记录） */

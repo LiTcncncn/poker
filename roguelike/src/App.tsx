@@ -100,7 +100,11 @@ function AppInner() {
   // 有 reward 待处理（如开局三选一）时不自动发牌
   useEffect(() => {
     if (showSkillPreview || showSkillFaceTest) return;
-    if (run?.status === 'running' && !handState && !reward) {
+    const endlessStageMissing =
+      run?.status === 'running' &&
+      run.isEndless &&
+      !run.stages[run.currentStageIndex];
+    if (run?.status === 'running' && ((!handState && !reward) || endlessStageMissing)) {
       dealInitialHand();
     }
   }, [showSkillPreview, showSkillFaceTest, run, handState, reward, dealInitialHand]);

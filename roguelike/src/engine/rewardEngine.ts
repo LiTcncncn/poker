@@ -265,6 +265,7 @@ function rollSkillShopEnhancements(
   slotCount: number,
   forceNormal: boolean,
   useRefreshOdds: boolean,
+  allowedEnhancements?: Set<SkillEnhancement>,
 ): SkillEnhancement[] {
   const n = Math.max(0, slotCount);
   const out: SkillEnhancement[] = Array.from({ length: n }, () => 'normal');
@@ -279,7 +280,7 @@ function rollSkillShopEnhancements(
       break;
     }
   }
-  if (edge == null) return out;
+  if (edge == null || (allowedEnhancements && !allowedEnhancements.has(edge))) return out;
   out[Math.floor(Math.random() * n)] = edge;
   return out;
 }
@@ -546,6 +547,7 @@ function toSkillShopOptions(
   skills: SkillDef[],
   forceNormal = false,
   useRefreshSkillEdgeOdds = false,
+  allowedEnhancements?: Set<SkillEnhancement>,
   blackEdgeInject?: {
     shopStageK: number;
     ownedBlackCount: number;
@@ -554,7 +556,12 @@ function toSkillShopOptions(
     pityCooldown: number;
   },
 ): SkillShopOption[] {
-  const enhancements = rollSkillShopEnhancements(skills.length, forceNormal, useRefreshSkillEdgeOdds);
+  const enhancements = rollSkillShopEnhancements(
+    skills.length,
+    forceNormal,
+    useRefreshSkillEdgeOdds,
+    allowedEnhancements,
+  );
   const base = skills.map((skill, i) => {
     const enhancement = enhancements[i] ?? 'normal';
     return {
@@ -570,6 +577,7 @@ function toSkillShopOptions(
     const alreadyHasBlack = base.some(o => o.enhancement === 'black');
     const canInject =
       !alreadyHasBlack &&
+      (!allowedEnhancements || allowedEnhancements.has('black')) &&
       blackEdgeInject.pityGateN != null &&
       blackEdgeInject.shopStageK >= blackEdgeGateK(blackEdgeInject.pityGateN) &&
       blackEdgeInject.ownedBlackCount <= blackEdgeInject.pityGateN &&
@@ -624,6 +632,7 @@ function buildUnifiedShopPayload(
   useRefreshSkillEdgeOdds = false,
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
   allowedSkillIds?: Set<string>,
+  allowedSkillEnhancements?: Set<SkillEnhancement>,
 ): Pick<RewardState, 'skillOptions' | 'upgradeOptions' | 'attributeOptions'> {
   const { skills, upgrades, attributes } = pickUnifiedShopComposition(shopStageK);
   const afterEliteSkills = shopStageK % 3 === 0;
@@ -637,6 +646,7 @@ function buildUnifiedShopPayload(
       skillDefs,
       forceNormalSkillEdge,
       useRefreshSkillEdgeOdds,
+      allowedSkillEnhancements,
       {
         shopStageK,
         ownedBlackCount: countOwnedBlackEdges(acquiredSkillIds, skillEnhancements),
@@ -683,8 +693,9 @@ export function generateUnifiedRewardState(
   soldSkillIds: string[] = [],
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
   allowedSkillIds?: Set<string>,
+  allowedSkillEnhancements?: Set<SkillEnhancement>,
 ): RewardState {
-  const payload = buildUnifiedShopPayload(upgradeMap, acquiredSkillIds, skillEnhancements, shopStageK, soldSkillIds, false, blackEdgePity, allowedSkillIds);
+  const payload = buildUnifiedShopPayload(upgradeMap, acquiredSkillIds, skillEnhancements, shopStageK, soldSkillIds, false, blackEdgePity, allowedSkillIds, allowedSkillEnhancements);
   const ownedBlack = countOwnedBlackEdges(acquiredSkillIds, skillEnhancements);
   const iaaItemSlotIndex = pickIaaItemSlotIndex(
     payload.skillOptions,
@@ -711,6 +722,7 @@ export function generateUnifiedRewardState(
 /**
  * @param groupIndex  主线：`stageIndex`（0-based）；无限：本关胜利时的 `endlessStagesCleared`（0-based）
  * @param allowedSkillIds  本局允许的技能 ID 集合（主线技能解锁限制）；undefined = 不过滤
+ * @param allowedSkillEnhancements  本局允许的技能附加边集合；undefined = 不过滤
  */
 export function generateRewardForStage(
   groupIndex: number,
@@ -722,9 +734,10 @@ export function generateRewardForStage(
   soldSkillIds: string[] = [],
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
   allowedSkillIds?: Set<string>,
+  allowedSkillEnhancements?: Set<SkillEnhancement>,
 ): RewardState {
   const shopStageK = groupIndex + 1;
-  return generateUnifiedRewardState(upgradeMap, acquiredSkillIds, skillEnhancements, shopStageK, soldSkillIds, blackEdgePity, allowedSkillIds);
+  return generateUnifiedRewardState(upgradeMap, acquiredSkillIds, skillEnhancements, shopStageK, soldSkillIds, blackEdgePity, allowedSkillIds, allowedSkillEnhancements);
 }
 
 export function regenerateShopOptionsForStep(
@@ -740,6 +753,7 @@ export function regenerateShopOptionsForStep(
   unifiedUseRefreshSkillEdgeOdds = false,
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
   allowedSkillIds?: Set<string>,
+  allowedSkillEnhancements?: Set<SkillEnhancement>,
 ): Pick<RewardState, 'skillOptions' | 'upgradeOptions' | 'attributeOptions'> {
   if (step === 'unified') {
     const k = unifiedShopK ?? 1;
@@ -752,6 +766,7 @@ export function regenerateShopOptionsForStep(
       unifiedUseRefreshSkillEdgeOdds,
       blackEdgePity,
       allowedSkillIds,
+      allowedSkillEnhancements,
     );
   }
   if (step === 'skill') {
@@ -760,6 +775,7 @@ export function regenerateShopOptionsForStep(
         generateSkillOptions(acquiredSkillIds, afterElite, undefined, soldSkillIds),
         forceNormalSkillEnhancement,
         false,
+        allowedSkillEnhancements,
         blackEdgePity && {
           shopStageK: blackEdgeGateK(0), // 非统一商店场景不传 k，默认视为门槛已过；当前流程通常不会走到此分支
           ownedBlackCount: countOwnedBlackEdges(acquiredSkillIds, skillEnhancements),
