@@ -1,0 +1,12 @@
+[
+  { "stageIndex": 0, "targetGold": 120,  "handCount": 6, "holdCount": 6, "isElite": false, "isBoss": false },
+  { "stageIndex": 1, "targetGold": 250,  "handCount": 6, "holdCount": 6, "isElite": false, "isBoss": false },
+  { "stageIndex": 2, "targetGold": 450,  "handCount": 6, "holdCount": 6, "isElite": true,  "isBoss": false },
+  { "stageIndex": 3, "targetGold": 700,  "handCount": 6, "holdCount": 6, "isElite": false, "isBoss": false },
+  { "stageIndex": 4, "targetGold": 1000, "handCount": 6, "holdCount": 6, "isElite": false, "isBoss": false },
+  { "stageIndex": 5, "targetGold": 1450, "handCount": 6, "holdCount": 6, "isElite": true,  "isBoss": false },
+  { "stageIndex": 6, "targetGold": 2100, "handCount": 6, "holdCount": 6, "isElite": false, "isBoss": false },
+  { "stageIndex": 7, "targetGold": 3000, "handCount": 6, "holdCount": 6, "isElite": false, "isBoss": false },
+  { "stageIndex": 8, "targetGold": 4200, "handCount": 6, "holdCount": 6, "isElite": true,  "isBoss": false },
+  { "stageIndex": 9, "targetGold": 6000, "handCount": 6, "holdCount": 6, "isElite": false, "isBoss": true  }
+]

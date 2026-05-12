@@ -1,13 +1,17 @@
 import { RunState, StageState, HandTypeUpgradeMap } from '../types/run';
 import { SkillDef, SkillEnhancement } from '../types/skill';
 import { Card } from '../shared/types/poker';
+import { RunConfig } from '../types/profile';
 import { initStage, pickModifierForStageIndex, initEndlessStage, pickEndlessModifier } from './stageEngine';
 import stageTemplates from '../config/runStageTemplates.json';
+import newbieTemplates from '../config/newbieStageTemplates.json';
 
-const TOTAL_STAGES = stageTemplates.length;
+const STANDARD_TOTAL_STAGES = stageTemplates.length;
+export const TOTAL_STAGES = STANDARD_TOTAL_STAGES;
 
-type StageTpl = { targetGold: number; isElite: boolean; isBoss: boolean };
+type StageTpl = { targetGold: number; isElite: boolean; isBoss: boolean; handCount: number; holdCount: number };
 const stageTplList = stageTemplates as StageTpl[];
+const newbieTplList = newbieTemplates as StageTpl[];
 
 /** 无限阶段递推起点：主线最后一关 targetGold（与 JSON 同步） */
 const ENDLESS_SEED_GOLD = stageTplList[stageTplList.length - 1].targetGold;
@@ -76,32 +80,53 @@ export function clampSkillSellExtraDiamonds(raw: unknown): number {
 }
 
 /** 初始化一局新 Run，自动为精英/Boss 关分配词缀 */
-export function initRun(): RunState {
+export function initRun(config?: RunConfig): RunState {
+  const isNewbie = config?.stageCount === 10;
+  const tplList = isNewbie ? newbieTplList : stageTplList;
+  const stageCount = config?.stageCount ?? STANDARD_TOTAL_STAGES;
+  const targetMult = config?.targetMultiplier ?? 1.0;
+  const holdDelta = config?.holdDelta ?? 0;
+  const handsDelta = config?.handsDelta ?? 0;
+  const startDiamonds = config?.startingDiamonds ?? 3;
+
   // 先为精英/Boss 关卡分配词缀 ID
   const stageModifiers: Record<number, string> = {};
-  stageTplList.forEach((t, i) => {
+  tplList.slice(0, stageCount).forEach((t, i) => {
     if (t.isElite || t.isBoss) {
       stageModifiers[i] = pickModifierForStageIndex(i);
     }
   });
 
-  const stages: StageState[] = stageTplList.map((_, i) => {
+  const stages: StageState[] = tplList.slice(0, stageCount).map((t, i) => {
     const modId = stageModifiers[i];
-    const stage = initStage(i, modId);
+    const stage = initStage(i, modId, {
+      targetGoldOverride: Math.round(t.targetGold * targetMult),
+      holdDelta,
+      handsDelta,
+    }, tplList);
     return { ...stage, status: i === 0 ? 'active' : 'pending' } as StageState;
   });
+
+  // 所有牌型 Lv.2 起步
+  const handTypeUpgrades: HandTypeUpgradeMap = config?.allHandTypesLv2
+    ? {
+        high_card: 2, one_pair: 2, two_pairs: 2, three_of_a_kind: 2,
+        straight: 2, flush: 2, full_house: 2, four_of_a_kind: 2,
+        straight_flush: 2, royal_flush: 2,
+      }
+    : {} as HandTypeUpgradeMap;
 
   return {
     runId: newRunId(),
     currentStageIndex: 0,
     stages,
-    handTypeUpgrades: {} as HandTypeUpgradeMap,
+    handTypeUpgrades,
     acquiredSkillIds: [],
     soldSkillIds: [],
     skillEnhancements: {},
-    skillSlotCap: 5,
+    skillSlotCap: 5 + (config?.skillSlotBonus ?? 0),
     attributeCards: [],
-    runDiamonds: 3,
+    runDiamonds: startDiamonds,
     skillSellBonus: {},
     diamondsEarnedTotal: 0,
     diamondsSpentTotal: 0,
@@ -119,6 +144,19 @@ export function initRun(): RunState {
     highestSingleStageTarget: 0,
     bestHandThisRun: null,
     maxSingleHandGold: 0,
+    iaa: undefined,
+    // 多局长线字段
+    runNo: config?.runNo ?? 0,
+    difficulty: config?.difficulty ?? 'freeplay',
+    deckRule: config?.deckRule ?? 'standard',
+    runBanJokers: config?.banJokersGlobal ?? false,
+    runHoldDelta: holdDelta,
+    runHandsDelta: handsDelta,
+    runShopRefreshCostDelta: config?.shopRefreshCostDelta ?? 0,
+    runShopPriceDelta: config?.shopPriceDelta ?? 0,
+    allowedSkillOrders: config?.allowedSkillOrders ?? Array.from({ length: 27 }, (_, i) => i + 1),
+    runTargetMultiplier: targetMult,
+    runStageCount: stageCount,
   };
 }
 
@@ -139,10 +177,14 @@ export function advanceToNextStage(
 ): RunState {
   const next = run.currentStageIndex + 1;
   const newSkillIds = [...run.acquiredSkillIds, ...newSkills.map(s => s.id)];
-
   const mergedAttrCards = [...run.attributeCards, ...newAttributeCards];
 
-  if (next >= TOTAL_STAGES) {
+  // 使用 RunState 存储的局级参数
+  const stageCount = run.runStageCount ?? STANDARD_TOTAL_STAGES;
+  const tplList = stageCount === 10 ? newbieTplList : stageTplList;
+  const targetMult = run.runTargetMultiplier ?? 1.0;
+
+  if (next >= stageCount) {
     return {
       ...run,
       handTypeUpgrades: upgrades,
@@ -155,7 +197,14 @@ export function advanceToNextStage(
   const modId = run.stageModifiers[next];
   const stages = run.stages.map((s, i) => {
     if (i === next) {
-      return { ...initStage(i, modId), status: 'active' as const };
+      return {
+        ...initStage(i, modId, {
+          targetGoldOverride: Math.round((tplList[i]?.targetGold ?? 0) * targetMult),
+          holdDelta: run.runHoldDelta ?? 0,
+          handsDelta: run.runHandsDelta ?? 0,
+        }, tplList),
+        status: 'active' as const,
+      };
     }
     return s;
   });
@@ -267,4 +316,3 @@ export function getEffectiveSkillSlotCap(run: RunState): number {
   return run.skillSlotCap + countBlackEdgeSlots(run.skillEnhancements, run.acquiredSkillIds);
 }
 
-export { TOTAL_STAGES };

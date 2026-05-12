@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { RunState, StageState, HandState, HandResult } from '../types/run';
+import { RunState, StageState, HandState, HandResult, RunIaaState } from '../types/run';
 import { RewardState, UpgradeOption } from '../types/reward';
 import { SkillDef, SkillEnhancement } from '../types/skill';
 import { Card } from '../shared/types/poker';
+import { RunConfig } from '../types/profile';
 import {
   initRun,
   updateStageInRun,
@@ -17,9 +18,10 @@ import {
   clampSkillSellExtraDiamonds,
   SKILL_SELL_BONUS_CAP,
 } from '../engine/runEngine';
-import { applyHandGold, consumeDraw, canDraw, getEffectiveStage, getStageTargetGold } from '../engine/stageEngine';
-import { buildBaseDeck, injectJokers, shuffle, dealCards, replaceUnheld, capJokersInHand } from '../engine/deckEngine';
+import { applyHandGold, consumeDraw, canDraw, getEffectiveStage, getStageTargetGold, remainingHold } from '../engine/stageEngine';
+import { buildDeckForRule, injectJokers, shuffle, dealCards, replaceUnheld, capJokersInHand } from '../engine/deckEngine';
 import { applyUpgrade, generateRewardForStage, getDefaultDiamondRefreshCost, regenerateShopOptionsForStep } from '../engine/rewardEngine';
+import { getAllowedSkillIds, getUnlockedOrdersAfterNormalRun } from '../config/skillUnlockOrders';
 import {
   evaluateHandWithSkills,
   applyHoldSkillAccumulation,
@@ -241,6 +243,12 @@ function _commitScore(
     newRun = { ...newRun, highestSingleStageTarget: Math.max(newRun.highestSingleStageTarget, newStage.targetGold) };
     newRun = applyStageWinEconomy(newRun);
 
+    // 计算本局允许的技能池（主线模式时过滤解锁顺序）
+    const allowedSkillIds =
+      newRun.difficulty !== 'freeplay' && newRun.allowedSkillOrders?.length
+        ? getAllowedSkillIds(newRun.allowedSkillOrders)
+        : undefined;
+
     if (run.isEndless) {
       // 黑边定向保底的 gateK(N) 使用“显示关数”（主线 1..20 + 无尽 21..），因此这里要用 stageIndex+1（而不是 endlessStagesCleared+1）。
       const displayK = stage.stageIndex + 1;
@@ -257,10 +265,12 @@ function _commitScore(
           misses: newRun.blackEdgePityMisses ?? 0,
           cooldown: newRun.blackEdgePityCooldown ?? 0,
         },
+        allowedSkillIds,
       );
       set({ run: newRun, handState: newHandState, reward: rewardState });
     } else {
-      const isLastStage = stage.stageIndex + 1 >= TOTAL_STAGES;
+      const stageCount = newRun.runStageCount ?? TOTAL_STAGES;
+      const isLastStage = stage.stageIndex + 1 >= stageCount;
       if (isLastStage) {
         // 主线最后一关通关 → 进入胜利画面，用户选择是否继续挑战
         const victoryRun: RunState = { ...newRun, status: 'victory' };
@@ -279,6 +289,7 @@ function _commitScore(
             misses: newRun.blackEdgePityMisses ?? 0,
             cooldown: newRun.blackEdgePityCooldown ?? 0,
           },
+          allowedSkillIds,
         );
         set({ run: newRun, handState: newHandState, reward: rewardState });
       }
@@ -296,7 +307,7 @@ interface RLStore {
   reward: RewardState | null;
 
   // ── Run 流程 ──────────────────────────────
-  startNewRun:        () => void;
+  startNewRun:        (config?: RunConfig) => void;
   abandonRun:         () => void;
   enterEndlessMode:   () => void;  // 主线胜利后选择继续挑战
 
@@ -314,6 +325,20 @@ interface RLStore {
   chooseAttributeCard:  (card: Card) => void;
   refreshRewardWithDiamonds: () => void;
   proceedRewardStep:    () => void;
+
+  // ── IAA ───────────────────────────────────
+  /** IAA 刷新商店（每关限 1 次，与💎刷新独立） */
+  iaaRefreshReward:   () => void;
+  /** IAA 补钻 +3（每关限 1 次） */
+  iaaClaimDiamonds:   () => void;
+  /** IAA 购买初始 Roll 中标记的 IAA 商品（每关限 1 次） */
+  iaaBuyItem:         () => void;
+  /** IAA HOLD+1 授权：下次补牌使用 IAA HOLD（每关限 1 次） */
+  iaaGrantExtraHold:  () => void;
+  /** IAA 手数+1：本局最后一手失败后再打一手（每关限 1 次） */
+  iaaExtraHand:       () => void;
+  /** IAA 复活：最终失败时按胜利过关但不结算钻石（每局限 1 次） */
+  iaaRevive:          () => void;
 
   // ── 计算 ──────────────────────────────────
   currentStage: () => StageState | null;
@@ -335,13 +360,7 @@ function calcStageDiamondReward(stage: StageState): number {
   return base + handBonus + holdBonus;
 }
 
-// ─── 构建一手牌组（含 Joker 概率） ─────────────────────────────────
-function buildDeck(acquiredSkillIds: string[]): ReturnType<typeof dealCards> & { deck_: ReturnType<typeof buildBaseDeck> } {
-  const jokerProb = jokerInjectProbability(acquiredSkillIds, false);
-  const base = buildBaseDeck();
-  const withJokers = injectJokers(base, jokerProb);
-  return { deck_: withJokers } as unknown as ReturnType<typeof dealCards> & { deck_: ReturnType<typeof buildBaseDeck> };
-}
+// ─── (buildDeck 已废弃，改用 buildDeckForRule) ───────────────────
 
 export const useRLStore = create<RLStore>()(
   persist(
@@ -351,12 +370,14 @@ export const useRLStore = create<RLStore>()(
       reward: null,
 
       // ─── 开始新 Run ────────────────────────────────────────────
-      startNewRun: () => {
-        const run = initRun();
+      startNewRun: (config?: RunConfig) => {
+        const run = initRun(config);
         const stage0 = getEffectiveStage(run.stages[0], run.acquiredSkillIds);
-        const jP = jokerInjectProbability(run.acquiredSkillIds, stage0.banJokers === true);
+        const banJokers = run.runBanJokers || stage0.banJokers === true;
+        const jP = jokerInjectProbability(run.acquiredSkillIds, banJokers);
         const maxJ = maxJokersInHandCap(run.acquiredSkillIds);
-        const deck = shuffle(injectJokers(buildBaseDeck(), jP));
+        const baseDeck = buildDeckForRule(run.deckRule ?? 'standard');
+        const deck = shuffle(injectJokers(baseDeck, jP));
         const dealt = dealCards(deck, HAND_SIZE);
         const { hand, remaining } = capJokersInHand(dealt.hand, dealt.remaining, maxJ);
         set({
@@ -376,7 +397,11 @@ export const useRLStore = create<RLStore>()(
       enterEndlessMode: () => {
         const { run } = get();
         if (!run || run.status !== 'victory' || run.isEndless) return;
-        const endlessRun = enterEndlessMode(run);
+        const runWithFreshUnlocks =
+          run.difficulty === 'normal' && run.runNo > 0
+            ? { ...run, allowedSkillOrders: getUnlockedOrdersAfterNormalRun(run.runNo) }
+            : run;
+        const endlessRun = enterEndlessMode(runWithFreshUnlocks);
         set({ run: endlessRun, reward: null });
         get().dealInitialHand();
       },
@@ -398,10 +423,12 @@ export const useRLStore = create<RLStore>()(
           set({ run });
         }
         const stage = getEffectiveStage(rawStage, run.acquiredSkillIds);
-        const jokerProb = jokerInjectProbability(run.acquiredSkillIds, stage.banJokers === true);
+        const banJokers = run.runBanJokers || stage.banJokers === true;
+        const jokerProb = jokerInjectProbability(run.acquiredSkillIds, banJokers);
         const maxJ = maxJokersInHandCap(run.acquiredSkillIds);
-        // 属性牌混入牌池（防御 undefined）
-        const base = injectJokers(buildBaseDeck(), jokerProb);
+        // 属性牌混入牌池（防御 undefined）；使用局规则牌堆
+        const baseDeck = buildDeckForRule(run.deckRule ?? 'standard');
+        const base = injectJokers(baseDeck, jokerProb);
         const deck = shuffle([...base, ...(run.attributeCards ?? [])]);
         const dealt = dealCards(deck, HAND_SIZE);
         const { hand, remaining } = capJokersInHand(dealt.hand, dealt.remaining, maxJ);
@@ -444,11 +471,28 @@ export const useRLStore = create<RLStore>()(
         const rawStage = get().currentStage();
         if (!rawStage) return;
         const stage = getEffectiveStage(rawStage, run.acquiredSkillIds);
-        if (!canDraw(stage)) return;
+        const iaaGranted = run.iaa?.perStage[rawStage.stageIndex]?.extraHoldGranted ?? false;
+        if (!canDraw(stage) && !iaaGranted) return;
 
-        // 消耗一次补牌次数
+        // 消耗一次补牌次数（IAA HOLD 时 holdUsed 可超出 holdTotal，钻石结算中 holdLeft<0 自动归零）
         const updatedStage = consumeDraw(stage);
         let updatedRun = updateStageInRun(run, updatedStage);
+
+        // 消耗 IAA HOLD 授权
+        if (iaaGranted) {
+          const si = rawStage.stageIndex;
+          const prevIaa = run.iaa!;
+          updatedRun = {
+            ...updatedRun,
+            iaa: {
+              ...prevIaa,
+              perStage: {
+                ...prevIaa.perStage,
+                [si]: { ...prevIaa.perStage[si], extraHoldGranted: false, extraHoldUsed: true },
+              },
+            },
+          };
+        }
 
         // 换牌
         const replaced = replaceUnheld(handState.hand, handState.heldIndices, handState.deck);
@@ -642,6 +686,10 @@ export const useRLStore = create<RLStore>()(
         const afterElite = reward.afterElite ?? false;
         const ownedBlack = run.acquiredSkillIds.filter((id) => run.skillEnhancements[id] === 'black').length;
         const gateN = reward.shopStageK != null ? computeBlackEdgePityGateN(reward.shopStageK, ownedBlack) : null;
+        const allowedSkillIdsForRefresh =
+          run.difficulty !== 'freeplay' && run.allowedSkillOrders?.length
+            ? getAllowedSkillIds(run.allowedSkillOrders)
+            : undefined;
         const refreshed = regenerateShopOptionsForStep(
           reward.step,
           run.handTypeUpgrades,
@@ -653,6 +701,7 @@ export const useRLStore = create<RLStore>()(
           run.soldSkillIds ?? [],
           true,
           gateN != null ? { gateN, misses: run.blackEdgePityMisses ?? 0, cooldown: run.blackEdgePityCooldown ?? 0 } : undefined,
+          allowedSkillIdsForRefresh,
         );
         const nextReward: RewardState = {
           ...reward,
@@ -777,6 +826,275 @@ export const useRLStore = create<RLStore>()(
         if (advanced.status === 'running') get().dealInitialHand();
       },
 
+      // ─── IAA 辅助函数 ─────────────────────────────────────────
+      /** 构造或更新 RunIaaState，自动标记 iaaAssisted 并累加 totalAdsWatched */
+      // （非 store action，仅内部使用，不声明在 RLStore 中）
+
+      // ─── IAA：刷新商店 ────────────────────────────────────────
+      iaaRefreshReward: () => {
+        const { run, reward } = get();
+        if (!run || !reward || reward.step !== 'unified') return;
+        if (reward.refreshUsedWithIaa) return;
+        const stageIdx = run.currentStageIndex;
+        const prevIaa: RunIaaState = run.iaa ?? {
+          iaaAssisted: false, runReviveUsed: false,
+          totalAdsWatched: 0, diamondsFromIaa: 0, perStage: {},
+        };
+        if (prevIaa.perStage[stageIdx]?.iaaRefreshUsed) return;
+
+        const afterElite = reward.afterElite ?? false;
+        const ownedBlack = run.acquiredSkillIds.filter((id) => run.skillEnhancements[id] === 'black').length;
+        const gateN = reward.shopStageK != null ? computeBlackEdgePityGateN(reward.shopStageK, ownedBlack) : null;
+        const allowedIds = run.difficulty !== 'freeplay' && run.allowedSkillOrders?.length
+          ? getAllowedSkillIds(run.allowedSkillOrders) : undefined;
+        const refreshed = regenerateShopOptionsForStep(
+          reward.step, run.handTypeUpgrades, run.acquiredSkillIds,
+          run.skillEnhancements, afterElite, false, reward.shopStageK,
+          run.soldSkillIds ?? [], true,
+          gateN != null ? { gateN, misses: run.blackEdgePityMisses ?? 0, cooldown: run.blackEdgePityCooldown ?? 0 } : undefined,
+          allowedIds,
+        );
+        const newIaa: RunIaaState = {
+          ...prevIaa, iaaAssisted: true,
+          totalAdsWatched: prevIaa.totalAdsWatched + 1,
+          perStage: {
+            ...prevIaa.perStage,
+            [stageIdx]: { ...prevIaa.perStage[stageIdx], iaaRefreshUsed: true },
+          },
+        };
+        set({
+          run: { ...run, iaa: newIaa },
+          reward: {
+            ...reward, ...refreshed,
+            refreshUsedWithIaa: true,
+            iaaItemSlotIndex: -1,
+            blackEdgeSeenThisShop:
+              (reward.blackEdgeSeenThisShop ?? false) || refreshed.skillOptions.some(o => o.enhancement === 'black'),
+          },
+        });
+      },
+
+      // ─── IAA：补钻 +3（每关限 1 次）──────────────────────────
+      iaaClaimDiamonds: () => {
+        const { run } = get();
+        if (!run || run.status !== 'running') return;
+        const stageIdx = run.currentStageIndex;
+        const prevIaa: RunIaaState = run.iaa ?? {
+          iaaAssisted: false, runReviveUsed: false,
+          totalAdsWatched: 0, diamondsFromIaa: 0, perStage: {},
+        };
+        if (prevIaa.perStage[stageIdx]?.diamondRefillUsed) return;
+        const gained = 3;
+        const newIaa: RunIaaState = {
+          ...prevIaa, iaaAssisted: true,
+          totalAdsWatched: prevIaa.totalAdsWatched + 1,
+          diamondsFromIaa: prevIaa.diamondsFromIaa + gained,
+          perStage: {
+            ...prevIaa.perStage,
+            [stageIdx]: { ...prevIaa.perStage[stageIdx], diamondRefillUsed: true },
+          },
+        };
+        set({
+          run: {
+            ...run,
+            runDiamonds: clampRunDiamonds(run.runDiamonds + gained),
+            diamondsEarnedTotal: run.diamondsEarnedTotal + gained,
+            iaa: newIaa,
+          },
+        });
+      },
+
+      // ─── IAA：购买商店 IAA 商品（初始 Roll 限 1 次）──────────
+      iaaBuyItem: () => {
+        const { run, reward } = get();
+        if (!run || !reward || reward.step !== 'unified') return;
+        const slotIdx = reward.iaaItemSlotIndex;
+        if (slotIdx === undefined || slotIdx < 0) return;
+        const stageIdx = run.currentStageIndex;
+        const prevIaa: RunIaaState = run.iaa ?? {
+          iaaAssisted: false, runReviveUsed: false,
+          totalAdsWatched: 0, diamondsFromIaa: 0, perStage: {},
+        };
+        if (prevIaa.perStage[stageIdx]?.shopIaaPurchaseUsed) return;
+
+        const numSkills  = reward.skillOptions.length;
+        const numUpgrades = reward.upgradeOptions.length;
+        let newRun: RunState = { ...run };
+        let newReward = { ...reward, iaaItemSlotIndex: -1 };
+
+        if (slotIdx < numSkills) {
+          const opt = reward.skillOptions[slotIdx];
+          if (opt.purchased || newRun.acquiredSkillIds.includes(opt.skill.id)) return;
+          const blacksAfter = countBlackEdgeSlots(newRun.skillEnhancements, newRun.acquiredSkillIds) + (opt.enhancement === 'black' ? 1 : 0);
+          if (newRun.acquiredSkillIds.length >= newRun.skillSlotCap + blacksAfter) return;
+          newRun = {
+            ...newRun,
+            acquiredSkillIds: [...newRun.acquiredSkillIds, opt.skill.id],
+            skillEnhancements: { ...newRun.skillEnhancements, [opt.skill.id]: opt.enhancement },
+          };
+          if (opt.skill.id === SKILL_DIMINISHING_EFFECT) {
+            newRun = { ...newRun, skillAccumulation: { ...newRun.skillAccumulation, [opt.skill.id]: 24 } };
+          } else if (opt.skill.id === SKILL_FADING_BOOST) {
+            newRun = { ...newRun, skillAccumulation: { ...newRun.skillAccumulation, [opt.skill.id]: 100 } };
+          } else if (opt.skill.id === SKILL_REFRESH_SHOP_MULT) {
+            newRun = { ...newRun, skillAccumulation: { ...newRun.skillAccumulation, [opt.skill.id]: 0 } };
+          } else if (opt.skill.id === SKILL_ELITE_UNSHACKLED) {
+            newRun = { ...newRun, skillAccumulation: { ...newRun.skillAccumulation, [opt.skill.id]: 3 } };
+          }
+          newReward = {
+            ...newReward,
+            skillOptions: reward.skillOptions.map((o, i) => i === slotIdx ? { ...o, purchased: true } : o),
+          };
+        } else if (slotIdx < numSkills + numUpgrades) {
+          const upIdx = slotIdx - numSkills;
+          const opt = reward.upgradeOptions[upIdx];
+          if (opt.purchased) return;
+          newRun = { ...newRun, handTypeUpgrades: applyUpgrade(newRun.handTypeUpgrades, opt.option) };
+          newReward = {
+            ...newReward,
+            upgradeOptions: reward.upgradeOptions.map((o, i) => i === upIdx ? { ...o, purchased: true } : o),
+          };
+        } else {
+          const atIdx = slotIdx - numSkills - numUpgrades;
+          const opt = reward.attributeOptions[atIdx];
+          if (opt.purchased) return;
+          newRun = { ...newRun, attributeCards: [...newRun.attributeCards, opt.card] };
+          newReward = {
+            ...newReward,
+            attributeOptions: reward.attributeOptions.map((o, i) => i === atIdx ? { ...o, purchased: true } : o),
+          };
+        }
+
+        const newIaa: RunIaaState = {
+          ...prevIaa, iaaAssisted: true,
+          totalAdsWatched: prevIaa.totalAdsWatched + 1,
+          perStage: {
+            ...prevIaa.perStage,
+            [stageIdx]: { ...prevIaa.perStage[stageIdx], shopIaaPurchaseUsed: true },
+          },
+        };
+        newRun = { ...newRun, iaa: newIaa };
+        set({ run: newRun, reward: newReward });
+      },
+
+      // ─── IAA：HOLD+1 授权（每关限 1 次）──────────────────────
+      iaaGrantExtraHold: () => {
+        const { run, handState } = get();
+        if (!run || !handState || handState.phase !== 'hold') return;
+        const stageIdx = run.currentStageIndex;
+        const rawStage = run.stages[stageIdx];
+        if (!rawStage) return;
+        const stage = getEffectiveStage(rawStage, run.acquiredSkillIds);
+        const curHandIdx = stage.usedHands;
+        const holdBlockedByStageRule =
+          (stage.blockHoldBefore > 0 && curHandIdx < stage.blockHoldBefore) ||
+          (stage.blockHoldAfter > 0 && curHandIdx >= stage.totalHands - stage.blockHoldAfter);
+        if (stage.holdTotal <= 0 || remainingHold(stage) > 0 || holdBlockedByStageRule) return;
+        const prevIaa: RunIaaState = run.iaa ?? {
+          iaaAssisted: false, runReviveUsed: false,
+          totalAdsWatched: 0, diamondsFromIaa: 0, perStage: {},
+        };
+        const ps = prevIaa.perStage[stageIdx] ?? {};
+        if (ps.extraHoldUsed || ps.extraHoldGranted) return;
+        const newIaa: RunIaaState = {
+          ...prevIaa, iaaAssisted: true,
+          totalAdsWatched: prevIaa.totalAdsWatched + 1,
+          perStage: {
+            ...prevIaa.perStage,
+            [stageIdx]: { ...ps, extraHoldGranted: true },
+          },
+        };
+        set({ run: { ...run, iaa: newIaa } });
+      },
+
+      // ─── IAA：手数+1（最后一手失败后，每关限 1 次）──────────
+      iaaExtraHand: () => {
+        const { run } = get();
+        if (!run || run.status !== 'defeat') return;
+        const stageIdx = run.currentStageIndex;
+        const stage = run.stages[stageIdx];
+        if (!stage || stage.status !== 'lost') return;
+        const prevIaa: RunIaaState = run.iaa ?? {
+          iaaAssisted: false, runReviveUsed: false,
+          totalAdsWatched: 0, diamondsFromIaa: 0, perStage: {},
+        };
+        if (prevIaa.perStage[stageIdx]?.extraHandUsed) return;
+
+        const newIaa: RunIaaState = {
+          ...prevIaa, iaaAssisted: true,
+          totalAdsWatched: prevIaa.totalAdsWatched + 1,
+          perStage: {
+            ...prevIaa.perStage,
+            [stageIdx]: { ...prevIaa.perStage[stageIdx], extraHandUsed: true },
+          },
+        };
+        const restoredStage: StageState = { ...stage, status: 'active' };
+        let newRun: RunState = {
+          ...run,
+          status: 'running',
+          iaa: newIaa,
+        };
+        newRun = updateStageInRun(newRun, restoredStage);
+        set({ run: newRun });
+        get().dealInitialHand();
+      },
+
+      // ─── IAA：复活（最终失败，按胜利过关但不结算钻石，每局限 1 次）──
+      iaaRevive: () => {
+        const { run, handState } = get();
+        if (!run || run.status !== 'defeat') return;
+        if (run.iaa?.runReviveUsed) return;
+        const stageIdx = run.currentStageIndex;
+        const stage = run.stages[stageIdx];
+        if (!stage || stage.status !== 'lost') return;
+
+        const prevIaa: RunIaaState = run.iaa ?? {
+          iaaAssisted: false, runReviveUsed: false,
+          totalAdsWatched: 0, diamondsFromIaa: 0, perStage: {},
+        };
+        const newIaa: RunIaaState = {
+          ...prevIaa, iaaAssisted: true, runReviveUsed: true,
+          totalAdsWatched: prevIaa.totalAdsWatched + 1,
+        };
+
+        const wonStage: StageState = { ...stage, status: 'won' };
+        let newRun: RunState = {
+          ...run,
+          status: 'running',
+          iaa: newIaa,
+          highestSingleStageTarget: Math.max(run.highestSingleStageTarget, stage.targetGold),
+        };
+        newRun = updateStageInRun(newRun, wonStage);
+
+        const stageCount = newRun.runStageCount ?? TOTAL_STAGES;
+        const isLastStage = stageIdx + 1 >= stageCount && !newRun.isEndless;
+
+        if (isLastStage) {
+          set({ run: { ...newRun, status: 'victory' }, handState, reward: null });
+          return;
+        }
+
+        const allowedIds = newRun.difficulty !== 'freeplay' && newRun.allowedSkillOrders?.length
+          ? getAllowedSkillIds(newRun.allowedSkillOrders) : undefined;
+        const ownedBlack = newRun.acquiredSkillIds.filter((id) => newRun.skillEnhancements[id] === 'black').length;
+        const rewardState = generateRewardForStage(
+          stageIdx,
+          newRun.handTypeUpgrades,
+          newRun.acquiredSkillIds,
+          newRun.skillEnhancements,
+          false,
+          newRun.isEndless,
+          newRun.soldSkillIds ?? [],
+          {
+            gateN: computeBlackEdgePityGateN(stageIdx + 1, ownedBlack),
+            misses: newRun.blackEdgePityMisses ?? 0,
+            cooldown: newRun.blackEdgePityCooldown ?? 0,
+          },
+          allowedIds,
+        );
+        set({ run: newRun, handState, reward: rewardState });
+      },
+
       // ─── 获取当前关卡 ─────────────────────────────────────────
       currentStage: () => {
         const { run } = get();
@@ -872,12 +1190,30 @@ export const useRLStore = create<RLStore>()(
           acc.elite_unshackled = Math.max(0, Math.min(3, Math.floor(n)));
           p = { ...p, run: { ...p.run, skillAccumulation: acc as RunState['skillAccumulation'] } };
         }
+        // v18: 多局长线字段补默认值（老存档无这些字段）
+        if (version < 18 && p.run) {
+          p = {
+            ...p,
+            run: {
+              ...p.run,
+              runNo: (p.run as RunState & { runNo?: number }).runNo ?? 0,
+              difficulty: (p.run as RunState & { difficulty?: string }).difficulty ?? 'freeplay',
+              deckRule: (p.run as RunState & { deckRule?: string }).deckRule ?? 'standard',
+              runBanJokers: (p.run as RunState & { runBanJokers?: boolean }).runBanJokers ?? false,
+              runHoldDelta: (p.run as RunState & { runHoldDelta?: number }).runHoldDelta ?? 0,
+              runHandsDelta: (p.run as RunState & { runHandsDelta?: number }).runHandsDelta ?? 0,
+              runShopRefreshCostDelta: (p.run as RunState & { runShopRefreshCostDelta?: number }).runShopRefreshCostDelta ?? 0,
+              runShopPriceDelta: (p.run as RunState & { runShopPriceDelta?: number }).runShopPriceDelta ?? 0,
+              allowedSkillOrders: (p.run as RunState & { allowedSkillOrders?: number[] }).allowedSkillOrders ?? Array.from({ length: 27 }, (_, i) => i + 1),
+              runTargetMultiplier: (p.run as RunState & { runTargetMultiplier?: number }).runTargetMultiplier ?? 1.0,
+              runStageCount: (p.run as RunState & { runStageCount?: number }).runStageCount ?? 20,
+            },
+          };
+        }
         return p;
       },
-      version: ROGUELIKE_PERSIST_SCHEMA_VERSION,
+      version: ROGUELIKE_PERSIST_SCHEMA_VERSION as number,
     }
   )
 );
 
-// ─── 忽略 buildDeck 的 unused 警告（供后续属性牌阶段使用）──
-void buildDeck;

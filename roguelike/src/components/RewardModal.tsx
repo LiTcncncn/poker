@@ -8,14 +8,14 @@ import {
   UpgradeShopOption,
 } from '../types/reward';
 import { SkillDef, SkillEnhancement } from '../types/skill';
-import { Card as CardType, HandType } from '../shared/types/poker';
+import { Card as CardType } from '../shared/types/poker';
 import { Card } from '../shared/components/Card';
 import { SkillPlayingCard } from './SkillPlayingCard';
 import { SkillPlayingCardDetailModal } from './SkillPlayingCardDetailModal';
 import { UpgradePlayingCard } from './UpgradePlayingCard';
 import { clampSkillSellExtraDiamonds } from '../engine/runEngine';
-import { getHandTypeStats, HAND_NAMES } from '../engine/handEngine';
 import type { HandTypeUpgradeMap } from '../types/run';
+import { IaaPlayMark } from './IaaPlayMark';
 
 interface Props {
   reward: RewardState;
@@ -29,11 +29,18 @@ interface Props {
   handTypeUpgrades: HandTypeUpgradeMap;
   diamonds: number;
   skillSlotCap: number;
+  /** 当前关卡 stageIndex（用于判断 IAA 每关限次） */
+  stageIndex?: number;
+  /** 本关 IAA 补钻是否已用 */
+  iaaClaimDiamondsUsed?: boolean;
   onChooseSkill:        (skill: SkillDef, enhancement: SkillEnhancement, price: number) => void;
   onSellSkill:          (skillId: string) => void;
   onChooseUpgrade:      (option: UpgradeOption) => void;
   onChooseAttributeCard:(card: CardType) => void;
   onRefreshWithDiamonds: () => void;
+  onIaaRefreshReward?:  () => void;
+  onIaaClaimDiamonds?:  () => void;
+  onIaaBuyItem?:        () => void;
   onContinue:           () => void;
 }
 
@@ -61,27 +68,7 @@ const STEP_TITLE: Record<RewardState['step'], string> = {
   unified:   '商店',
 };
 
-const ORDERED_HAND_TYPES: HandType[] = [
-  'high_card',
-  'one_pair',
-  'two_pairs',
-  'three_of_a_kind',
-  'straight',
-  'flush',
-  'full_house',
-  'four_of_a_kind',
-  'five_of_a_kind',
-  'straight_flush',
-];
-
-const ODDS_DISPLAY_ORDER: HandType[] = (() => {
-  const half = ORDERED_HAND_TYPES.length / 2;
-  const left = ORDERED_HAND_TYPES.slice(0, half);
-  const right = ORDERED_HAND_TYPES.slice(half);
-  return left.flatMap((ht, i) => [ht, right[i]]);
-})();
-
-type OwnedTabKey = 'skills' | 'odds' | 'pool';
+type OwnedTabKey = 'skills' | 'pool';
 
 export function RewardModal({
   reward,
@@ -93,11 +80,15 @@ export function RewardModal({
   handTypeUpgrades,
   diamonds,
   skillSlotCap,
+  iaaClaimDiamondsUsed = false,
   onChooseSkill,
   onSellSkill,
   onChooseUpgrade,
   onChooseAttributeCard,
   onRefreshWithDiamonds,
+  onIaaRefreshReward,
+  onIaaClaimDiamonds,
+  onIaaBuyItem,
   onContinue,
 }: Props) {
   const [skillDetail, setSkillDetail] = useState<{
@@ -105,9 +96,12 @@ export function RewardModal({
     enhancement: SkillEnhancement;
   } | null>(null);
   const [ownedTab, setOwnedTab] = useState<OwnedTabKey>('skills');
+  const [refreshOptionsOpen, setRefreshOptionsOpen] = useState(false);
 
   const refreshCost = Math.max(0, reward.diamondRefreshCost ?? 5);
   const canRefresh = !reward.refreshUsedWithDiamonds && diamonds >= refreshCost;
+  const canRefreshWithMark = !!onIaaRefreshReward && !reward.refreshUsedWithIaa;
+  const canOpenRefreshOptions = canRefresh || canRefreshWithMark;
   const acquiredSkillIdsForDetail = useMemo(() => ownedSkills.map((s) => s.id), [ownedSkills]);
   /** `skillSlotCap` 为当前有效上限（基础槽 + 已持有黑边数）；购入黑边候选时上限再 +1 */
   function skillSlotsAfterBuying(enhancement: SkillEnhancement): number {
@@ -125,55 +119,82 @@ export function RewardModal({
   return (
     <div className="fixed inset-0 z-50 flex animate-fade-in justify-center bg-slate-950/88 backdrop-blur-md">
       <div className="animate-modal-pop-in relative flex h-[100dvh] max-h-[100dvh] w-full max-w-[390px] flex-col overflow-hidden bg-rl-surface border-x border-rl-border/80 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="flex shrink-0 flex-col gap-3 px-4">
-          <Header title={STEP_TITLE[reward.step]} />
-          <div className="text-[16px] font-bold text-gray-200">
-            当前拥有：<span className="text-[16px] font-bold text-rl-gold">💎{diamonds}</span>
+        <div className="grid shrink-0 grid-cols-[minmax(2.5rem,1fr)_auto_minmax(2.5rem,1fr)] items-center gap-1 px-4">
+          {/* 左：钻石余额 + IAA 补钻小按钮（unified 商店专属） */}
+          <div className="justify-self-start flex items-center gap-1.5">
+            <span className="text-[16px] font-bold tabular-nums text-rl-gold">💎{diamonds}</span>
+            {reward.step === 'unified' && onIaaClaimDiamonds && !iaaClaimDiamondsUsed && (
+              <button
+                type="button"
+                onClick={onIaaClaimDiamonds}
+                title="看广告获得 +💎3"
+                className="flex items-center gap-0.5 rounded-[5px] border border-rl-gold/50 bg-rl-gold/10 px-1.5 py-0.5 text-[11px] font-bold text-rl-gold active:bg-rl-gold/20"
+              >
+                <IaaPlayMark />
+                <span>+💎3</span>
+              </button>
+            )}
           </div>
+          <Header title={STEP_TITLE[reward.step]} />
+          <span className="min-w-0" aria-hidden />
         </div>
 
         <div className="mt-2 min-h-0 flex-1 overflow-y-auto px-4 pb-2">
         {reward.step === 'unified' ? (
-          <div className="mx-auto grid w-max max-w-full grid-cols-[repeat(3,4.5rem)] grid-rows-2 justify-center gap-x-3 gap-y-4">
-            {buildUnifiedShopSlots(reward).map(slot => {
+          <div className="mx-auto grid w-max max-w-full grid-cols-[repeat(3,5.175rem)] grid-rows-2 justify-center gap-x-3 gap-y-4">
+            {buildUnifiedShopSlots(reward).map((slot, slotGlobalIdx) => {
+              const isIaaSlot = reward.iaaItemSlotIndex === slotGlobalIdx;
               if (slot.kind === 'skill') {
                 const opt = slot.opt;
                 const slotFull = ownedSkills.length >= skillSlotsAfterBuying(opt.enhancement);
                 const disabled = diamonds < opt.price || slotFull || opt.purchased;
                 return (
                   <div key={`skill-${opt.skill.id}`} className="flex w-full flex-col items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setSkillDetail({ skill: opt.skill, enhancement: opt.enhancement })}
-                      className={clsx(
-                        'relative w-full touch-manipulation rounded-[14px] p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-rl-gold/50',
-                        opt.purchased && 'opacity-55',
-                      )}
-                      aria-label={`查看 ${opt.skill.name} 详情`}
-                    >
-                      <div
-                        className="relative w-full overflow-visible rounded-[14px] border border-rl-border/50 bg-rl-bg/20 shadow-inner"
-                        style={{ aspectRatio: '2 / 3' }}
+                    <div className="relative w-full">
+                      <button
+                        type="button"
+                        onClick={() => setSkillDetail({ skill: opt.skill, enhancement: opt.enhancement })}
+                        className={clsx(
+                          'block relative w-full touch-manipulation rounded-[14px] p-0 leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-rl-gold/50',
+                          opt.purchased && 'opacity-55',
+                        )}
+                        aria-label={`查看 ${opt.skill.name} 详情`}
                       >
-                        <SkillPlayingCard
-                          skill={opt.skill}
-                          enhancement={opt.enhancement}
-                          accumulated={opt.skill.id === 'elite_unshackled' ? 3 : skillAccumulation[opt.skill.id]}
-                          superCardCount={ownedAttributeCards.length}
-                          runDiamonds={diamonds}
-                          acquiredSkillIds={acquiredSkillIdsForDetail}
-                          className="absolute inset-0 h-full w-full min-h-0 !max-w-none hover:!translate-y-0 active:!scale-100"
-                        />
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => onChooseSkill(opt.skill, opt.enhancement, opt.price)}
-                      className="w-full bg-rl-gold disabled:bg-gray-700 disabled:text-gray-400 text-black text-[16px] font-bold rounded-lg py-1.5"
-                    >
-                      {opt.purchased ? '已购' : `💎${opt.price}`}
-                    </button>
+                        <div
+                          className="relative w-full overflow-visible rounded-[14px] border border-rl-border/50 bg-rl-bg/20 shadow-inner"
+                          style={{ aspectRatio: '2 / 3' }}
+                        >
+                          <SkillPlayingCard
+                            skill={opt.skill}
+                            enhancement={opt.enhancement}
+                            accumulated={opt.skill.id === 'elite_unshackled' ? 3 : skillAccumulation[opt.skill.id]}
+                            superCardCount={ownedAttributeCards.length}
+                            runDiamonds={diamonds}
+                            acquiredSkillIds={acquiredSkillIdsForDetail}
+                            className="absolute inset-0 h-full w-full min-h-0 !max-w-none hover:!translate-y-0 active:!scale-100"
+                          />
+                        </div>
+                      </button>
+                    </div>
+                    {isIaaSlot && !opt.purchased ? (
+                      <button
+                        type="button"
+                        onClick={onIaaBuyItem}
+                        className="h-9 w-full flex items-center justify-center gap-1 bg-rl-gold text-black text-[16px] font-bold rounded-lg leading-none"
+                      >
+                        <IaaPlayMark />
+                        <span>购买</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => onChooseSkill(opt.skill, opt.enhancement, opt.price)}
+                        className="h-9 w-full bg-rl-gold disabled:bg-gray-700 disabled:text-gray-400 text-black text-[16px] font-bold rounded-lg leading-none"
+                      >
+                        {opt.purchased ? '已购' : `💎${opt.price}`}
+                      </button>
+                    )}
                   </div>
                 );
               }
@@ -193,36 +214,60 @@ export function RewardModal({
                         />
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => onChooseUpgrade(opt.option)}
-                      className="w-full bg-rl-gold disabled:bg-gray-700 disabled:text-gray-400 text-black text-[16px] font-bold rounded-lg py-1.5"
-                    >
-                      {opt.purchased ? '已购' : `💎${opt.price}`}
-                    </button>
+                    {isIaaSlot && !opt.purchased ? (
+                      <button
+                        type="button"
+                        onClick={onIaaBuyItem}
+                        className="h-9 w-full flex items-center justify-center gap-1 bg-rl-gold text-black text-[16px] font-bold rounded-lg leading-none"
+                      >
+                        <IaaPlayMark />
+                        <span>购买</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => onChooseUpgrade(opt.option)}
+                        className="h-9 w-full bg-rl-gold disabled:bg-gray-700 disabled:text-gray-400 text-black text-[16px] font-bold rounded-lg leading-none"
+                      >
+                        {opt.purchased ? '已购' : `💎${opt.price}`}
+                      </button>
+                    )}
                   </div>
                 );
               }
               const opt = slot.opt;
               return (
                 <div key={`attr-${opt.card.id}`} className="flex w-full flex-col items-center gap-1">
-                  <AttrCardOption
-                    card={opt.card}
-                    onSelect={() => {
-                      if (diamonds >= opt.price && !opt.purchased) onChooseAttributeCard(opt.card);
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (diamonds >= opt.price && !opt.purchased) onChooseAttributeCard(opt.card);
-                    }}
-                    disabled={diamonds < opt.price || !!opt.purchased}
-                    className="w-full bg-rl-gold disabled:bg-gray-700 disabled:text-gray-400 text-black text-[16px] font-bold rounded-lg py-1.5"
-                  >
-                    {opt.purchased ? '已购' : `💎${opt.price}`}
-                  </button>
+                  <div className="relative w-full">
+                    <AttrCardOption
+                      card={opt.card}
+                      onSelect={() => {
+                        if (!isIaaSlot && diamonds >= opt.price && !opt.purchased) onChooseAttributeCard(opt.card);
+                      }}
+                    />
+                  </div>
+                  {isIaaSlot && !opt.purchased ? (
+                    <button
+                      type="button"
+                      onClick={onIaaBuyItem}
+                      className="h-9 w-full flex items-center justify-center gap-1 bg-rl-gold text-black text-[16px] font-bold rounded-lg leading-none"
+                    >
+                      <IaaPlayMark />
+                      <span>购买</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (diamonds >= opt.price && !opt.purchased) onChooseAttributeCard(opt.card);
+                      }}
+                      disabled={diamonds < opt.price || !!opt.purchased}
+                      className="h-9 w-full bg-rl-gold disabled:bg-gray-700 disabled:text-gray-400 text-black text-[16px] font-bold rounded-lg leading-none"
+                    >
+                      {opt.purchased ? '已购' : `💎${opt.price}`}
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -235,12 +280,12 @@ export function RewardModal({
                   const slotFull = ownedSkills.length >= skillSlotsAfterBuying(opt.enhancement);
                   const disabled = diamonds < opt.price || slotFull || opt.purchased;
                   return (
-                    <div key={opt.skill.id} className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1">
+                    <div key={opt.skill.id} className="flex w-[5.175rem] shrink-0 flex-col items-center gap-1">
                       <button
                         type="button"
                         onClick={() => setSkillDetail({ skill: opt.skill, enhancement: opt.enhancement })}
                         className={clsx(
-                          'relative w-full touch-manipulation rounded-[14px] p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-rl-gold/50',
+                          'block relative w-full touch-manipulation rounded-[14px] p-0 leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-rl-gold/50',
                           opt.purchased && 'opacity-55',
                         )}
                         aria-label={`查看 ${opt.skill.name} 详情`}
@@ -281,7 +326,7 @@ export function RewardModal({
                   return (
                     <div
                       key={`${opt.option.handType}-${opt.option.currentLevel}-${i}`}
-                      className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1"
+                      className="flex w-[5.175rem] shrink-0 flex-col items-center gap-1"
                     >
                       <div className={clsx('relative w-full rounded-[14px]', opt.purchased && 'opacity-55')}>
                         <div
@@ -333,13 +378,12 @@ export function RewardModal({
         )}
         </div>
 
-        <div className="flex h-[12.5rem] shrink-0 flex-col border-t border-rl-border bg-rl-surface">
+        <div className="flex h-[185px] shrink-0 flex-col border-t border-rl-border bg-rl-surface">
           <div className="flex items-center justify-between px-4 pt-2">
             <div className="text-xs text-gray-400">已拥有技能 {ownedSkills.length}/{skillSlotCap}</div>
             <div className="inline-flex rounded-lg border border-rl-border bg-rl-bg/30 p-0.5">
               {([
                 { key: 'skills', label: '技能' },
-                { key: 'odds', label: '赔率' },
                 { key: 'pool', label: '超级牌' },
               ] as const).map(({ key, label }) => (
                 <button
@@ -384,7 +428,7 @@ export function RewardModal({
                         <button
                           type="button"
                           onClick={() => setSkillDetail({ skill, enhancement })}
-                          className="relative w-full touch-manipulation rounded-[14px] p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-rl-gold/50"
+                          className="block relative w-full touch-manipulation rounded-[14px] p-0 leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-rl-gold/50"
                           aria-label={`查看 ${skill.name} 详情`}
                         >
                           <div
@@ -425,58 +469,12 @@ export function RewardModal({
               )
             )}
 
-            {ownedTab === 'odds' && (
-              <div className="h-full overflow-y-auto pr-1 [-webkit-overflow-scrolling:touch]">
-                <div className="grid grid-cols-2 gap-2">
-                  {ODDS_DISPLAY_ORDER.map(ht => {
-                    const stats = getHandTypeStats(ht, handTypeUpgrades);
-                    const level = handTypeUpgrades[ht] ?? 1;
-                    const upgraded = level > 1;
-                    return (
-                      <div
-                        key={ht}
-                        className={`rounded-lg border px-2 py-1.5 ${
-                          upgraded
-                            ? 'border-rl-gold/40 bg-rl-gold/10'
-                            : 'border-rl-border bg-white/[0.02]'
-                        }`}
-                      >
-                        <div className="grid grid-cols-[1fr_2.2rem_2.6rem_2rem] items-center text-[10px] leading-4 whitespace-nowrap">
-                          <span className={`font-bold truncate ${upgraded ? 'text-rl-gold' : 'text-gray-300'}`}>
-                            {HAND_NAMES[ht]}
-                          </span>
-                          <span className={`text-center font-bold tabular-nums ${upgraded ? 'text-rl-gold' : 'text-gray-400'}`}>
-                            {level}
-                          </span>
-                          <span className="text-right text-yellow-300 font-mono tabular-nums">
-                            ${stats.baseScore}
-                          </span>
-                          <span className={`text-right font-mono font-black tabular-nums ${upgraded ? 'text-rl-gold' : 'text-red-400'}`}>
-                            {stats.multiplier}x
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {ownedTab === 'pool' && (
               ownedAttributeCards.length > 0 ? (
                 <div className="h-full overflow-y-auto pr-1 [-webkit-overflow-scrolling:touch]">
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="flex flex-wrap justify-center gap-x-2 gap-y-2">
                     {ownedAttributeCards.map(card => (
-                      <Card
-                        key={card.id}
-                        card={card}
-                        isFlipped={true}
-                        isHeld={false}
-                        isScoring={false}
-                        onClick={() => {}}
-                        style={{ width: '3.1rem', aspectRatio: '2/3' }}
-                        className="cursor-default hover:!translate-y-0"
-                      />
+                      <OwnedPoolAttributeCard key={card.id} card={card} />
                     ))}
                   </div>
                 </div>
@@ -489,24 +487,79 @@ export function RewardModal({
           </div>
         </div>
 
-        <div className="flex shrink-0 gap-2 px-4 pt-3">
+        {/* 底部操作行：一个刷新入口，继续最大 */}
+        <div className="flex shrink-0 gap-2 px-4 pt-2">
+          {/* 刷新入口：点击后选择 💎 或播放标识刷新 */}
           <button
             type="button"
-            onClick={onRefreshWithDiamonds}
-            disabled={!canRefresh}
-            className="flex-1 bg-rl-blue disabled:bg-gray-700 disabled:text-gray-400 rounded-lg py-2 font-bold"
+            onClick={() => setRefreshOptionsOpen(true)}
+            disabled={!canOpenRefreshOptions}
+            className="flex-1 bg-rl-blue disabled:bg-gray-700 disabled:text-gray-400 rounded-lg py-2 font-bold text-[13px]"
           >
-            刷新 💎{refreshCost} {reward.refreshUsedWithDiamonds ? '(本阶段已用)' : ''}
+            刷新
           </button>
+          {/* 继续：最宽 */}
           <button
             type="button"
             onClick={onContinue}
-            className="flex-1 bg-rl-gold text-black rounded-lg py-2 font-bold"
+            className="flex-[1.8] bg-rl-gold text-black rounded-lg py-2 font-bold text-[14px]"
           >
             继续
           </button>
         </div>
       </div>
+
+      {refreshOptionsOpen && (
+        <div
+          role="dialog"
+          aria-modal
+          aria-label="选择刷新方式"
+          className="fixed inset-0 z-[80] flex items-end justify-center bg-black/65 px-3 pb-[max(12px,env(safe-area-inset-bottom,0px))]"
+          onClick={() => setRefreshOptionsOpen(false)}
+        >
+          <div
+            className="w-full max-w-[390px] rounded-t-2xl border border-rl-border bg-rl-surface p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 text-center text-sm font-bold text-gray-200">选择刷新方式</div>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                disabled={!canRefresh}
+                onClick={() => {
+                  setRefreshOptionsOpen(false);
+                  onRefreshWithDiamonds();
+                }}
+                className="w-full rounded-xl bg-rl-blue py-3 text-[15px] font-black text-white disabled:bg-gray-700 disabled:text-gray-400"
+              >
+                刷新 💎{refreshCost}{reward.refreshUsedWithDiamonds ? '（已用）' : ''}
+              </button>
+              {onIaaRefreshReward && (
+                <button
+                  type="button"
+                  disabled={!canRefreshWithMark}
+                  onClick={() => {
+                    setRefreshOptionsOpen(false);
+                    onIaaRefreshReward();
+                  }}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-rl-blue py-3 text-[15px] font-black text-white disabled:bg-gray-700 disabled:text-gray-400"
+                >
+                  <span>刷新</span>
+                  <IaaPlayMark />
+                  {reward.refreshUsedWithIaa && <span className="text-xs opacity-75">（已用）</span>}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setRefreshOptionsOpen(false)}
+                className="w-full rounded-xl border border-rl-border bg-rl-bg/40 py-2.5 text-[14px] font-bold text-gray-300"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {skillDetail && (
         <SkillPlayingCardDetailModal
@@ -526,6 +579,8 @@ export function RewardModal({
 // ── 小组件 ──────────────────────────────────────────────────────
 const SELL_ROW_GAP_PX = 4;
 const SELL_SLOT_COUNT = 5;
+/** 商店超级牌槽宽（rem）；已拥有区展示为同样式 ×0.85 */
+const SHOP_ATTR_CARD_WIDTH_REM = 5.175;
 
 function OwnedSkillsSellStrip({
   skills,
@@ -562,15 +617,26 @@ function OwnedSkillsSellStrip({
     return () => ro.disconnect();
   }, [skills.length]);
 
-  const { cardWidthPx, marginLeftPx } = useMemo(() => {
-    const w = Math.max(0, rowWidth - (SELL_SLOT_COUNT - 1) * SELL_ROW_GAP_PX);
-    const slot = w / SELL_SLOT_COUNT;
+  const { cardWidthPx, marginLeftPx, rowJustify } = useMemo(() => {
+    const rw = Math.max(0, rowWidth);
+    const inner = Math.max(0, rw - (SELL_SLOT_COUNT - 1) * SELL_ROW_GAP_PX);
+    const slot = inner / SELL_SLOT_COUNT;
     const n = skills.length;
-    if (n === 0) return { cardWidthPx: 0, marginLeftPx: (_i: number) => 0 };
+    if (n === 0) {
+      return { cardWidthPx: 0, marginLeftPx: (_i: number) => 0, rowJustify: 'center' as const };
+    }
+    if (n === 1) {
+      return {
+        cardWidthPx: Math.min(slot, rw),
+        marginLeftPx: (_i: number) => 0,
+        rowJustify: 'center' as const,
+      };
+    }
     if (n <= SELL_SLOT_COUNT) {
       return {
         cardWidthPx: slot,
         marginLeftPx: (i: number) => (i === 0 ? 0 : SELL_ROW_GAP_PX),
+        rowJustify: 'center' as const,
       };
     }
     const footprint = SELL_SLOT_COUNT * slot + (SELL_SLOT_COUNT - 1) * SELL_ROW_GAP_PX;
@@ -579,6 +645,7 @@ function OwnedSkillsSellStrip({
     return {
       cardWidthPx: slot,
       marginLeftPx: (i: number) => (i === 0 ? 0 : ml),
+      rowJustify: 'start' as const,
     };
   }, [rowWidth, skills.length]);
 
@@ -587,13 +654,18 @@ function OwnedSkillsSellStrip({
   }
 
   return (
-    <div ref={rowRef} className="flex w-full min-w-0 flex-nowrap items-end justify-center pb-1">
+    <div
+      ref={rowRef}
+      className={`flex w-full min-w-0 flex-nowrap items-end overflow-visible pb-1 ${
+        rowJustify === 'center' ? 'justify-center' : 'justify-start'
+      }`}
+    >
       {skills.map((skill, i) => {
         const enhancement = skillEnhancements[skill.id] ?? 'normal';
         return (
           <div
             key={skill.id}
-            className="relative flex shrink-0 flex-col items-stretch gap-0.5"
+            className="relative flex shrink-0 flex-col items-stretch gap-0.5 overflow-visible"
             style={{
               width: cardWidthPx > 0 ? cardWidthPx : undefined,
               marginLeft: marginLeftPx(i),
@@ -603,7 +675,7 @@ function OwnedSkillsSellStrip({
             <button
               type="button"
               onClick={() => onOpenDetail(skill, enhancement)}
-              className="relative w-full touch-manipulation rounded-[14px] p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-rl-gold/50"
+              className="block relative w-full touch-manipulation rounded-[14px] p-0 leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-rl-gold/50"
               aria-label={`查看 ${skill.name} 详情`}
             >
               <div
@@ -654,7 +726,7 @@ function Header({ title }: { title: string }) {
   );
 }
 
-/** 超级牌候选：与旧「超级牌商店」一致 — 4.5rem 宽、2:3、边框壳 + Card 牌面 */
+/** 超级牌候选：2:3、边框壳 + Card 牌面（槽宽 `SHOP_ATTR_CARD_WIDTH_REM`） */
 function AttrCardOption({ card, onSelect }: { card: CardType; onSelect: () => void }) {
   const cornerClass =
     card.quality === 'super' && !card.isJoker ? 'rounded-2xl' : 'rounded-[14px]';
@@ -663,7 +735,8 @@ function AttrCardOption({ card, onSelect }: { card: CardType; onSelect: () => vo
     <button
       type="button"
       onClick={onSelect}
-      className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1 touch-manipulation rounded-lg p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-rl-gold/50"
+      className="flex shrink-0 flex-col items-center gap-1 touch-manipulation rounded-lg p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-rl-gold/50"
+      style={{ width: `${SHOP_ATTR_CARD_WIDTH_REM}rem` }}
     >
       <div
         className={clsx(
@@ -680,5 +753,33 @@ function AttrCardOption({ card, onSelect }: { card: CardType; onSelect: () => vo
         />
       </div>
     </button>
+  );
+}
+
+/** 已拥有超级牌：与 `AttrCardOption` 同款轮廓，整体缩小 15%（仅展示） */
+function OwnedPoolAttributeCard({ card }: { card: CardType }) {
+  const cornerClass =
+    card.quality === 'super' && !card.isJoker ? 'rounded-2xl' : 'rounded-[14px]';
+  const wRem = SHOP_ATTR_CARD_WIDTH_REM * 0.85;
+  return (
+    <div className="flex shrink-0 flex-col items-center" style={{ width: `${wRem}rem` }}>
+      <div
+        className={clsx(
+          'relative w-full overflow-visible border border-rl-border/60 bg-rl-bg/30 pb-px shadow-inner',
+          cornerClass,
+        )}
+        style={{ aspectRatio: '2 / 3' }}
+      >
+        <Card
+          card={card}
+          isFlipped={true}
+          isHeld={false}
+          isScoring={false}
+          onClick={() => {}}
+          className="absolute inset-0 h-full w-full min-h-0 max-w-none cursor-default !translate-y-0 transition-none hover:!translate-y-0"
+          style={{ width: '100%', height: '100%', fontSize: '0.85rem' }}
+        />
+      </div>
+    </div>
   );
 }

@@ -69,6 +69,13 @@ export interface RewardState {
   refreshUsedWithDiamonds?: boolean;
   /** 当前刷新价格（可被技能修正） */
   diamondRefreshCost?: number;
+  /** 每次奖励阶段仅允许 1 次 IAA 刷新 */
+  refreshUsedWithIaa?: boolean;
+  /**
+   * 初始 Roll 中的 IAA 商品槽索引（0-based，对应 buildUnifiedShopSlots 顺序）。
+   * -1 = 本次无 IAA 商品（刷新后均为 -1）；undefined = 未初始化。
+   */
+  iaaItemSlotIndex?: number;
 
   // ── 黑边技能定向保底（用于 store 在离开商店时更新 pity） ──────────
   /** 本关商店打开时的“已拥有黑边技能数”（用于判断是否购买了黑边） */

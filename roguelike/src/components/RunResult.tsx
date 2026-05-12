@@ -5,6 +5,8 @@ import { HAND_NAMES, handTypeCategoryLabel } from '../engine/handEngine';
 import { HandType } from '../shared/types/poker';
 import { getSkillsByIds } from '../engine/skillEngine';
 import SkillPanel from './SkillPanel';
+import { IaaPlayMark } from './IaaPlayMark';
+import { enhancementBonusLine } from '../utils/skillEnhancementDisplay';
 
 interface Props {
   run: RunState;
@@ -18,8 +20,9 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
   const isMainVictory = isVictory && !isEndless;   // 主线通关胜利，未进无限
   const isEndlessDefeat = run.status === 'defeat' && isEndless;
 
+  const runStageCount = run.runStageCount ?? TOTAL_STAGES;
   const mainStagesCleared = run.stages.filter(
-    s => s.stageIndex < TOTAL_STAGES && s.status === 'won',
+    s => s.stageIndex < runStageCount && s.status === 'won',
   ).length;
   const endlessCleared     = run.endlessStagesCleared;
   const clearedTotal = mainStagesCleared + endlessCleared;
@@ -72,6 +75,12 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
 
   const maxSingleHandGold = run.maxSingleHandGold ?? 0;
   const peakHand = run.bestHandThisRun ?? null;
+  const enhancedSkillRows = allSkills
+    .map(skill => ({
+      skill,
+      enhancement: run.skillEnhancements[skill.id] ?? 'normal',
+    }))
+    .filter(row => row.enhancement !== 'normal');
 
   const withAccumulatedName = (skillId: string, fallbackName: string): string => {
     const accumulated = run.skillAccumulation[skillId] ?? 0;
@@ -88,6 +97,9 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
     return fallbackName;
   };
 
+  const iaaAssisted = run.iaa?.iaaAssisted ?? false;
+  const totalAdsWatched = run.iaa?.totalAdsWatched ?? 0;
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 text-center">
 
@@ -96,7 +108,7 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
         <div className="flex flex-col items-center gap-2 animate-fade-in">
           <div className="text-6xl">🏆</div>
           <h2 className="text-3xl font-black text-rl-gold">主线通关！</h2>
-          <p className="text-gray-400 text-sm">恭喜你完成全部 {TOTAL_STAGES} 关主线挑战</p>
+          <p className="text-gray-400 text-sm">恭喜你完成全部 {runStageCount} 关主线挑战</p>
         </div>
       ) : isEndlessDefeat ? (
         <div className="flex flex-col items-center gap-2">
@@ -108,27 +120,43 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
         <div className="flex flex-col items-center gap-2">
           <div className="text-5xl">💀</div>
           <h2 className="text-3xl font-black text-rl-red">本局失败</h2>
-          <p className="text-gray-400 text-sm">通过了 {mainStagesCleared} / {TOTAL_STAGES} 关</p>
+          <p className="text-gray-400 text-sm">通过了 {mainStagesCleared} / {runStageCount} 关</p>
         </div>
       )}
 
       {/* ── Build 详情 ── */}
-      <div className="bg-rl-surface border border-rl-border rounded-xl p-4 w-full max-w-md text-left flex flex-col gap-4">
+      <div className="bg-rl-surface border border-rl-border rounded-xl p-4 w-full max-w-[390px] text-left flex flex-col gap-4">
         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">最终 Build</div>
 
         <div className="flex flex-col gap-2">
-          <div className="text-xs text-gray-300 font-semibold">技能</div>
+          <div className="text-xs text-gray-300 font-semibold">解锁的技能牌</div>
           {allSkills.length > 0 ? (
-            <div className="w-full min-w-0">
-              <SkillPanel
-                skills={allSkills}
-                acquiredSkillIds={run.acquiredSkillIds}
-                skillAccumulation={run.skillAccumulation}
-                skillEnhancements={run.skillEnhancements}
-                superCardCount={run.attributeCards.length}
-                runDiamonds={run.runDiamonds}
-              />
-            </div>
+            <>
+              <div className="flex h-48 w-full min-w-0 items-center overflow-visible">
+                <SkillPanel
+                  skills={allSkills}
+                  acquiredSkillIds={run.acquiredSkillIds}
+                  skillAccumulation={run.skillAccumulation}
+                  skillEnhancements={run.skillEnhancements}
+                  superCardCount={run.attributeCards.length}
+                  runDiamonds={run.runDiamonds}
+                />
+              </div>
+              {enhancedSkillRows.length > 0 && (
+                <div className="flex flex-col gap-1 rounded-lg border border-rl-border/70 bg-rl-bg/25 px-2 py-2">
+                  <div className="text-[11px] font-bold text-gray-400">带边技能说明</div>
+                  <div className="flex flex-wrap gap-x-2 gap-y-1 text-[11px] leading-snug">
+                    {enhancedSkillRows.map(({ skill, enhancement }) => (
+                      <span key={skill.id} className="text-gray-300">
+                        <span className="font-bold text-rl-gold">{skill.name}</span>
+                        <span className="text-gray-500"> · </span>
+                        {enhancementBonusLine(enhancement)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-xs text-gray-500">无</div>
           )}
@@ -198,6 +226,14 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
             <span className="text-gray-600 ml-1">—</span>
           )}
         </div>
+
+        {/* IAA 辅助标记 */}
+        {iaaAssisted && (
+          <div className="flex items-center gap-1.5 border-t border-rl-border pt-3 text-xs text-gray-400">
+            <IaaPlayMark />
+            <span>本局使用了 IAA 辅助（共 {totalAdsWatched} 次）</span>
+          </div>
+        )}
       </div>
 
       {/* ── 按钮区 ── */}

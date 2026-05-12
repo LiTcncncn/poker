@@ -53,9 +53,9 @@ export default function InfoTabs({ run }: Props) {
   ];
 
   return (
-    <div className="w-full rounded-xl bg-rl-card border border-rl-border overflow-hidden">
-      {/* ── 标签栏 ── */}
-      <div className="flex border-b border-rl-border">
+    <div className="w-full overflow-visible rounded-xl border border-rl-border bg-rl-card">
+      {/* ── 标签栏（仅顶部圆角裁切，避免技能牌区域被 overflow:hidden 切边） ── */}
+      <div className="flex overflow-hidden rounded-t-xl border-b border-rl-border">
         {tabs.map(({ key, label, badge }) => (
           <button
             key={key}
@@ -80,13 +80,18 @@ export default function InfoTabs({ run }: Props) {
         ))}
       </div>
 
-      {/* ── 内容区：技能 tab 内技能牌行垂直居中 ── */}
-      <div className="box-border flex h-48 flex-col overflow-y-auto p-2">
+      {/* ── 内容区：三 Tab 同高 h-48；技能 tab overflow-visible 避免叠放牌被裁切 ── */}
+      <div
+        className={`box-border flex h-48 flex-col p-2 ${
+          tab === 'skills' ? 'overflow-visible' : 'overflow-y-auto'
+        }`}
+      >
         {/* ── 技能 ── */}
         {tab === 'skills' && (
           acquiredSkills.length > 0 ? (
-            <div className="my-auto w-full min-w-0">
+            <div className="my-auto w-full min-w-0 overflow-visible">
               <SkillPanel
+                casualHudRow
                 skills={acquiredSkills}
                 acquiredSkillIds={run.acquiredSkillIds}
                 skillAccumulation={run.skillAccumulation}

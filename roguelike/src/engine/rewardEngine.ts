@@ -149,6 +149,7 @@ function pickSkillsByQualityPattern(available: SkillDef[], qualities: SkillQuali
  * 随机抽 3 个不重复技能（已拥有的不重复出现）。
  * afterElite: true 时使用精英品质模板池。
  * `shopStageK` 为 1～5 时：**超级信用卡**（`super_credit_card`）不进入候选池。
+ * `allowedSkillIds`：仅此集合内的技能可进入候选（undefined = 全部可用）。
  */
 export function generateSkillOptions(
   acquiredSkillIds: string[],
@@ -157,6 +158,8 @@ export function generateSkillOptions(
   shopStageK?: number,
   /** 本局曾卖出过的技能，不再进入商店候选 */
   soldSkillIds: string[] = [],
+  /** 本局允许的技能 ID 集合（来自解锁顺序）；undefined 表示不过滤 */
+  allowedSkillIds?: Set<string>,
 ): SkillDef[] {
   const sold = new Set(soldSkillIds);
   const available = ALL_SKILLS.filter((s) => {
@@ -168,6 +171,8 @@ export function generateSkillOptions(
     ) {
       return false;
     }
+    // 技能解锁顺序过滤（主线模式）
+    if (allowedSkillIds && !allowedSkillIds.has(s.id)) return false;
     return true;
   });
   if (available.length === 0) return [];
@@ -185,11 +190,11 @@ export function generateSkillOptions(
   // 精英/Boss 后技能三选一组合池
   if (afterElite) {
     const patterns: WeightedQualityPattern[] = [
-      { qualities: ['green', 'green', 'blue'], weight: 25 },
+      { qualities: ['green', 'green', 'blue'], weight: 30 },
       { qualities: ['green', 'blue', 'blue'], weight: 25 },
-      { qualities: ['blue', 'blue', 'blue'], weight: 20 },
+      { qualities: ['blue', 'blue', 'blue'], weight: 25 },
       { qualities: ['blue', 'blue', 'purple'], weight: 15 },
-      { qualities: ['blue', 'purple', 'purple'], weight: 15 },
+      { qualities: ['blue', 'purple', 'purple'], weight: 5 },
     ];
     const selected = weightedRandom(patterns, p => p.weight);
     return pickSkillsByQualityPattern(available, selected.qualities);
@@ -224,9 +229,10 @@ export function generateSkillOptionsCount(
   count: number,
   shopStageK?: number,
   soldSkillIds: string[] = [],
+  allowedSkillIds?: Set<string>,
 ): SkillDef[] {
   if (count <= 0) return [];
-  const full = generateSkillOptions(acquiredSkillIds, afterElite, shopStageK, soldSkillIds);
+  const full = generateSkillOptions(acquiredSkillIds, afterElite, shopStageK, soldSkillIds, allowedSkillIds);
   return full.slice(0, Math.min(count, full.length));
 }
 
@@ -617,10 +623,11 @@ function buildUnifiedShopPayload(
   /** 统一商店 💎 刷新后的技能边权重（仍受 k≤2 强制无边） */
   useRefreshSkillEdgeOdds = false,
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
+  allowedSkillIds?: Set<string>,
 ): Pick<RewardState, 'skillOptions' | 'upgradeOptions' | 'attributeOptions'> {
   const { skills, upgrades, attributes } = pickUnifiedShopComposition(shopStageK);
   const afterEliteSkills = shopStageK % 3 === 0;
-  const skillDefs = generateSkillOptionsCount(acquiredSkillIds, afterEliteSkills, skills, shopStageK, soldSkillIds);
+  const skillDefs = generateSkillOptionsCount(acquiredSkillIds, afterEliteSkills, skills, shopStageK, soldSkillIds, allowedSkillIds);
   const upgradeOpts = generateUpgradeOptionsCount(upgradeMap, upgrades);
   const attrCards = generateAttributeCardOptionsCount(attributes);
   /** k=1、2：技能不带边（强化均为 normal） */
@@ -643,6 +650,30 @@ function buildUnifiedShopPayload(
   };
 }
 
+/**
+ * 在统一商店初始 Roll 中随机选一个 IAA 商品槽。
+ * 资格：技能品质非绿色；升级牌全部资格；属性牌品质非绿色。
+ * 返回 0-based 槽索引（[skills…, upgrades…, attrs…]），无可选则返回 -1。
+ */
+export function pickIaaItemSlotIndex(
+  skills: Pick<SkillShopOption, 'skill' | 'purchased'>[],
+  upgrades: Pick<UpgradeShopOption, 'purchased'>[],
+  attrs: Pick<AttributeShopOption, 'card' | 'purchased'>[],
+): number {
+  const eligible: number[] = [];
+  skills.forEach((s, i) => {
+    if (!s.purchased && s.skill.quality !== 'green') eligible.push(i);
+  });
+  upgrades.forEach((u, i) => {
+    if (!u.purchased) eligible.push(skills.length + i);
+  });
+  attrs.forEach((a, i) => {
+    if (!a.purchased && a.card.quality !== 'green') eligible.push(skills.length + upgrades.length + i);
+  });
+  if (eligible.length === 0) return -1;
+  return eligible[Math.floor(Math.random() * eligible.length)];
+}
+
 /** 关后统一 6 卡商店（一次）；`shopStageK` = 本关序号从 1 计（与 `generateRewardForStage` 传入的 `groupIndex+1` 一致） */
 export function generateUnifiedRewardState(
   upgradeMap: HandTypeUpgradeMap,
@@ -651,9 +682,15 @@ export function generateUnifiedRewardState(
   shopStageK: number,
   soldSkillIds: string[] = [],
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
+  allowedSkillIds?: Set<string>,
 ): RewardState {
-  const payload = buildUnifiedShopPayload(upgradeMap, acquiredSkillIds, skillEnhancements, shopStageK, soldSkillIds, false, blackEdgePity);
+  const payload = buildUnifiedShopPayload(upgradeMap, acquiredSkillIds, skillEnhancements, shopStageK, soldSkillIds, false, blackEdgePity, allowedSkillIds);
   const ownedBlack = countOwnedBlackEdges(acquiredSkillIds, skillEnhancements);
+  const iaaItemSlotIndex = pickIaaItemSlotIndex(
+    payload.skillOptions,
+    payload.upgradeOptions,
+    payload.attributeOptions,
+  );
   return {
     step: 'unified',
     ...payload,
@@ -662,6 +699,8 @@ export function generateUnifiedRewardState(
     shopStageK,
     diamondRefreshCost: DEFAULT_DIAMOND_REFRESH_COST,
     refreshUsedWithDiamonds: false,
+    refreshUsedWithIaa: false,
+    iaaItemSlotIndex,
     isOpeningReward: false,
     blackEdgeOwnedAtOpen: ownedBlack,
     blackEdgeSeenThisShop: payload.skillOptions.some(o => o.enhancement === 'black'),
@@ -671,6 +710,7 @@ export function generateUnifiedRewardState(
 
 /**
  * @param groupIndex  主线：`stageIndex`（0-based）；无限：本关胜利时的 `endlessStagesCleared`（0-based）
+ * @param allowedSkillIds  本局允许的技能 ID 集合（主线技能解锁限制）；undefined = 不过滤
  */
 export function generateRewardForStage(
   groupIndex: number,
@@ -681,9 +721,10 @@ export function generateRewardForStage(
   _isEndlessUnused = false,
   soldSkillIds: string[] = [],
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
+  allowedSkillIds?: Set<string>,
 ): RewardState {
   const shopStageK = groupIndex + 1;
-  return generateUnifiedRewardState(upgradeMap, acquiredSkillIds, skillEnhancements, shopStageK, soldSkillIds, blackEdgePity);
+  return generateUnifiedRewardState(upgradeMap, acquiredSkillIds, skillEnhancements, shopStageK, soldSkillIds, blackEdgePity, allowedSkillIds);
 }
 
 export function regenerateShopOptionsForStep(
@@ -698,6 +739,7 @@ export function regenerateShopOptionsForStep(
   /** 统一商店且本次为 💎 刷新后的整页重 Roll：技能边用「刷新套」权重 */
   unifiedUseRefreshSkillEdgeOdds = false,
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
+  allowedSkillIds?: Set<string>,
 ): Pick<RewardState, 'skillOptions' | 'upgradeOptions' | 'attributeOptions'> {
   if (step === 'unified') {
     const k = unifiedShopK ?? 1;
@@ -709,6 +751,7 @@ export function regenerateShopOptionsForStep(
       soldSkillIds,
       unifiedUseRefreshSkillEdgeOdds,
       blackEdgePity,
+      allowedSkillIds,
     );
   }
   if (step === 'skill') {

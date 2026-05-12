@@ -339,6 +339,27 @@ function getCardSuitsForPerCardTriggers(card: Card): Suit[] {
   return [card.suit];
 }
 
+/**
+ * 精英词缀等：整张牌的牌面分是否不计入 baseCardSum。
+ * - 禁花色：与 per-card 技能一致，用 `getCardSuitsForPerCardTriggers`（含双花牌的副花色）；任一副命中即整牌不计入。
+ * - Joker：通配，不视为禁限花色牌，仍在上层单独分支计分。
+ */
+function isCardBaseValueBlockedByStage(
+  card: Card,
+  bannedSuits: Suit[],
+  bannedRankMax: number,
+  banFaceCardScore: boolean,
+): boolean {
+  if (card.isJoker) return false;
+  if (bannedSuits.length > 0) {
+    const suits = getCardSuitsForPerCardTriggers(card);
+    if (suits.some(su => bannedSuits.includes(su))) return true;
+  }
+  if (bannedRankMax > 0 && card.rank <= bannedRankMax) return true;
+  if (banFaceCardScore && card.rank >= 11 && card.rank <= 13) return true;
+  return false;
+}
+
 function cardPossibleRanksForStraight(card: Card): number[] {
   if (card.isJoker) return [];
   const cross = card.effects?.find(e => e.type === 'cross_value') as { ranks?: number[] } | undefined;
@@ -398,15 +419,19 @@ function rankInEvenSet(r: number): boolean {
 }
 
 function hasMadeGroupInSet(scoringCards: Card[], groupSize: 2 | 3, setKind: 'odd' | 'even'): boolean {
+  const jokerCount = scoringCards.filter(c => c.isJoker).length;
   const counts = new Map<number, number>();
   for (const c of scoringCards) {
     if (c.isJoker) continue;
     counts.set(c.rank, (counts.get(c.rank) ?? 0) + 1);
   }
   for (const [rank, n] of counts.entries()) {
-    if (n < groupSize) continue;
     const ok = setKind === 'odd' ? rankInOddSet(rank) : rankInEvenSet(rank);
-    if (ok) return true;
+    if (!ok) continue;
+
+    // Joker 作为万能牌：可补齐对子/三条。
+    // 但至少需要已有 1 张该 rank 的非 Joker 牌，否则会出现“纯 Joker 也算任意奇/偶对子”的歧义。
+    if (n + jokerCount >= groupSize) return true;
   }
   return false;
 }
@@ -619,10 +644,8 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
   const effectiveLevel = Math.max(1, currentLevel - down);
   const stats = getHandTypeStats(handType, down > 0 ? { ...upgradeMap, [handType]: effectiveLevel } : upgradeMap);
   const baseCardSum = scoringCards.reduce((s, c) => {
-    if (c.isJoker) return s + c.baseValue; // Joker 不受花色/点数限制
-    if (bannedSuits.length > 0 && bannedSuits.includes(c.suit)) return s;
-    if (bannedRankMax > 0 && c.rank <= bannedRankMax) return s;
-    if (banFaceCardScore && c.rank >= 11 && c.rank <= 13) return s;
+    if (c.isJoker) return s + c.baseValue; // Joker：通配，不设为禁限花色/点数牌
+    if (isCardBaseValueBlockedByStage(c, bannedSuits, bannedRankMax, banFaceCardScore)) return s;
     return s + c.baseValue;
   }, 0);
   const cardScoreSum = baseCardSum + stats.baseScore;
@@ -886,7 +909,10 @@ export function evaluateHandWithSkills(ctx: HandContext): SkillHandResult {
             if (!canCoverRequiredRanks(scoringCards, ef.requireStraightContainsRanks)) break;
           }
           if (ef.requireRunHandCycle7) {
-            const handNo = (ctx.runHandsPlayedTotal ?? 0) + 1; // 1-based
+            const raw = ctx.runHandsPlayedTotal;
+            const prev = Number(raw ?? 0);
+            const safe = Number.isFinite(prev) ? Math.max(0, Math.floor(prev)) : 0;
+            const handNo = safe + 1; // 本手为第几手（1-based；与 _commitScore 传入的「结算前已完成手数」一致）
             if (!(handNo === 1 || handNo % 7 === 0)) break;
           }
           independentMultiplier *= ef.value;

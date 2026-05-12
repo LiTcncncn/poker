@@ -109,16 +109,33 @@ export function getStageTargetGold(stage: StageState): number {
   return Math.ceil(stage.targetGold * m);
 }
 
-/** 按模板初始化一个关卡（可附带词缀） */
-export function initStage(stageIndex: number, modifierId?: string): StageState {
-  const t = templates[stageIndex];
+interface InitStageOverrides {
+  targetGoldOverride?: number;
+  holdDelta?: number;
+  handsDelta?: number;
+}
+
+type StageTplList = { targetGold: number; isElite: boolean; isBoss: boolean; handCount: number; holdCount: number }[];
+
+/** 按模板初始化一个关卡（可附带词缀和局级覆盖参数） */
+export function initStage(
+  stageIndex: number,
+  modifierId?: string,
+  overrides?: InitStageOverrides,
+  tplList?: StageTplList,
+): StageState {
+  const list = tplList ?? (templates as StageTplList);
+  const t = list[stageIndex];
   if (!t) throw new Error(`No stage template for index ${stageIndex}`);
 
-  const m = applyModifierEffects(modifierId, { holdTotal: t.holdCount, totalHands: t.handCount });
+  const baseHold = Math.max(0, t.holdCount + (overrides?.holdDelta ?? 0));
+  const baseHands = Math.max(1, t.handCount + (overrides?.handsDelta ?? 0));
+
+  const m = applyModifierEffects(modifierId, { holdTotal: baseHold, totalHands: baseHands });
 
   return {
     stageIndex,
-    targetGold:      t.targetGold,
+    targetGold:      overrides?.targetGoldOverride ?? t.targetGold,
     targetGoldMultiplier: m.targetGoldMultiplier,
     totalHands:      m.totalHands,
     usedHands:       0,

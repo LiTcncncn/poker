@@ -218,18 +218,44 @@
 @keyframes rl-goal-bar-glow {
   0%, 100% {
     box-shadow:
-      0 0 0 1px rgba(249, 115, 22, 0.7),
+      0 0 0 2px rgba(249, 115, 22, 0.72),
       0 0 8px rgba(234, 88, 12, 0.3);
   }
   50% {
     box-shadow:
-      0 0 0 2px rgba(251, 146, 60, 0.95),
+      0 0 0 3px rgba(251, 146, 60, 0.98),
       0 0 16px rgba(249, 115, 22, 0.55);
   }
 }
 .rl-goal-bar-glow {
   border-radius: 9999px;
   animation: rl-goal-bar-glow 1s ease-in-out infinite;
+}
+
+/* ── 关卡目标金币条：填充条白↔黄快速闪烁（达标提示更强） ── */
+@keyframes rl-goal-bar-fill-flash {
+  0%, 100% {
+    background-color: rgba(234, 179, 8, 1); /* rl-gold */
+  }
+  50% {
+    background-color: rgba(255, 255, 255, 0.98);
+  }
+}
+@keyframes rl-goal-bar-fill-flash-soft {
+  0%, 100% {
+    background-color: rgba(234, 179, 8, 0.35); /* 对齐 bg-rl-gold/35 */
+  }
+  50% {
+    background-color: rgba(255, 255, 255, 0.55);
+  }
+}
+.rl-goal-bar-fill-flash {
+  animation: rl-goal-bar-fill-flash 0.2s steps(2, end) infinite;
+  will-change: background-color;
+}
+.rl-goal-bar-fill-flash-soft {
+  animation: rl-goal-bar-fill-flash-soft 0.2s steps(2, end) infinite;
+  will-change: background-color;
 }
 
 /* ── 技能牌附加边：线性渐变流光（禁止锥形渐变盘；周期 1～3s） ── */
@@ -552,5 +578,11 @@
     animation: none;
     transform: translate(-50%, -50%) rotate(35deg);
     opacity: 0.38;
+  }
+
+  .rl-goal-bar-glow,
+  .rl-goal-bar-fill-flash,
+  .rl-goal-bar-fill-flash-soft {
+    animation: none;
   }
 }

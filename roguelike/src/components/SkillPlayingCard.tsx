@@ -345,6 +345,16 @@ export function SkillPlayingCardDetailShell({
 export interface SkillPlayingCardProps {
   skill: Pick<SkillDef, 'name' | 'quality' | 'description' | 'effects' | 'id'>;
   enhancement: SkillEnhancement;
+  /** 测试/插画：牌面背景图（仅内容区，不影响外环/边框）；不传则不渲染 */
+  faceImageUrl?: string;
+  /** 图片适配方式 */
+  faceImageFit?: 'cover' | 'contain';
+  /** 图片不透明度（0~1） */
+  faceImageOpacity?: number;
+  /** 填图后隐藏牌面文字（技能名/数值/底边条等） */
+  hideFaceText?: boolean;
+  /** 仅测试用：禁用紫色品质牌面的锥彩 shimmer 层 */
+  disablePurpleShimmer?: boolean;
   /** `skillAccumulation[skill.id]`：累积类技能的当前池 */
   accumulated?: number;
   /** 本局超级牌张数；有「超级牌乘倍」且传入时才显示如 ×1.6 */
@@ -370,6 +380,11 @@ export interface SkillPlayingCardProps {
 export function SkillPlayingCard({
   skill,
   enhancement,
+  faceImageUrl,
+  faceImageFit = 'cover',
+  faceImageOpacity = 1,
+  hideFaceText = false,
+  disablePurpleShimmer = false,
   accumulated,
   superCardCount,
   runDiamonds,
@@ -394,62 +409,84 @@ export function SkillPlayingCard({
 
   const isFlashEdge = enhancement === 'flash';
   const hasEdgeValue = Boolean(edgeParts && enhancement !== 'normal');
+  const hideText = hideFaceText && Boolean(faceImageUrl);
 
   const isPurple = skill.quality === 'purple';
+  const showPurpleShimmer = isPurple && !disablePurpleShimmer;
 
   const face = (
     <div
       className={clsx(
         'relative flex h-full min-h-0 flex-col overflow-hidden text-center',
-        hasEdgeValue ? 'pt-[max(0.75rem,10%)] pb-0' : 'pt-[max(0.9375rem,13%)] pb-[8%]',
+        hideText ? 'p-0' : hasEdgeValue ? 'pt-[max(0.75rem,10%)] pb-0' : 'pt-[max(0.9375rem,13%)] pb-[8%]',
         q.bg,
         q.ink,
       )}
     >
-      {isPurple ? <div className="skill-purple-face-shimmer-layer z-[1]" aria-hidden /> : null}
-      {/* 银边（flash）：技能名区不截断，允许多行，过长时在区内纵向滚动 */}
-      <div
-        className={clsx(
-          'relative z-[2] flex min-h-0 flex-1 flex-col items-center justify-start gap-1 px-[6%]',
-          isFlashEdge && 'overflow-y-auto overflow-x-hidden [scrollbar-width:thin]',
-        )}
-      >
-        <h3
-          className={clsx(
-            'w-full text-[clamp(0.875rem,11cqw,1.125rem)] font-black leading-[1.15] tracking-tight break-words',
-            isFlashEdge ? 'line-clamp-none' : 'line-clamp-4',
-          )}
-        >
-          {skill.name}
-        </h3>
-        {baseNumericSegments.length > 0 ? (
-          <div className="-mt-0.5 w-full min-w-0 max-w-full">
-            <SkillFaceNumericOneLineRow segments={baseNumericSegments} />
-          </div>
-        ) : null}
-        {cumulativeSegments.length > 0 ? (
-          <div className="flex max-w-full flex-col gap-0.5">
-            {cumulativeSegments.map((seg, i) => (
-              <span
-                key={`${i}:${seg.kind}:${seg.text}`}
-                className={clsx(
-                  SKILL_FACE_NUMERIC_CLASS[seg.kind],
-                  'text-[clamp(0.75rem,6cqw,0.875rem)] font-black tabular-nums leading-none',
-                )}
-              >
-                {seg.text}
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </div>
-      {hasEdgeValue && edgeParts && enhancement !== 'normal' ? (
-        <div className="relative z-[2] shrink-0">
-          <SkillEdgeValueBottomStrip enhancement={enhancement} faceScale={1}>
-            <SkillEdgeValueOneLine value={edgeParts.value} enhancement={enhancement} />
-          </SkillEdgeValueBottomStrip>
+      {faceImageUrl ? (
+        <div className="absolute inset-0 z-0" aria-hidden>
+          <img
+            src={faceImageUrl}
+            alt=""
+            className={clsx(
+              'absolute inset-0 h-full w-full',
+              faceImageFit === 'contain' ? 'object-contain' : 'object-cover',
+            )}
+            style={{ opacity: Math.max(0, Math.min(1, faceImageOpacity)) }}
+            draggable={false}
+          />
+          {/* 轻量暗化：提升标题/数值可读性（不改变品质底色逻辑）；需要更强控制可在测试页加参数 */}
+          <div className="absolute inset-0 bg-black/10" />
         </div>
       ) : null}
+      {showPurpleShimmer ? <div className="skill-purple-face-shimmer-layer z-[1]" aria-hidden /> : null}
+      {hideText ? null : (
+        <>
+          {/* 银边（flash）：技能名区不截断，允许多行，过长时在区内纵向滚动 */}
+          <div
+            className={clsx(
+              'relative z-[2] flex min-h-0 flex-1 flex-col items-center justify-start gap-1 px-[6%]',
+              isFlashEdge && 'overflow-y-auto overflow-x-hidden [scrollbar-width:thin]',
+            )}
+          >
+            <h3
+              className={clsx(
+                'w-full text-[clamp(0.875rem,11cqw,1.125rem)] font-black leading-[1.15] tracking-tight break-words',
+                isFlashEdge ? 'line-clamp-none' : 'line-clamp-4',
+              )}
+            >
+              {skill.name}
+            </h3>
+            {baseNumericSegments.length > 0 ? (
+              <div className="-mt-0.5 w-full min-w-0 max-w-full">
+                <SkillFaceNumericOneLineRow segments={baseNumericSegments} />
+              </div>
+            ) : null}
+            {cumulativeSegments.length > 0 ? (
+              <div className="flex max-w-full flex-col gap-0.5">
+                {cumulativeSegments.map((seg, i) => (
+                  <span
+                    key={`${i}:${seg.kind}:${seg.text}`}
+                    className={clsx(
+                      SKILL_FACE_NUMERIC_CLASS[seg.kind],
+                      'text-[clamp(0.75rem,6cqw,0.875rem)] font-black tabular-nums leading-none',
+                    )}
+                  >
+                    {seg.text}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          {hasEdgeValue && edgeParts && enhancement !== 'normal' ? (
+            <div className="relative z-[2] shrink-0">
+              <SkillEdgeValueBottomStrip enhancement={enhancement} faceScale={1}>
+                <SkillEdgeValueOneLine value={edgeParts.value} enhancement={enhancement} />
+              </SkillEdgeValueBottomStrip>
+            </div>
+          ) : null}
+        </>
+      )}
     </div>
   );
 
@@ -463,7 +500,7 @@ export function SkillPlayingCard({
     <div
       className={clsx(
         /* 宽度由父级决定（关内槽位 / 预览列），避免 vw 随桌面视口突变 */
-        'group relative aspect-[2/3] w-full min-w-0 max-w-20 select-none',
+        'group relative aspect-[2/3] w-full min-w-0 max-w-[5.75rem] select-none',
         '[container-type:inline-size]',
         interactive && 'cursor-pointer transition-transform hover:-translate-y-0.5 active:scale-[0.98]',
         className

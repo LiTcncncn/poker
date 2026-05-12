@@ -5,9 +5,11 @@ import { getStageTargetGold } from '../engine/stageEngine';
 
 interface Props {
   stage: StageState;
+  runStageCount?: number;
 }
 
-export function ScoreDisplay({ stage }: Props) {
+export function ScoreDisplay({ stage, runStageCount }: Props) {
+  const stageCount = runStageCount ?? TOTAL_STAGES;
   const targetGold = getStageTargetGold(stage);
   const pct = Math.min(stage.accumulatedGold / targetGold, 1);
   const handsLeft = stage.totalHands - stage.usedHands;
@@ -33,7 +35,7 @@ export function ScoreDisplay({ stage }: Props) {
       <div className="flex items-center justify-between text-xs text-gray-400">
         <span>
           第 {stage.stageIndex + 1} 关
-          {stage.stageIndex < TOTAL_STAGES ? ` / ${TOTAL_STAGES}` : ' · 无限'}
+          {stage.stageIndex < stageCount ? ` / ${stageCount}` : ' · 无限'}
         </span>
         <span>剩余 <span className="text-white font-bold">{handsLeft}</span> 手</span>
       </div>

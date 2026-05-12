@@ -1,5 +1,6 @@
 import { Card, HandType, Suit } from '../shared/types/poker';
 import { SkillEnhancement } from './skill';
+import { DeckRule } from './profile';
 
 // ─── Run 全局 ────────────────────────────────────────────────
 export interface RunState {
@@ -10,6 +11,30 @@ export interface RunState {
   acquiredSkillIds: string[];
   /** 本局曾拥有后已卖出的技能 id；商店候选不再出现这些技能 */
   soldSkillIds: string[];
+
+  // ── 多局长线：局级规则 ────────────────────────────────────
+  /** 所属主线局编号（0 = 自由挑战） */
+  runNo: number;
+  /** 本局难度 */
+  difficulty: 'normal' | 'hard' | 'freeplay';
+  /** 本局牌堆规则 */
+  deckRule: DeckRule;
+  /** 本局全局禁 Joker */
+  runBanJokers: boolean;
+  /** 本局全局 Hold 增量（每关生效，已叠加进 stage 初始参数） */
+  runHoldDelta: number;
+  /** 本局全局手数增量 */
+  runHandsDelta: number;
+  /** 本局商店刷新费用增量 */
+  runShopRefreshCostDelta: number;
+  /** 本局商店商品价格增量 */
+  runShopPriceDelta: number;
+  /** 本局可用技能解锁顺序集合 */
+  allowedSkillOrders: number[];
+  /** 本局目标分外层倍率（已乘入每关 targetGold，此处仅供信息显示） */
+  runTargetMultiplier: number;
+  /** 本局主线关卡总数（10 或 20） */
+  runStageCount: number;
   /** 技能附加属性：skillId -> normal/flash/gold/laser/black（黑边：总槽 = 基础 skillSlotCap + 黑边枚数；「+1」含该牌本身所占 1 格，可多张线性叠加） */
   skillEnhancements: Record<string, SkillEnhancement>;
   /** 技能槽上限（本局基础）：默认 5；有效槽 = 本值 + 已持有黑边枚数（另见 `getEffectiveSkillSlotCap`） */
@@ -64,6 +89,8 @@ export interface RunState {
   handsPlayedTotal?: number;
   /** 本局遭遇过的最高单关目标金币 */
   highestSingleStageTarget: number;
+  /** IAA 使用状态（undefined = 本局未使用任何 IAA） */
+  iaa?: RunIaaState;
   /**
    * 单手 `finalGold` 创新高时记录：牌型为该手牌型，`finalGold` 与 `maxSingleHandGold` 一致。
    * 并列峰值时保留先达到者。
@@ -148,3 +175,34 @@ export interface SkillApplyLog {
 
 // ─── 牌型升级 ────────────────────────────────────────────────
 export type HandTypeUpgradeMap = Partial<Record<HandType, number>>;  // HandType -> level (default 1)
+
+// ─── IAA 状态 ─────────────────────────────────────────────────
+/** 每关 IAA 使用记录 */
+export interface StageIaaState {
+  /** 本关是否已用 IAA 补钻 +3 */
+  diamondRefillUsed?: boolean;
+  /** 本关是否已用 IAA 刷新商店 */
+  iaaRefreshUsed?: boolean;
+  /** 本关是否已用 IAA 购买商品 */
+  shopIaaPurchaseUsed?: boolean;
+  /** 本关 IAA HOLD+1 已授权但尚未消耗（授权后出现补牌按钮） */
+  extraHoldGranted?: boolean;
+  /** 本关 IAA HOLD+1 已消耗 */
+  extraHoldUsed?: boolean;
+  /** 本关是否已用 IAA 手数+1 */
+  extraHandUsed?: boolean;
+}
+
+/** 局级 IAA 使用汇总 */
+export interface RunIaaState {
+  /** 本局是否使用了任何 IAA 功能 */
+  iaaAssisted: boolean;
+  /** 本局 IAA 复活是否已用（每局限 1 次） */
+  runReviveUsed: boolean;
+  /** 本局累计观看广告次数 */
+  totalAdsWatched: number;
+  /** 本局 IAA 获得的钻石总量 */
+  diamondsFromIaa: number;
+  /** 各关 IAA 使用记录（stageIndex → 记录） */
+  perStage: Record<number, StageIaaState>;
+}
