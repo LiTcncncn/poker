@@ -31,8 +31,6 @@ interface Props {
   skillSlotCap: number;
   /** 当前关卡 stageIndex（保留给商店上下文使用） */
   stageIndex?: number;
-  /** 本局 IAA 补钻是否已达到共享上限 */
-  iaaClaimDiamondsUsed?: boolean;
   onChooseSkill:        (skill: SkillDef, enhancement: SkillEnhancement, price: number) => void;
   onSellSkill:          (skillId: string) => void;
   onChooseUpgrade:      (option: UpgradeOption) => void;
@@ -80,7 +78,6 @@ export function RewardModal({
   handTypeUpgrades,
   diamonds,
   skillSlotCap,
-  iaaClaimDiamondsUsed = false,
   onChooseSkill,
   onSellSkill,
   onChooseUpgrade,
@@ -100,8 +97,20 @@ export function RewardModal({
 
   const refreshCost = Math.max(0, reward.diamondRefreshCost ?? 5);
   const canRefresh = !reward.refreshUsedWithDiamonds && diamonds >= refreshCost;
-  const canRefreshWithMark = !!onIaaRefreshReward && !reward.refreshUsedWithIaa;
+  const canRefreshWithMark = !!onIaaRefreshReward;
   const canOpenRefreshOptions = canRefresh || canRefreshWithMark;
+
+  function handleRefreshEntryClick() {
+    if (canRefresh && !canRefreshWithMark) {
+      onRefreshWithDiamonds();
+      return;
+    }
+    if (!canRefresh && canRefreshWithMark) {
+      onIaaRefreshReward!();
+      return;
+    }
+    setRefreshOptionsOpen(true);
+  }
   const acquiredSkillIdsForDetail = useMemo(() => ownedSkills.map((s) => s.id), [ownedSkills]);
   /** `skillSlotCap` 为当前有效上限（基础槽 + 已持有黑边数）；购入黑边候选时上限再 +1 */
   function skillSlotsAfterBuying(enhancement: SkillEnhancement): number {
@@ -123,7 +132,7 @@ export function RewardModal({
           {/* 左：钻石余额 + IAA 补钻小按钮（unified 商店专属） */}
           <div className="justify-self-start flex items-center gap-1.5">
             <span className="text-[16px] font-bold tabular-nums text-rl-gold">💎{diamonds}</span>
-            {reward.step === 'unified' && onIaaClaimDiamonds && !iaaClaimDiamondsUsed && (
+            {reward.step === 'unified' && onIaaClaimDiamonds && (
               <button
                 type="button"
                 onClick={onIaaClaimDiamonds}
@@ -143,7 +152,7 @@ export function RewardModal({
         {reward.step === 'unified' ? (
           <div className="mx-auto grid w-max max-w-full grid-cols-[repeat(3,5.175rem)] grid-rows-2 justify-center gap-x-3 gap-y-4">
             {buildUnifiedShopSlots(reward).map((slot, slotGlobalIdx) => {
-              const isIaaSlot = reward.iaaItemSlotIndex === slotGlobalIdx;
+              const isIaaSlot = onIaaBuyItem != null && reward.iaaItemSlotIndex === slotGlobalIdx;
               if (slot.kind === 'skill') {
                 const opt = slot.opt;
                 const slotFull = ownedSkills.length >= skillSlotsAfterBuying(opt.enhancement);
@@ -492,7 +501,7 @@ export function RewardModal({
           {/* 刷新入口：点击后选择 💎 或播放标识刷新 */}
           <button
             type="button"
-            onClick={() => setRefreshOptionsOpen(true)}
+            onClick={handleRefreshEntryClick}
             disabled={!canOpenRefreshOptions}
             className="flex-1 bg-rl-blue disabled:bg-gray-700 disabled:text-gray-400 rounded-lg py-2 font-bold text-[13px]"
           >
@@ -534,19 +543,17 @@ export function RewardModal({
               >
                 刷新 💎{refreshCost}{reward.refreshUsedWithDiamonds ? '（已用）' : ''}
               </button>
-              {onIaaRefreshReward && (
+              {canRefreshWithMark && (
                 <button
                   type="button"
-                  disabled={!canRefreshWithMark}
                   onClick={() => {
                     setRefreshOptionsOpen(false);
-                    onIaaRefreshReward();
+                    onIaaRefreshReward!();
                   }}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-rl-blue py-3 text-[15px] font-black text-white disabled:bg-gray-700 disabled:text-gray-400"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-rl-blue py-3 text-[15px] font-black text-white"
                 >
                   <span>刷新</span>
                   <IaaPlayMark />
-                  {reward.refreshUsedWithIaa && <span className="text-xs opacity-75">（已用）</span>}
                 </button>
               )}
               <button

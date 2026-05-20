@@ -1,12 +1,12 @@
-import React, { Component, ReactNode, useEffect, useMemo } from 'react';
+import React, { Component, ReactNode, useEffect } from 'react';
 import { useRLStore } from './store/roguelikeStore';
 import { useProfileStore } from './store/profileStore';
-import { FrameId } from './types/profile';
 import { RunEntry } from './components/RunEntry';
 import { StageView } from './components/StageView';
 import { SkillCardShowcase } from './components/SkillCardShowcase';
 import { SkillFaceTestBoard } from './components/SkillFaceTestBoard';
 import { EndlessChoiceModal } from './components/EndlessChoiceModal';
+import { GameToast } from './components/GameToast';
 import { roguelikeLocalStorageKeysForHardReset } from './config/storageNamespace';
 
 // ── 错误边界：防止任何运行时错误导致白屏 ──────────────────────────
@@ -51,22 +51,6 @@ class ErrorBoundary extends Component<
   }
 }
 
-// ── 边框样式映射 ─────────────────────────────────────────────────
-function getFrameStyle(frame: FrameId): React.CSSProperties {
-  switch (frame) {
-    case 'silver':
-      return { boxShadow: 'inset 0 0 0 2px rgba(200,200,210,0.55), 0 0 18px rgba(180,180,190,0.15)' };
-    case 'gold':
-      return { boxShadow: 'inset 0 0 0 2px rgba(250,204,21,0.75), 0 0 22px rgba(250,204,21,0.18)' };
-    case 'rainbow':
-      return { boxShadow: 'inset 0 0 0 2px transparent', outline: '2px solid transparent', backgroundImage: 'none', border: '2px solid transparent', backgroundClip: 'padding-box', filter: 'drop-shadow(0 0 6px #f472b6) drop-shadow(0 0 6px #60a5fa) drop-shadow(0 0 6px #34d399)' };
-    case 'black':
-      return { boxShadow: 'inset 0 0 0 2px rgba(0,0,0,0.9), inset 0 0 0 4px rgba(50,50,60,0.6)' };
-    default:
-      return {};
-  }
-}
-
 // ── 主应用 ──────────────────────────────────────────────────────
 function AppInner() {
   const showSkillPreview =
@@ -78,9 +62,7 @@ function AppInner() {
     new URLSearchParams(window.location.search).get('skillFaceTest') === '1';
 
   const { run, handState, reward, dealInitialHand, enterEndlessMode, abandonRun } = useRLStore();
-  const { profile, recordNormalClear, recordHardClear } = useProfileStore();
-
-  const frameStyle = useMemo(() => getFrameStyle(profile.activeFrame), [profile.activeFrame]);
+  const { recordNormalClear, recordHardClear } = useProfileStore();
 
   const hasActiveRun =
     run !== null &&
@@ -130,7 +112,7 @@ function AppInner() {
       </div>
 
       {/* 固定手机画布宽度：Mac 宽屏也与真机同一列逻辑宽，避免 vw / 视口差导致布局走样 */}
-      <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[390px] flex-1 flex-col overflow-x-hidden" style={frameStyle}>
+      <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[390px] flex-1 flex-col overflow-x-hidden">
         {showSkillPreview ? (
           <SkillCardShowcase />
         ) : showSkillFaceTest ? (
@@ -146,6 +128,7 @@ function AppInner() {
         onContinueEndless={() => enterEndlessMode()}
         onReturnToMenu={() => abandonRun()}
       />
+      <GameToast />
     </div>
   );
 }

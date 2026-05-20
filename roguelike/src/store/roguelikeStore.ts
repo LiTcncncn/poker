@@ -39,9 +39,12 @@ import {
   ROGUELIKE_ZUSTAND_PERSIST_NAME,
 } from '../config/storageNamespace';
 import { getAllowedSkillEnhancementsAfterNormalRun } from '../config/mainlineRuns';
+import { getIaaStageKey } from '../utils/iaaStageKey';
 
 const HAND_SIZE = 5;
 const IAA_DIAMOND_REFILL_LIMIT = 2;
+
+let gameToastTimer: ReturnType<typeof setTimeout> | null = null;
 
 function fallbackHighestNormalClearedForEdgeGate(run: RunState): number {
   if (run.difficulty === 'freeplay') return Number.MAX_SAFE_INTEGER;
@@ -140,7 +143,22 @@ function applyStageWinEconomy(r: RunState): RunState {
 }
 
 // ─── 结算辅助 ────────────────────────────────────────────────
-type SetFn = (partial: Partial<{ run: RunState | null; handState: HandState | null; reward: RewardState | null }>) => void;
+type RLPartial = {
+  run: RunState | null;
+  handState: HandState | null;
+  reward: RewardState | null;
+  gameToast: string | null;
+};
+type SetFn = (partial: Partial<RLPartial>) => void;
+
+function scheduleGameToast(set: (partial: Partial<RLPartial>) => void, message: string) {
+  if (gameToastTimer) clearTimeout(gameToastTimer);
+  set({ gameToast: message });
+  gameToastTimer = setTimeout(() => {
+    set({ gameToast: null });
+    gameToastTimer = null;
+  }, 2200);
+}
 
 function _commitScore(
   handState: HandState,
@@ -331,6 +349,12 @@ interface RLStore {
   run: RunState | null;
   handState: HandState | null;
   reward: RewardState | null;
+  /** 局内轻提示（IAA 等），不持久化 */
+  gameToast: string | null;
+
+  // ── Run 流程 ──────────────────────────────
+  showGameToast: (message: string) => void;
+  clearGameToast: () => void;
 
   // ── Run 流程 ──────────────────────────────
   startNewRun:        (config?: RunConfig) => void;
@@ -394,6 +418,14 @@ export const useRLStore = create<RLStore>()(
       run: null,
       handState: null,
       reward: null,
+      gameToast: null,
+
+      showGameToast: (message) => scheduleGameToast(set, message),
+      clearGameToast: () => {
+        if (gameToastTimer) clearTimeout(gameToastTimer);
+        gameToastTimer = null;
+        set({ gameToast: null });
+      },
 
       // ─── 开始新 Run ────────────────────────────────────────────
       startNewRun: (config?: RunConfig) => {
@@ -506,7 +538,8 @@ export const useRLStore = create<RLStore>()(
         const rawStage = get().currentStage();
         if (!rawStage) return;
         const stage = getEffectiveStage(rawStage, run.acquiredSkillIds);
-        const iaaGranted = run.iaa?.perStage[rawStage.stageIndex]?.extraHoldGranted ?? false;
+        const iaaKey = getIaaStageKey(run);
+        const iaaGranted = run.iaa?.perStage[iaaKey]?.extraHoldGranted ?? false;
         if (!canDraw(stage) && !iaaGranted) return;
 
         // 消耗一次补牌次数（IAA HOLD 时 holdUsed 可超出 holdTotal，钻石结算中 holdLeft<0 自动归零）
@@ -515,7 +548,6 @@ export const useRLStore = create<RLStore>()(
 
         // 消耗 IAA HOLD 授权
         if (iaaGranted) {
-          const si = rawStage.stageIndex;
           const prevIaa = run.iaa!;
           updatedRun = {
             ...updatedRun,
@@ -523,7 +555,7 @@ export const useRLStore = create<RLStore>()(
               ...prevIaa,
               perStage: {
                 ...prevIaa.perStage,
-                [si]: { ...prevIaa.perStage[si], extraHoldGranted: false, extraHoldUsed: true },
+                [iaaKey]: { ...prevIaa.perStage[iaaKey], extraHoldGranted: false, extraHoldUsed: true },
               },
             },
           };
@@ -877,7 +909,7 @@ export const useRLStore = create<RLStore>()(
         const { run, reward } = get();
         if (!run || !reward || reward.step !== 'unified') return;
         if (reward.refreshUsedWithIaa) return;
-        const stageIdx = run.currentStageIndex;
+        const stageIdx = getIaaStageKey(run);
         const prevIaa: RunIaaState = run.iaa ?? {
           iaaAssisted: false, runReviveUsed: false,
           totalAdsWatched: 0, diamondsFromIaa: 0, perStage: {},
@@ -954,7 +986,7 @@ export const useRLStore = create<RLStore>()(
         if (!run || !reward || reward.step !== 'unified') return;
         const slotIdx = reward.iaaItemSlotIndex;
         if (slotIdx === undefined || slotIdx < 0) return;
-        const stageIdx = run.currentStageIndex;
+        const stageIdx = getIaaStageKey(run);
         const prevIaa: RunIaaState = run.iaa ?? {
           iaaAssisted: false, runReviveUsed: false,
           totalAdsWatched: 0, diamondsFromIaa: 0, perStage: {},
@@ -1025,15 +1057,16 @@ export const useRLStore = create<RLStore>()(
       iaaGrantExtraHold: () => {
         const { run, handState } = get();
         if (!run || !handState || handState.phase !== 'hold') return;
-        const stageIdx = run.currentStageIndex;
-        const rawStage = run.stages[stageIdx];
+        const stageIdx = getIaaStageKey(run);
+        const rawStage = run.stages[stageIdx] ?? get().currentStage();
         if (!rawStage) return;
         const stage = getEffectiveStage(rawStage, run.acquiredSkillIds);
         const curHandIdx = stage.usedHands;
         const holdBlockedByStageRule =
           (stage.blockHoldBefore > 0 && curHandIdx < stage.blockHoldBefore) ||
           (stage.blockHoldAfter > 0 && curHandIdx >= stage.totalHands - stage.blockHoldAfter);
-        if (stage.holdTotal <= 0 || remainingHold(stage) > 0 || holdBlockedByStageRule) return;
+        if (holdBlockedByStageRule) return;
+        if (stage.holdTotal <= 0 || remainingHold(stage) > 0) return;
         const prevIaa: RunIaaState = run.iaa ?? {
           iaaAssisted: false, runReviveUsed: false,
           totalAdsWatched: 0, diamondsFromIaa: 0, perStage: {},
@@ -1055,8 +1088,8 @@ export const useRLStore = create<RLStore>()(
       iaaExtraHand: () => {
         const { run } = get();
         if (!run || run.status !== 'defeat') return;
-        const stageIdx = run.currentStageIndex;
-        const stage = run.stages[stageIdx];
+        const stageIdx = getIaaStageKey(run);
+        const stage = run.stages[stageIdx] ?? get().currentStage();
         if (!stage || stage.status !== 'lost') return;
         const prevIaa: RunIaaState = run.iaa ?? {
           iaaAssisted: false, runReviveUsed: false,
@@ -1088,9 +1121,11 @@ export const useRLStore = create<RLStore>()(
         const { run, handState } = get();
         if (!run || run.status !== 'defeat') return;
         if (run.iaa?.runReviveUsed) return;
-        const stageIdx = run.currentStageIndex;
-        const stage = run.stages[stageIdx];
+        const stageIdx = getIaaStageKey(run);
+        const stage = run.stages[stageIdx] ?? get().currentStage();
         if (!stage || stage.status !== 'lost') return;
+        const prevIaaCheck = run.iaa?.perStage[stageIdx];
+        if (!prevIaaCheck?.extraHandUsed) return;
 
         const prevIaa: RunIaaState = run.iaa ?? {
           iaaAssisted: false, runReviveUsed: false,

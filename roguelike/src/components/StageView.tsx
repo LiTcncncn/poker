@@ -10,6 +10,12 @@ import { getModifierById, canDraw, remainingHold, getEffectiveStage, isModifierS
 import { evaluateHandWithSkills, getSkillsByIds } from '../engine/skillEngine';
 import { TOTAL_STAGES, getEffectiveSkillSlotCap } from '../engine/runEngine';
 import type { HandResult } from '../types/run';
+import { getIaaStageKey } from '../utils/iaaStageKey';
+import {
+  canShowIaaDiamondRefill,
+  canShowIaaRefreshReward,
+  canShowIaaShopBuy,
+} from '../utils/iaaAvailability';
 import { IaaPlayMark } from './IaaPlayMark';
 
 /** 翻牌前：与结算槽外层同 padding，不渲染假结算文案 */
@@ -193,10 +199,11 @@ export function StageView() {
 
   // ── IAA 状态（从 run.iaa 派生）──────────────────────────────
   const iaaState = run?.iaa;
-  const stageIdx = stage?.stageIndex ?? 0;
-  const iaaPerStage = iaaState?.perStage[stageIdx] ?? {};
-  const iaaDiamondRefillCount = iaaState?.diamondRefillCount ?? Math.floor((iaaState?.diamondsFromIaa ?? 0) / 3);
-  const canIaaClaimDiamonds = iaaDiamondRefillCount < 2;
+  const iaaStageKey = run ? getIaaStageKey(run) : 0;
+  const iaaPerStage = iaaState?.perStage[iaaStageKey] ?? {};
+  const showIaaDiamondRefill = canShowIaaDiamondRefill(run, iaaState);
+  const showIaaRefreshReward = reward ? canShowIaaRefreshReward(reward, iaaPerStage) : false;
+  const showIaaShopBuy = reward ? canShowIaaShopBuy(reward, run, iaaPerStage) : false;
 
   const currentHandIdx = effectiveStage.usedHands;
   const holdBlockedByStageRule =
@@ -361,7 +368,7 @@ export function StageView() {
                   >
                     💎{run.runDiamonds}
                   </span>
-                  {canIaaClaimDiamonds && (
+                  {showIaaDiamondRefill && (
                     <button
                       type="button"
                       onClick={iaaClaimDiamonds}
@@ -498,15 +505,14 @@ export function StageView() {
           diamonds={run.runDiamonds}
           skillSlotCap={getEffectiveSkillSlotCap(run)}
           stageIndex={run.currentStageIndex}
-          iaaClaimDiamondsUsed={!canIaaClaimDiamonds}
           onChooseSkill={chooseSkill}
           onSellSkill={sellSkill}
           onChooseUpgrade={(opt) => chooseUpgrade(opt as UpgradeOption)}
           onChooseAttributeCard={(card: CardType) => chooseAttributeCard(card)}
           onRefreshWithDiamonds={refreshRewardWithDiamonds}
-          onIaaRefreshReward={iaaRefreshReward}
-          onIaaClaimDiamonds={iaaClaimDiamonds}
-          onIaaBuyItem={iaaBuyItem}
+          onIaaRefreshReward={showIaaRefreshReward ? iaaRefreshReward : undefined}
+          onIaaClaimDiamonds={showIaaDiamondRefill ? iaaClaimDiamonds : undefined}
+          onIaaBuyItem={showIaaShopBuy ? iaaBuyItem : undefined}
           onContinue={proceedRewardStep}
         />
       )}

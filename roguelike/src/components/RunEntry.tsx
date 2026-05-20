@@ -2,17 +2,7 @@ import React, { useState } from 'react';
 import { useProfileStore } from '../store/profileStore';
 import { useRLStore } from '../store/roguelikeStore';
 import { MAINLINE_RUNS, buildRunConfig, buildFreeplayConfig } from '../config/mainlineRuns';
-import { FRAME_DEFS, FrameId } from '../types/profile';
 import { RushLeaderboardModal } from './RushLeaderboardModal';
-
-// ─── 边框 dot 颜色（选择器小圆点） ────────────────────────────────
-const FRAME_DOT_CLASS: Record<string, string> = {
-  default: 'bg-gray-600 border-gray-500',
-  silver:  'bg-gradient-to-br from-gray-200 to-gray-400 border-gray-300',
-  gold:    'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-400',
-  rainbow: 'bg-gradient-to-br from-pink-400 via-yellow-300 to-cyan-400 border-white/40',
-  black:   'bg-gray-900 border-gray-600',
-};
 
 // ─── 限制条件 Chip ─────────────────────────────────────────────
 function RuleChip({ label, variant = 'debuff' }: { label: string; variant?: 'debuff' | 'buff' | 'special' }) {
@@ -77,7 +67,7 @@ function RewardModal({ open, onClose, rewardText, isHard }: {
 
 // ─── 主组件 ───────────────────────────────────────────────────
 export function RunEntry() {
-  const { profile, isNormalCleared, isHardCleared, isNormalChallengeableRun, isHardUnlocked, getUnlockedFrames, setActiveFrame } = useProfileStore();
+  const { profile, isNormalCleared, isHardCleared, isNormalChallengeableRun, isHardUnlocked } = useProfileStore();
 
   // 默认显示最后一个可挑战普通局（而非固定第 1 局）
   const [currentRunNo, setCurrentRunNo] = useState(() => Math.max(1, profile.highestNormalRunCleared + 1));
@@ -85,9 +75,6 @@ export function RunEntry() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [rewardModalOpen, setRewardModalOpen] = useState(false);
   const { startNewRun } = useRLStore();
-
-  const unlockedFrames = getUnlockedFrames();
-  const showFramePicker = unlockedFrames.length > 1; // 有解锁才显示
 
   const runDef = MAINLINE_RUNS.find(r => r.runNo === currentRunNo);
   const isNormalClear = isNormalCleared(currentRunNo);
@@ -216,27 +203,6 @@ export function RunEntry() {
         </div>
 
         <div className="flex-1" />
-
-        {/* ── 边框选择器 ────────────────────────────────────── */}
-        {showFramePicker && (
-          <div className="flex items-center gap-2">
-            {FRAME_DEFS.filter(f => unlockedFrames.includes(f.id)).map(f => (
-              <button
-                key={f.id}
-                onClick={() => setActiveFrame(f.id as FrameId)}
-                title={f.label}
-                className={`w-7 h-7 rounded-full border-2 transition-all ${
-                  profile.activeFrame === f.id
-                    ? 'scale-110 ring-2 ring-white/40 ring-offset-1 ring-offset-transparent'
-                    : 'opacity-60 hover:opacity-100'
-                } ${FRAME_DOT_CLASS[f.id]}`}
-              />
-            ))}
-            <span className="text-xs text-gray-500 ml-1">
-              {FRAME_DEFS.find(f => f.id === profile.activeFrame)?.label ?? ''}边框
-            </span>
-          </div>
-        )}
 
         {/* ── 主按钮区 ─────────────────────────────────────── */}
         <div className="flex flex-col gap-3 w-full">

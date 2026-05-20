@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ProfileState, RunClearRecord, FrameId, FRAME_DEFS } from '../types/profile';
+import { ProfileState, RunClearRecord } from '../types/profile';
 import { RG_STORAGE_SLUG } from '../config/storageNamespace';
 import { getUnlockedOrdersAfterNormalRun } from '../config/skillUnlockOrders';
 
@@ -16,7 +16,6 @@ const INITIAL_PROFILE: ProfileState = {
   hardClears: {},
   normalEndlessBest: {},
   hardEndlessBest: {},
-  activeFrame: 'default',
 };
 
 // ─── Store 接口 ────────────────────────────────────────────────
@@ -43,11 +42,6 @@ interface ProfileStore {
   /** 某困难局是否已解锁（对应普通局已通关） */
   isHardUnlocked: (runNo: number) => boolean;
 
-  /** 已解锁的边框列表（根据最高通关局计算） */
-  getUnlockedFrames: () => FrameId[];
-  /** 切换当前边框 */
-  setActiveFrame: (frame: FrameId) => void;
-
   /** 重置 Profile（调试用） */
   resetProfile: () => void;
 }
@@ -66,14 +60,11 @@ export const useProfileStore = create<ProfileStore>()(
             bestEndlessCount: 0,
           };
           const highest = Math.max(state.profile.highestNormalRunCleared, runNo);
-          const newlyUnlockedFrames = FRAME_DEFS.filter((f) => f.unlockRunNo === runNo);
-          const newlyUnlockedFrame = newlyUnlockedFrames[newlyUnlockedFrames.length - 1];
           return {
             profile: {
               ...state.profile,
               highestNormalRunCleared: highest,
               normalClears: { ...state.profile.normalClears, [runNo]: newRecord },
-              activeFrame: newlyUnlockedFrame?.id ?? state.profile.activeFrame,
             },
           };
         });
@@ -161,19 +152,6 @@ export const useProfileStore = create<ProfileStore>()(
       isHardUnlocked: (runNo) => {
         const { profile } = get();
         return !!profile.normalClears[runNo];
-      },
-
-      getUnlockedFrames: () => {
-        const h = get().profile.highestNormalRunCleared;
-        return FRAME_DEFS
-          .filter(f => h >= f.unlockRunNo)
-          .map(f => f.id);
-      },
-
-      setActiveFrame: (frame) => {
-        set(state => ({
-          profile: { ...state.profile, activeFrame: frame },
-        }));
       },
 
       resetProfile: () => {

@@ -74,13 +74,14 @@ export interface MainlineRunDef {
   hardDisplayTags: string[];
 }
 
-// ─── 边框皮肤 ──────────────────────────────────────────────────
+// ─── 技能附加边解锁（通关局号 → 商店可 Roll 银/金/彩/黑边）────────
 export type FrameId = 'default' | 'silver' | 'gold' | 'rainbow' | 'black';
 
 export interface FrameDef {
   id: FrameId;
   label: string;
-  unlockRunNo: number; // 0 = 默认解锁
+  /** 普通模式通关该局后，对应附加边进入商店池（见 `getAllowedSkillEnhancementsAfterNormalRun`） */
+  unlockRunNo: number;
 }
 
 export const FRAME_DEFS: FrameDef[] = [
@@ -110,8 +111,6 @@ export interface ProfileState {
   normalEndlessBest: Record<number, number>;
   /** 困难局无尽最高纪录 */
   hardEndlessBest: Record<number, number>;
-  /** 当前选中的界面边框皮肤 */
-  activeFrame: FrameId;
 }
 
 // ─── 供 Suit/Rank 在 deck rule 中使用的类型 ─────────────────────
