@@ -29,12 +29,28 @@ export interface RunState {
   runShopRefreshCostDelta: number;
   /** 本局商店商品价格增量 */
   runShopPriceDelta: number;
+  /** 本局商店牌型升级槽增量（总数仍为 6） */
+  runShopUpgradeSlotBonus: number;
+  /** 本局商店超级牌槽增量（总数仍为 6） */
+  runShopAttributeSlotBonus: number;
   /** 本局可用技能解锁顺序集合 */
   allowedSkillOrders: number[];
   /** 本局商店可 Roll 出的技能附加边（不含 normal） */
   allowedSkillEnhancements: SkillEnhancement[];
+  /** 商店不出现带边技能 */
+  runBanSkillShopEdges: boolean;
   /** 本局目标分外层倍率（已乘入每关 targetGold，此处仅供信息显示） */
   runTargetMultiplier: number;
+  /** Boss 关目标分外层倍率（仅 Boss 关 targetGold 再乘，默认 1） */
+  runBossTargetMultiplier: number;
+  /** 整局：2–6 等小牌面分不计（与 StageState.bannedRankMax 叠加取 max） */
+  runBannedRankMax: number;
+  /** 整局：J/Q/K 牌面分不计 */
+  runBanFaceCardScore: boolean;
+  /** 每次商店随机溢价商品数（0 = 无） */
+  runShopPremiumSlotCount: number;
+  /** 溢价商品售价倍率 */
+  runShopPremiumPriceMultiplier: number;
   /** 本局主线关卡总数（10 或 20） */
   runStageCount: number;
   /** 技能附加属性：skillId -> normal/flash/gold/laser/black（黑边：总槽 = 基础 skillSlotCap + 黑边枚数；「+1」含该牌本身所占 1 格，可多张线性叠加） */

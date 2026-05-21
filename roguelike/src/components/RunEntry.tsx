@@ -28,43 +28,6 @@ function ClearBadge({ cleared, label }: { cleared: boolean; label: string }) {
   );
 }
 
-// ─── 奖励弹窗 ──────────────────────────────────────────────────
-function RewardModal({ open, onClose, rewardText, isHard }: {
-  open: boolean;
-  onClose: () => void;
-  rewardText: string;
-  isHard: boolean;
-}) {
-  if (!open) return null;
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className={`w-full max-w-[390px] rounded-t-3xl pt-5 pb-10 px-6 flex flex-col gap-4 shadow-2xl ${
-          isHard ? 'bg-[#1a0808] border-t border-red-900/60' : 'bg-[#0d2040] border-t border-yellow-500/20'
-        }`}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <span className={`text-sm font-bold ${isHard ? 'text-red-300' : 'text-yellow-400'}`}>
-            普通胜利奖励
-          </span>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-200 text-xl leading-none px-1"
-            aria-label="关闭"
-          >
-            ×
-          </button>
-        </div>
-        <p className="text-gray-200 text-sm leading-relaxed">{rewardText}</p>
-      </div>
-    </div>
-  );
-}
-
 // ─── 主组件 ───────────────────────────────────────────────────
 export function RunEntry() {
   const { profile, isNormalCleared, isHardCleared, isNormalChallengeableRun, isHardUnlocked } = useProfileStore();
@@ -73,7 +36,6 @@ export function RunEntry() {
   const [currentRunNo, setCurrentRunNo] = useState(() => Math.max(1, profile.highestNormalRunCleared + 1));
   const [difficulty, setDifficulty] = useState<'normal' | 'hard'>('normal');
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
-  const [rewardModalOpen, setRewardModalOpen] = useState(false);
   const { startNewRun } = useRLStore();
 
   const runDef = MAINLINE_RUNS.find(r => r.runNo === currentRunNo);
@@ -84,7 +46,10 @@ export function RunEntry() {
     : isHardUnlocked(currentRunNo);
 
   const config = runDef ? buildRunConfig(currentRunNo, difficulty, profile.highestNormalRunCleared) : null;
-  const displayTags = difficulty === 'normal' ? (runDef?.displayTags ?? []) : (runDef?.hardDisplayTags ?? []);
+  const displayTags =
+    difficulty === 'normal'
+      ? (runDef?.displayTags ?? [])
+      : [...(runDef?.displayTags ?? []), ...(runDef?.hardDisplayTags ?? [])];
 
   const highestUnlocked = Math.max(1, profile.highestNormalRunCleared + 1);
   // 显示真实局名的上限：可挑战局 + 1（额外展示下一局名）
@@ -244,13 +209,6 @@ export function RunEntry() {
       </div>
 
       <RushLeaderboardModal open={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
-
-      <RewardModal
-        open={rewardModalOpen}
-        onClose={() => setRewardModalOpen(false)}
-        rewardText={runDef?.rewardText ?? ''}
-        isHard={isHard}
-      />
     </div>
   );
 }

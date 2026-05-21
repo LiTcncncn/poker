@@ -293,6 +293,82 @@ export function getDefaultDiamondRefreshCost(): number {
   return DEFAULT_DIAMOND_REFRESH_COST;
 }
 
+export interface RunShopRules {
+  refreshCostDelta?: number;
+  premiumSlotCount?: number;
+  premiumPriceMultiplier?: number;
+  /** 所有商品标价 +N（技能/升级/属性） */
+  priceDelta?: number;
+}
+
+function applyShopPriceDelta(reward: RewardState, delta: number): RewardState {
+  if (delta === 0) return reward;
+  const bump = (price: number) => Math.max(0, price + delta);
+  return {
+    ...reward,
+    skillOptions: reward.skillOptions.map((o) => ({ ...o, price: bump(o.price) })),
+    upgradeOptions: reward.upgradeOptions.map((o) => ({ ...o, price: bump(o.price) })),
+    attributeOptions: reward.attributeOptions.map((o) => ({ ...o, price: bump(o.price) })),
+  };
+}
+
+/** 按局规则调整商店：刷新费增量、随机溢价槽位、全局加价 */
+export function applyRunShopRules(reward: RewardState, rules: RunShopRules): RewardState {
+  let next: RewardState = { ...reward };
+  const refreshDelta = rules.refreshCostDelta ?? 0;
+  if (refreshDelta !== 0) {
+    next.diamondRefreshCost = getDefaultDiamondRefreshCost() + refreshDelta;
+  }
+  const premiumCount = rules.premiumSlotCount ?? 0;
+  const premiumMult = rules.premiumPriceMultiplier ?? 1;
+  if (premiumCount > 0 && premiumMult > 1) {
+    next = applyShopPremiumPricing(next, premiumCount, premiumMult);
+  }
+  const priceDelta = rules.priceDelta ?? 0;
+  if (priceDelta !== 0) {
+    next = applyShopPriceDelta(next, priceDelta);
+  }
+  return next;
+}
+
+function applyShopPremiumPricing(
+  reward: RewardState,
+  count: number,
+  multiplier: number,
+): RewardState {
+  const skillLen = reward.skillOptions.length;
+  const upgradeLen = reward.upgradeOptions.length;
+  const total = skillLen + upgradeLen + reward.attributeOptions.length;
+  if (total === 0) return reward;
+
+  const indices = Array.from({ length: total }, (_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  const picked = new Set(indices.slice(0, Math.min(count, total)));
+
+  const skillOptions = reward.skillOptions.map((opt, i) =>
+    picked.has(i) ? { ...opt, price: opt.price * multiplier } : opt,
+  );
+  const upgradeOptions = reward.upgradeOptions.map((opt, i) => {
+    const flat = skillLen + i;
+    return picked.has(flat) ? { ...opt, price: opt.price * multiplier } : opt;
+  });
+  const attributeOptions = reward.attributeOptions.map((opt, i) => {
+    const flat = skillLen + upgradeLen + i;
+    return picked.has(flat) ? { ...opt, price: opt.price * multiplier } : opt;
+  });
+
+  return {
+    ...reward,
+    skillOptions,
+    upgradeOptions,
+    attributeOptions,
+    shopPremiumSlotIndices: [...picked],
+  };
+}
+
 // ─── 属性牌生成 ──────────────────────────────────────────────────
 
 const SUITS: Suit[]  = ['spades', 'hearts', 'clubs', 'diamonds'];
@@ -527,6 +603,8 @@ export function generateAttributeCardOptionsCount(count: number): Card[] {
  * 关卡序号 k（从 1 计）：k=1、2 固定 330；`k % 3 === 0` 且 k≥3 为精英池，否则普通池。
  * 见 `Roguelike2.0统一关后商店设计.md`
  */
+const UNIFIED_SHOP_SLOT_TOTAL = 6;
+
 export function pickUnifiedShopComposition(shopStageK: number): { skills: number; upgrades: number; attributes: number } {
   if (shopStageK === 1 || shopStageK === 2) {
     return { skills: 3, upgrades: 3, attributes: 0 };
@@ -541,6 +619,58 @@ export function pickUnifiedShopComposition(shopStageK: number): { skills: number
   if (i === 0) return { skills: 2, upgrades: 2, attributes: 2 };
   if (i === 1) return { skills: 2, upgrades: 3, attributes: 1 };
   return { skills: 1, upgrades: 3, attributes: 2 };
+}
+
+/**
+ * 牌型升级槽 +N：优先减少超级属性牌，再减少技能牌，商店总槽位仍为 6。
+ */
+export function applyUpgradeSlotBonus(
+  comp: { skills: number; upgrades: number; attributes: number },
+  bonus: number,
+): { skills: number; upgrades: number; attributes: number } {
+  if (bonus <= 0) return comp;
+  let { skills, upgrades, attributes } = comp;
+  upgrades += bonus;
+  let toRemove = bonus;
+  const fromAttr = Math.min(attributes, toRemove);
+  attributes -= fromAttr;
+  toRemove -= fromAttr;
+  if (toRemove > 0) {
+    skills = Math.max(0, skills - toRemove);
+  }
+  let sum = skills + upgrades + attributes;
+  if (sum > UNIFIED_SHOP_SLOT_TOTAL) {
+    upgrades = Math.max(0, upgrades - (sum - UNIFIED_SHOP_SLOT_TOTAL));
+  } else if (sum < UNIFIED_SHOP_SLOT_TOTAL) {
+    skills += UNIFIED_SHOP_SLOT_TOTAL - sum;
+  }
+  return { skills, upgrades, attributes };
+}
+
+/**
+ * 超级牌槽 +N：优先减少牌型升级牌，再减少技能牌，商店总槽位仍为 6。
+ */
+export function applyAttributeSlotBonus(
+  comp: { skills: number; upgrades: number; attributes: number },
+  bonus: number,
+): { skills: number; upgrades: number; attributes: number } {
+  if (bonus <= 0) return comp;
+  let { skills, upgrades, attributes } = comp;
+  attributes += bonus;
+  let toRemove = bonus;
+  const fromUp = Math.min(upgrades, toRemove);
+  upgrades -= fromUp;
+  toRemove -= fromUp;
+  if (toRemove > 0) {
+    skills = Math.max(0, skills - toRemove);
+  }
+  let sum = skills + upgrades + attributes;
+  if (sum > UNIFIED_SHOP_SLOT_TOTAL) {
+    attributes = Math.max(0, attributes - (sum - UNIFIED_SHOP_SLOT_TOTAL));
+  } else if (sum < UNIFIED_SHOP_SLOT_TOTAL) {
+    skills += UNIFIED_SHOP_SLOT_TOTAL - sum;
+  }
+  return { skills, upgrades, attributes };
 }
 
 function toSkillShopOptions(
@@ -633,8 +763,12 @@ function buildUnifiedShopPayload(
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
   allowedSkillIds?: Set<string>,
   allowedSkillEnhancements?: Set<SkillEnhancement>,
+  shopUpgradeSlotBonus = 0,
+  shopAttributeSlotBonus = 0,
 ): Pick<RewardState, 'skillOptions' | 'upgradeOptions' | 'attributeOptions'> {
-  const { skills, upgrades, attributes } = pickUnifiedShopComposition(shopStageK);
+  const baseComp = pickUnifiedShopComposition(shopStageK);
+  const afterUpgrade = applyUpgradeSlotBonus(baseComp, shopUpgradeSlotBonus);
+  const { skills, upgrades, attributes } = applyAttributeSlotBonus(afterUpgrade, shopAttributeSlotBonus);
   const afterEliteSkills = shopStageK % 3 === 0;
   const skillDefs = generateSkillOptionsCount(acquiredSkillIds, afterEliteSkills, skills, shopStageK, soldSkillIds, allowedSkillIds);
   const upgradeOpts = generateUpgradeOptionsCount(upgradeMap, upgrades);
@@ -694,8 +828,22 @@ export function generateUnifiedRewardState(
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
   allowedSkillIds?: Set<string>,
   allowedSkillEnhancements?: Set<SkillEnhancement>,
+  shopUpgradeSlotBonus = 0,
+  shopAttributeSlotBonus = 0,
 ): RewardState {
-  const payload = buildUnifiedShopPayload(upgradeMap, acquiredSkillIds, skillEnhancements, shopStageK, soldSkillIds, false, blackEdgePity, allowedSkillIds, allowedSkillEnhancements);
+  const payload = buildUnifiedShopPayload(
+    upgradeMap,
+    acquiredSkillIds,
+    skillEnhancements,
+    shopStageK,
+    soldSkillIds,
+    false,
+    blackEdgePity,
+    allowedSkillIds,
+    allowedSkillEnhancements,
+    shopUpgradeSlotBonus,
+    shopAttributeSlotBonus,
+  );
   const ownedBlack = countOwnedBlackEdges(acquiredSkillIds, skillEnhancements);
   const iaaItemSlotIndex = pickIaaItemSlotIndex(
     payload.skillOptions,
@@ -735,9 +883,22 @@ export function generateRewardForStage(
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
   allowedSkillIds?: Set<string>,
   allowedSkillEnhancements?: Set<SkillEnhancement>,
+  shopUpgradeSlotBonus = 0,
+  shopAttributeSlotBonus = 0,
 ): RewardState {
   const shopStageK = groupIndex + 1;
-  return generateUnifiedRewardState(upgradeMap, acquiredSkillIds, skillEnhancements, shopStageK, soldSkillIds, blackEdgePity, allowedSkillIds, allowedSkillEnhancements);
+  return generateUnifiedRewardState(
+    upgradeMap,
+    acquiredSkillIds,
+    skillEnhancements,
+    shopStageK,
+    soldSkillIds,
+    blackEdgePity,
+    allowedSkillIds,
+    allowedSkillEnhancements,
+    shopUpgradeSlotBonus,
+    shopAttributeSlotBonus,
+  );
 }
 
 export function regenerateShopOptionsForStep(
@@ -754,6 +915,8 @@ export function regenerateShopOptionsForStep(
   blackEdgePity?: { gateN: number | null; misses: number; cooldown: number },
   allowedSkillIds?: Set<string>,
   allowedSkillEnhancements?: Set<SkillEnhancement>,
+  shopUpgradeSlotBonus = 0,
+  shopAttributeSlotBonus = 0,
 ): Pick<RewardState, 'skillOptions' | 'upgradeOptions' | 'attributeOptions'> {
   if (step === 'unified') {
     const k = unifiedShopK ?? 1;
@@ -767,6 +930,8 @@ export function regenerateShopOptionsForStep(
       blackEdgePity,
       allowedSkillIds,
       allowedSkillEnhancements,
+      shopUpgradeSlotBonus,
+      shopAttributeSlotBonus,
     );
   }
   if (step === 'skill') {

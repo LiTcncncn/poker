@@ -84,4 +84,6 @@ export interface RewardState {
   blackEdgeSeenThisShop?: boolean;
   /** 本关商店打开时对应的 gateN（满足 gateK(N) 且 ownedBlack<=N 时写入；否则为 null） */
   blackEdgeGateN?: number | null;
+  /** 本次商店溢价槽位（0-based，顺序：技能→升级→属性） */
+  shopPremiumSlotIndices?: number[];
 }

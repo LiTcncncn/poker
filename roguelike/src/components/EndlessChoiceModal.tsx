@@ -6,6 +6,7 @@ import { getUnlockedOrdersAfterNormalRun, SKILL_UNLOCK_ORDER_MAP } from '../conf
 import { FRAME_DEFS, FrameId } from '../types/profile';
 import type { SkillEnhancement } from '../types/skill';
 import { enhancementBonusLine } from '../utils/skillEnhancementDisplay';
+import { getMainlineVictoryUnlockLines } from '../utils/mainlineVictoryUnlocks';
 import { SkillPlayingCardDetailShell } from './SkillPlayingCard';
 
 const FRAME_TO_SKILL_ENHANCEMENT: Partial<Record<FrameId, SkillEnhancement>> = {
@@ -50,6 +51,11 @@ export function EndlessChoiceModal({ open, onContinueEndless, onReturnToMenu }: 
       ? FRAME_DEFS.filter(frame => frame.unlockRunNo === runNo && frame.id !== 'default')
       : [];
 
+  const unlockLines =
+    runNo > 0 && (difficulty === 'normal' || difficulty === 'hard')
+      ? getMainlineVictoryUnlockLines(runNo, difficulty)
+      : [];
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
       <div className={`flex max-h-[92dvh] w-full max-w-[390px] flex-col gap-5 overflow-y-auto rounded-t-3xl px-6 pb-10 pt-6 shadow-2xl [-webkit-overflow-scrolling:touch] ${
@@ -67,10 +73,20 @@ export function EndlessChoiceModal({ open, onContinueEndless, onReturnToMenu }: 
           )}
         </div>
 
-        {/* 奖励说明 */}
-        <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-gray-300 text-center">
-          ✦ 通关奖励已记录，技能解锁已更新
-        </div>
+        {/* 本局实际解锁（无称号/牌桌/牌背等未实现项） */}
+        {unlockLines.length > 0 && (
+          <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-gray-200">
+            <div className="text-xs font-bold text-gray-400 mb-2 text-center">本局解锁</div>
+            <ul className="flex flex-col gap-1.5">
+              {unlockLines.map(line => (
+                <li key={line} className="flex items-start gap-2">
+                  <span className="text-yellow-400 shrink-0">✦</span>
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* 解锁技能牌展示：只展示新增解锁技能本体，不带本局边框 */}
         {run && unlockedSkills.length > 0 && (

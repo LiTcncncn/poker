@@ -5,7 +5,7 @@ import { HandType } from '../shared/types/poker';
 import SkillPanel from './SkillPanel';
 import { getSkillsByIds } from '../engine/skillEngine';
 import { getEffectiveSkillSlotCap } from '../engine/runEngine';
-import { getEffectiveStage } from '../engine/stageEngine';
+import { getEffectiveStage, runScoringFromRun } from '../engine/stageEngine';
 import { Card } from '../shared/components/Card';
 
 // 主界面赔率区：5x2 两列展示（共 10 个牌型）
@@ -44,7 +44,7 @@ export default function InfoTabs({ run }: Props) {
   const skillSlotEffective = getEffectiveSkillSlotCap(run);
   const skillCountLabel = `${acquiredSkills.length}/${skillSlotEffective}`;
   const rawStage = run.stages[run.currentStageIndex];
-  const effStage = rawStage ? getEffectiveStage(rawStage, run.acquiredSkillIds) : null;
+  const effStage = rawStage ? getEffectiveStage(rawStage, run.acquiredSkillIds, runScoringFromRun(run)) : null;
 
   const tabs: { key: TabKey; label: string; badge?: string | number }[] = [
     { key: 'skills', label: '技能', badge: skillCountLabel },

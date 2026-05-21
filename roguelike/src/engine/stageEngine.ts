@@ -113,6 +113,8 @@ interface InitStageOverrides {
   targetGoldOverride?: number;
   holdDelta?: number;
   handsDelta?: number;
+  runBannedRankMax?: number;
+  runBanFaceCardScore?: boolean;
 }
 
 type StageTplList = { targetGold: number; isElite: boolean; isBoss: boolean; handCount: number; holdCount: number }[];
@@ -147,11 +149,11 @@ export function initStage(
     modifierId:      modifierId ?? null,
     bannedHandTypes: m.bannedHandTypes,
     bannedSuits:     m.bannedSuits,
-    bannedRankMax:   m.bannedRankMax,
+    bannedRankMax:   Math.max(m.bannedRankMax, overrides?.runBannedRankMax ?? 0),
     blockHoldBefore: m.blockHoldBefore,
     blockHoldAfter:  m.blockHoldAfter,
     banJokers:       m.banJokers,
-    banFaceCardScore: m.banFaceCardScore,
+    banFaceCardScore: m.banFaceCardScore || (overrides?.runBanFaceCardScore ?? false),
     handTypeLevelDownshift: m.handTypeLevelDownshift,
     shopBaseDiamondRewardZero: m.shopBaseDiamondRewardZero,
     status:          'active',
@@ -198,6 +200,21 @@ export function consumeDraw(stage: StageState): StageState {
   return { ...stage, holdUsed: stage.holdUsed + 1 };
 }
 
+/** 开局整局禁牌型：从带 ban_hand_types 的词缀中随机抽 N 个，合并去重后的禁牌型列表 */
+export function pickRunWideBannedHandTypes(count: number): HandType[] {
+  if (count <= 0) return [];
+  const pool = ALL_MODIFIERS.filter((m) => m.effects.some((e) => e.type === 'ban_hand_types'));
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const picked = shuffled.slice(0, Math.min(count, shuffled.length));
+  const types: HandType[] = [];
+  for (const mod of picked) {
+    for (const ef of mod.effects) {
+      if (ef.type === 'ban_hand_types' && ef.handTypes) types.push(...ef.handTypes);
+    }
+  }
+  return [...new Set(types)];
+}
+
 /** 随机分配词缀 ID（按难度池加权，越深越难） */
 export function pickModifierForStageIndex(stageIndex: number): string {
   const depth = Math.floor(stageIndex / 3); // 0,1,2,3,4
@@ -216,25 +233,57 @@ export function isModifierSuppressed(stage: StageState, acquiredSkillIds: string
   return stage.isElite || stage.isBoss;
 }
 
-/**
- * 返回结算/补牌应使用的“生效态关卡”。
- * 精英关无限制：仅取消禁止类与时点类限制；手数/补牌总量等已在 initStage 写入的数值仍生效。
- */
-export function getEffectiveStage(stage: StageState, acquiredSkillIds: string[]): StageState {
-  if (!isModifierSuppressed(stage, acquiredSkillIds)) return stage;
+/** 局级计分限制与关内词缀合并；精英关无限制仅取消词缀部分，保留局级 ban */
+export function runScoringFromRun(run: {
+  runBannedRankMax?: number;
+  runBanFaceCardScore?: boolean;
+}): { runBannedRankMax: number; runBanFaceCardScore: boolean } {
+  return {
+    runBannedRankMax: run.runBannedRankMax ?? 0,
+    runBanFaceCardScore: run.runBanFaceCardScore ?? false,
+  };
+}
+
+export function mergeRunScoringRules(
+  stage: StageState,
+  runBannedRankMax: number,
+  runBanFaceCardScore: boolean,
+): StageState {
   return {
     ...stage,
-    bannedHandTypes: [],
-    bannedSuits: [],
-    bannedRankMax: 0,
-    blockHoldBefore: 0,
-    blockHoldAfter: 0,
-    banJokers: false,
-    banFaceCardScore: false,
-    handTypeLevelDownshift: 0,
-    targetGoldMultiplier: 1,
-    shopBaseDiamondRewardZero: false,
+    bannedRankMax: Math.max(stage.bannedRankMax ?? 0, runBannedRankMax),
+    banFaceCardScore: stage.banFaceCardScore || runBanFaceCardScore,
   };
+}
+
+export function getEffectiveStage(
+  stage: StageState,
+  acquiredSkillIds: string[],
+  runScoring?: { runBannedRankMax?: number; runBanFaceCardScore?: boolean },
+): StageState {
+  const withRun = mergeRunScoringRules(
+    stage,
+    runScoring?.runBannedRankMax ?? 0,
+    runScoring?.runBanFaceCardScore ?? false,
+  );
+  if (!isModifierSuppressed(withRun, acquiredSkillIds)) return withRun;
+  return mergeRunScoringRules(
+    {
+      ...withRun,
+      bannedHandTypes: [],
+      bannedSuits: [],
+      bannedRankMax: 0,
+      blockHoldBefore: 0,
+      blockHoldAfter: 0,
+      banJokers: false,
+      banFaceCardScore: false,
+      handTypeLevelDownshift: 0,
+      targetGoldMultiplier: 1,
+      shopBaseDiamondRewardZero: false,
+    },
+    runScoring?.runBannedRankMax ?? 0,
+    runScoring?.runBanFaceCardScore ?? false,
+  );
 }
 
 /** 无限挑战阶段：按动态参数初始化关卡（不依赖 stageTemplates） */

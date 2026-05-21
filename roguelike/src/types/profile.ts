@@ -1,4 +1,4 @@
-import { Suit, Rank } from '../shared/types/poker';
+import { Suit, Rank, HandType } from '../shared/types/poker';
 
 // ─── 牌堆规则 ─────────────────────────────────────────────────
 /**
@@ -8,6 +8,7 @@ import { Suit, Rank } from '../shared/types/poker';
  * two_suits_hd - 花色归并：♠→♥、♣→♦（仅红色花色）
  * a_to_10     - 去掉 J/Q/K，仅保留 A, 2-10
  * seven_to_a  - 去掉 2-6，仅保留 7-A
+ * six_to_a    - 去掉 2-5，仅保留 6-A
  * odd_only    - 仅奇数点数：A,3,5,7,9,J,K
  * even_only   - 仅偶数点数：2,4,6,8,10,Q
  */
@@ -20,6 +21,7 @@ export type DeckRule =
   | 'two_suits_hd'
   | 'a_to_10'
   | 'seven_to_a'
+  | 'six_to_a'
   | 'odd_only'
   | 'even_only';
 
@@ -48,14 +50,34 @@ export interface RunConfig {
   skillSlotBonus: number;
   /** 本局可用的技能解锁顺序集合（如 [1, 2, 3]） */
   allowedSkillOrders: number[];
-  /** 本局商店可 Roll 出的技能附加边（不含 normal） */
-  allowedSkillEnhancements: SkillEnhancement[];
+  /** 本局商店可 Roll 出的技能附加边（不含 normal）；缺省由局外进度决定 */
+  allowedSkillEnhancements?: SkillEnhancement[];
+  /** 商店技能仅 normal 边（与 allowedSkillEnhancements 互斥，第 43 局） */
+  banSkillShopEdges: boolean;
   /** 商店刷新费用增量（如 +3） */
   shopRefreshCostDelta: number;
   /** 商店商品价格增量（如 +2） */
   shopPriceDelta: number;
+  /** 每次商店牌型升级槽 +N（从属性/技能槽扣减，总数仍为 6） */
+  shopUpgradeSlotBonus: number;
+  /** 每次商店超级牌槽 +N（从升级/技能槽扣减，总数仍为 6） */
+  shopAttributeSlotBonus: number;
   /** 通关基础钻石来源是否覆盖为 0（true = 覆盖） */
   stageBaseDiamondZero: boolean;
+  /** Boss 关目标分外层倍率（叠在 targetMultiplier 之后，默认 1 = 不变） */
+  bossTargetMultiplier: number;
+  /** 整局：rank ≤ 该值的牌面分不计入（0 = 不启用；6 = 2–6 不计分） */
+  runBannedRankMax: number;
+  /** 整局：J/Q/K 牌面分不计入（牌型判定仍正常） */
+  runBanFaceCardScore: boolean;
+  /** 开局随机抽 N 个「禁牌型」词缀，禁牌型合并到每一关（0 = 不启用） */
+  runBannedHandTypePickCount: number;
+  /** 整局固定禁计分牌型（与 pickCount 合并去重） */
+  runBannedHandTypes: HandType[];
+  /** 每次商店随机 N 个商品售价 × premiumPriceMultiplier（0 = 不启用） */
+  shopPremiumSlotCount: number;
+  /** 非卖品溢价倍率（默认 5） */
+  shopPremiumPriceMultiplier: number;
 }
 
 // ─── 主线局定义 ───────────────────────────────────────────────
@@ -64,13 +86,11 @@ export interface MainlineRunDef {
   title: string;
   /** 普通模式配置 */
   normalConfig: Omit<RunConfig, 'runNo' | 'difficulty'>;
-  /** 困难模式配置（叠加在普通之上） */
+  /** 困难模式配置（在 normalConfig 之上叠加，由 hardFromNormal 生成） */
   hardConfig: Omit<RunConfig, 'runNo' | 'difficulty'>;
-  /** 普通胜利后解锁的内容描述（仅展示用） */
-  rewardText: string;
   /** 本局主题标签（显示在限制 chip 区域） */
   displayTags: string[];
-  /** 困难模式附加显示标签 */
+  /** 困难模式在普通标签之外额外展示的芯片（RunEntry 困难 = displayTags + hardDisplayTags） */
   hardDisplayTags: string[];
 }
 

@@ -19,9 +19,9 @@ import {
   clampSkillSellExtraDiamonds,
   SKILL_SELL_BONUS_CAP,
 } from '../engine/runEngine';
-import { applyHandGold, consumeDraw, canDraw, getEffectiveStage, getStageTargetGold, remainingHold } from '../engine/stageEngine';
+import { applyHandGold, consumeDraw, canDraw, getEffectiveStage, getStageTargetGold, remainingHold, runScoringFromRun } from '../engine/stageEngine';
 import { buildDeckForRule, injectJokers, shuffle, dealCards, replaceUnheld, capJokersInHand } from '../engine/deckEngine';
-import { applyUpgrade, generateRewardForStage, getDefaultDiamondRefreshCost, regenerateShopOptionsForStep } from '../engine/rewardEngine';
+import { applyRunShopRules, applyUpgrade, generateRewardForStage, getDefaultDiamondRefreshCost, regenerateShopOptionsForStep } from '../engine/rewardEngine';
 import { getAllowedSkillIds, getUnlockedOrdersAfterNormalRun } from '../config/skillUnlockOrders';
 import {
   evaluateHandWithSkills,
@@ -44,6 +44,22 @@ import { getIaaStageKey } from '../utils/iaaStageKey';
 const HAND_SIZE = 5;
 const IAA_DIAMOND_REFILL_LIMIT = 2;
 
+function withRunShopRules(reward: RewardState, run: RunState): RewardState {
+  return applyRunShopRules(reward, {
+    refreshCostDelta: run.runShopRefreshCostDelta ?? 0,
+    premiumSlotCount: run.runShopPremiumSlotCount ?? 0,
+    premiumPriceMultiplier: run.runShopPremiumPriceMultiplier ?? 5,
+    priceDelta: run.runShopPriceDelta ?? 0,
+  });
+}
+
+function runShopSlotBonuses(run: RunState): { upgrade: number; attribute: number } {
+  return {
+    upgrade: run.runShopUpgradeSlotBonus ?? 0,
+    attribute: run.runShopAttributeSlotBonus ?? 0,
+  };
+}
+
 let gameToastTimer: ReturnType<typeof setTimeout> | null = null;
 
 function fallbackHighestNormalClearedForEdgeGate(run: RunState): number {
@@ -54,6 +70,7 @@ function fallbackHighestNormalClearedForEdgeGate(run: RunState): number {
 
 function getAllowedSkillEnhancementSet(run: RunState): Set<SkillEnhancement> | undefined {
   if (run.difficulty === 'freeplay') return undefined;
+  if (run.runBanSkillShopEdges) return new Set();
   const stored = (run as RunState & { allowedSkillEnhancements?: SkillEnhancement[] }).allowedSkillEnhancements;
   const allowed = Array.isArray(stored)
     ? stored
@@ -286,6 +303,7 @@ function _commitScore(
         : undefined;
     const allowedSkillEnhancements = getAllowedSkillEnhancementSet(newRun);
     const blackEdgePityAllowed = allowedSkillEnhancements == null || allowedSkillEnhancements.has('black');
+    const { upgrade: shopUpgradeBonus, attribute: shopAttributeBonus } = runShopSlotBonuses(newRun);
 
     if (run.isEndless) {
       // 黑边定向保底的 gateK(N) 使用“显示关数”（主线 1..20 + 无尽 21..），因此这里要用 stageIndex+1（而不是 endlessStagesCleared+1）。
@@ -307,8 +325,10 @@ function _commitScore(
         },
         allowedSkillIds,
         allowedSkillEnhancements,
+        shopUpgradeBonus,
+        shopAttributeBonus,
       );
-      set({ run: newRun, handState: newHandState, reward: rewardState });
+      set({ run: newRun, handState: newHandState, reward: withRunShopRules(rewardState, newRun) });
     } else {
       const stageCount = newRun.runStageCount ?? TOTAL_STAGES;
       const isLastStage = stage.stageIndex + 1 >= stageCount;
@@ -334,8 +354,10 @@ function _commitScore(
           },
           allowedSkillIds,
           allowedSkillEnhancements,
+          shopUpgradeBonus,
+          shopAttributeBonus,
         );
-        set({ run: newRun, handState: newHandState, reward: rewardState });
+        set({ run: newRun, handState: newHandState, reward: withRunShopRules(rewardState, newRun) });
       }
     }
   } else if (newStage.status === 'lost') {
@@ -430,7 +452,7 @@ export const useRLStore = create<RLStore>()(
       // ─── 开始新 Run ────────────────────────────────────────────
       startNewRun: (config?: RunConfig) => {
         const run = initRun(config);
-        const stage0 = getEffectiveStage(run.stages[0], run.acquiredSkillIds);
+        const stage0 = getEffectiveStage(run.stages[0], run.acquiredSkillIds, runScoringFromRun(run));
         const banJokers = run.runBanJokers || stage0.banJokers === true;
         const jP = jokerInjectProbability(run.acquiredSkillIds, banJokers);
         const maxJ = maxJokersInHandCap(run.acquiredSkillIds);
@@ -489,7 +511,7 @@ export const useRLStore = create<RLStore>()(
           run = stripEliteUnshackledIfDepleted(run);
           set({ run });
         }
-        const stage = getEffectiveStage(rawStage, run.acquiredSkillIds);
+        const stage = getEffectiveStage(rawStage, run.acquiredSkillIds, runScoringFromRun(run));
         const banJokers = run.runBanJokers || stage.banJokers === true;
         const jokerProb = jokerInjectProbability(run.acquiredSkillIds, banJokers);
         const maxJ = maxJokersInHandCap(run.acquiredSkillIds);
@@ -537,7 +559,7 @@ export const useRLStore = create<RLStore>()(
         if (!handState || !run || handState.phase !== 'hold') return;
         const rawStage = get().currentStage();
         if (!rawStage) return;
-        const stage = getEffectiveStage(rawStage, run.acquiredSkillIds);
+        const stage = getEffectiveStage(rawStage, run.acquiredSkillIds, runScoringFromRun(run));
         const iaaKey = getIaaStageKey(run);
         const iaaGranted = run.iaa?.perStage[iaaKey]?.extraHoldGranted ?? false;
         if (!canDraw(stage) && !iaaGranted) return;
@@ -591,7 +613,7 @@ export const useRLStore = create<RLStore>()(
         if (!handState || !run || handState.phase !== 'hold') return;
         const rawStage = get().currentStage();
         if (!rawStage) return;
-        const stage = getEffectiveStage(rawStage, run.acquiredSkillIds);
+        const stage = getEffectiveStage(rawStage, run.acquiredSkillIds, runScoringFromRun(run));
         _commitScore(handState, run, stage, set);
       },
 
@@ -761,6 +783,7 @@ export const useRLStore = create<RLStore>()(
           run.difficulty !== 'freeplay' && run.allowedSkillOrders?.length
             ? getAllowedSkillIds(run.allowedSkillOrders)
             : undefined;
+        const { upgrade: shopUpgradeBonus, attribute: shopAttributeBonus } = runShopSlotBonuses(run);
         const refreshed = regenerateShopOptionsForStep(
           reward.step,
           run.handTypeUpgrades,
@@ -774,14 +797,19 @@ export const useRLStore = create<RLStore>()(
           gateN != null ? { gateN, misses: run.blackEdgePityMisses ?? 0, cooldown: run.blackEdgePityCooldown ?? 0 } : undefined,
           allowedSkillIdsForRefresh,
           allowedSkillEnhancementsForRefresh,
+          shopUpgradeBonus,
+          shopAttributeBonus,
         );
-        const nextReward: RewardState = {
-          ...reward,
-          ...refreshed,
-          refreshUsedWithDiamonds: true,
-          blackEdgeSeenThisShop:
-            (reward.blackEdgeSeenThisShop ?? false) || refreshed.skillOptions.some((o) => o.enhancement === 'black'),
-        };
+        const nextReward: RewardState = withRunShopRules(
+          {
+            ...reward,
+            ...refreshed,
+            refreshUsedWithDiamonds: true,
+            blackEdgeSeenThisShop:
+              (reward.blackEdgeSeenThisShop ?? false) || refreshed.skillOptions.some((o) => o.enhancement === 'black'),
+          },
+          run,
+        );
         set({
           run: (() => {
             let nextRun: RunState = {
@@ -925,6 +953,7 @@ export const useRLStore = create<RLStore>()(
             : null;
         const allowedIds = run.difficulty !== 'freeplay' && run.allowedSkillOrders?.length
           ? getAllowedSkillIds(run.allowedSkillOrders) : undefined;
+        const { upgrade: shopUpgradeBonus, attribute: shopAttributeBonus } = runShopSlotBonuses(run);
         const refreshed = regenerateShopOptionsForStep(
           reward.step, run.handTypeUpgrades, run.acquiredSkillIds,
           run.skillEnhancements, afterElite, false, reward.shopStageK,
@@ -932,6 +961,8 @@ export const useRLStore = create<RLStore>()(
           gateN != null ? { gateN, misses: run.blackEdgePityMisses ?? 0, cooldown: run.blackEdgePityCooldown ?? 0 } : undefined,
           allowedIds,
           allowedEnhancements,
+          shopUpgradeBonus,
+          shopAttributeBonus,
         );
         const newIaa: RunIaaState = {
           ...prevIaa, iaaAssisted: true,
@@ -943,13 +974,16 @@ export const useRLStore = create<RLStore>()(
         };
         set({
           run: { ...run, iaa: newIaa },
-          reward: {
-            ...reward, ...refreshed,
-            refreshUsedWithIaa: true,
-            iaaItemSlotIndex: -1,
-            blackEdgeSeenThisShop:
-              (reward.blackEdgeSeenThisShop ?? false) || refreshed.skillOptions.some(o => o.enhancement === 'black'),
-          },
+          reward: withRunShopRules(
+            {
+              ...reward, ...refreshed,
+              refreshUsedWithIaa: true,
+              iaaItemSlotIndex: -1,
+              blackEdgeSeenThisShop:
+                (reward.blackEdgeSeenThisShop ?? false) || refreshed.skillOptions.some(o => o.enhancement === 'black'),
+            },
+            run,
+          ),
         });
       },
 
@@ -1060,7 +1094,7 @@ export const useRLStore = create<RLStore>()(
         const stageIdx = getIaaStageKey(run);
         const rawStage = run.stages[stageIdx] ?? get().currentStage();
         if (!rawStage) return;
-        const stage = getEffectiveStage(rawStage, run.acquiredSkillIds);
+        const stage = getEffectiveStage(rawStage, run.acquiredSkillIds, runScoringFromRun(run));
         const curHandIdx = stage.usedHands;
         const holdBlockedByStageRule =
           (stage.blockHoldBefore > 0 && curHandIdx < stage.blockHoldBefore) ||
@@ -1158,6 +1192,7 @@ export const useRLStore = create<RLStore>()(
         const allowedEnhancements = getAllowedSkillEnhancementSet(newRun);
         const blackEdgePityAllowed = allowedEnhancements == null || allowedEnhancements.has('black');
         const ownedBlack = newRun.acquiredSkillIds.filter((id) => newRun.skillEnhancements[id] === 'black').length;
+        const { upgrade: shopUpgradeBonus, attribute: shopAttributeBonus } = runShopSlotBonuses(newRun);
         const rewardState = generateRewardForStage(
           stageIdx,
           newRun.handTypeUpgrades,
@@ -1173,8 +1208,10 @@ export const useRLStore = create<RLStore>()(
           },
           allowedIds,
           allowedEnhancements,
+          shopUpgradeBonus,
+          shopAttributeBonus,
         );
-        set({ run: newRun, handState, reward: rewardState });
+        set({ run: newRun, handState, reward: withRunShopRules(rewardState, newRun) });
       },
 
       // ─── 获取当前关卡 ─────────────────────────────────────────
@@ -1288,8 +1325,16 @@ export const useRLStore = create<RLStore>()(
               runHandsDelta: (p.run as RunState & { runHandsDelta?: number }).runHandsDelta ?? 0,
               runShopRefreshCostDelta: (p.run as RunState & { runShopRefreshCostDelta?: number }).runShopRefreshCostDelta ?? 0,
               runShopPriceDelta: (p.run as RunState & { runShopPriceDelta?: number }).runShopPriceDelta ?? 0,
+              runShopUpgradeSlotBonus: (p.run as RunState & { runShopUpgradeSlotBonus?: number }).runShopUpgradeSlotBonus ?? 0,
+              runShopAttributeSlotBonus: (p.run as RunState & { runShopAttributeSlotBonus?: number }).runShopAttributeSlotBonus ?? 0,
+              runBanSkillShopEdges: (p.run as RunState & { runBanSkillShopEdges?: boolean }).runBanSkillShopEdges ?? false,
               allowedSkillOrders: (p.run as RunState & { allowedSkillOrders?: number[] }).allowedSkillOrders ?? Array.from({ length: 27 }, (_, i) => i + 1),
               runTargetMultiplier: (p.run as RunState & { runTargetMultiplier?: number }).runTargetMultiplier ?? 1.0,
+              runBossTargetMultiplier: (p.run as RunState & { runBossTargetMultiplier?: number }).runBossTargetMultiplier ?? 1,
+              runBannedRankMax: (p.run as RunState & { runBannedRankMax?: number }).runBannedRankMax ?? 0,
+              runBanFaceCardScore: (p.run as RunState & { runBanFaceCardScore?: boolean }).runBanFaceCardScore ?? false,
+              runShopPremiumSlotCount: (p.run as RunState & { runShopPremiumSlotCount?: number }).runShopPremiumSlotCount ?? 0,
+              runShopPremiumPriceMultiplier: (p.run as RunState & { runShopPremiumPriceMultiplier?: number }).runShopPremiumPriceMultiplier ?? 5,
               runStageCount: (p.run as RunState & { runStageCount?: number }).runStageCount ?? 20,
             },
           };

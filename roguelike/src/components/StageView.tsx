@@ -6,7 +6,7 @@ import { RunResult } from './RunResult';
 import InfoTabs from './InfoTabs';
 import { UpgradeOption } from '../types/reward';
 import { Card as CardType } from '../shared/types/poker';
-import { getModifierById, canDraw, remainingHold, getEffectiveStage, isModifierSuppressed, getStageTargetGold } from '../engine/stageEngine';
+import { getModifierById, canDraw, remainingHold, getEffectiveStage, isModifierSuppressed, getStageTargetGold, runScoringFromRun } from '../engine/stageEngine';
 import { evaluateHandWithSkills, getSkillsByIds } from '../engine/skillEngine';
 import { TOTAL_STAGES, getEffectiveSkillSlotCap } from '../engine/runEngine';
 import type { HandResult } from '../types/run';
@@ -89,7 +89,7 @@ export function StageView() {
     const stage = currentStage();
     if (!stage) return null;
 
-    const effectiveStage = getEffectiveStage(stage, run.acquiredSkillIds);
+    const effectiveStage = getEffectiveStage(stage, run.acquiredSkillIds, runScoringFromRun(run));
     const skills = getSkillsByIds(run.acquiredSkillIds);
     const ev = evaluateHandWithSkills({
       hand: handState.hand,
@@ -145,7 +145,7 @@ export function StageView() {
 
   const stage = currentStage();
   if (!stage) return null;
-  const effectiveStage = getEffectiveStage(stage, run.acquiredSkillIds);
+  const effectiveStage = getEffectiveStage(stage, run.acquiredSkillIds, runScoringFromRun(run));
   const modifierDisabled = isModifierSuppressed(stage, run.acquiredSkillIds);
   const modifier = stage.modifierId ? getModifierById(stage.modifierId) : null;
 

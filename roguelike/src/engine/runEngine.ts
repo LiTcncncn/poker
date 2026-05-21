@@ -2,7 +2,7 @@ import { RunState, StageState, HandTypeUpgradeMap } from '../types/run';
 import { SkillDef, SkillEnhancement } from '../types/skill';
 import { Card } from '../shared/types/poker';
 import { RunConfig } from '../types/profile';
-import { initStage, pickModifierForStageIndex, initEndlessStage, pickEndlessModifier } from './stageEngine';
+import { initStage, pickModifierForStageIndex, initEndlessStage, pickEndlessModifier, pickRunWideBannedHandTypes } from './stageEngine';
 import stageTemplates from '../config/runStageTemplates.json';
 import newbieTemplates from '../config/newbieStageTemplates.json';
 
@@ -12,6 +12,19 @@ export const TOTAL_STAGES = STANDARD_TOTAL_STAGES;
 type StageTpl = { targetGold: number; isElite: boolean; isBoss: boolean; handCount: number; holdCount: number };
 const stageTplList = stageTemplates as StageTpl[];
 const newbieTplList = newbieTemplates as StageTpl[];
+
+/** 关卡基础目标 $（全局 targetMultiplier；Boss 关再叠 bossTargetMultiplier） */
+function stageTargetGoldOverride(
+  tpl: StageTpl,
+  targetMult: number,
+  bossTargetMult: number,
+): number {
+  let mult = targetMult;
+  if (tpl.isBoss && bossTargetMult > 0 && bossTargetMult !== 1) {
+    mult *= bossTargetMult;
+  }
+  return Math.round(tpl.targetGold * mult);
+}
 
 /** 无限阶段递推起点：主线最后一关 targetGold（与 JSON 同步） */
 const ENDLESS_SEED_GOLD = stageTplList[stageTplList.length - 1].targetGold;
@@ -85,8 +98,19 @@ export function initRun(config?: RunConfig): RunState {
   const tplList = isNewbie ? newbieTplList : stageTplList;
   const stageCount = config?.stageCount ?? STANDARD_TOTAL_STAGES;
   const targetMult = config?.targetMultiplier ?? 1.0;
+  const bossTargetMult = config?.bossTargetMultiplier ?? 1;
   const holdDelta = config?.holdDelta ?? 0;
   const handsDelta = config?.handsDelta ?? 0;
+  const runBannedRankMax = config?.runBannedRankMax ?? 0;
+  const runBanFaceCardScore = config?.runBanFaceCardScore ?? false;
+  const runBannedHandTypePickCount = config?.runBannedHandTypePickCount ?? 0;
+  const runBannedHandTypesFixed = config?.runBannedHandTypes ?? [];
+  const runWideBannedHandTypes = [
+    ...new Set([
+      ...pickRunWideBannedHandTypes(runBannedHandTypePickCount),
+      ...runBannedHandTypesFixed,
+    ]),
+  ];
   const startDiamonds = config?.startingDiamonds ?? 3;
 
   // 先为精英/Boss 关卡分配词缀 ID
@@ -100,11 +124,20 @@ export function initRun(config?: RunConfig): RunState {
   const stages: StageState[] = tplList.slice(0, stageCount).map((t, i) => {
     const modId = stageModifiers[i];
     const stage = initStage(i, modId, {
-      targetGoldOverride: Math.round(t.targetGold * targetMult),
+      targetGoldOverride: stageTargetGoldOverride(t, targetMult, bossTargetMult),
       holdDelta,
       handsDelta,
+      runBannedRankMax,
+      runBanFaceCardScore,
     }, tplList);
-    return { ...stage, status: i === 0 ? 'active' : 'pending' } as StageState;
+    const withRunBans =
+      runWideBannedHandTypes.length > 0
+        ? {
+            ...stage,
+            bannedHandTypes: [...new Set([...(stage.bannedHandTypes ?? []), ...runWideBannedHandTypes])],
+          }
+        : stage;
+    return { ...withRunBans, status: i === 0 ? 'active' : 'pending' } as StageState;
   });
 
   // 所有牌型 Lv.2 起步
@@ -154,9 +187,18 @@ export function initRun(config?: RunConfig): RunState {
     runHandsDelta: handsDelta,
     runShopRefreshCostDelta: config?.shopRefreshCostDelta ?? 0,
     runShopPriceDelta: config?.shopPriceDelta ?? 0,
+    runShopUpgradeSlotBonus: config?.shopUpgradeSlotBonus ?? 0,
+    runShopAttributeSlotBonus: config?.shopAttributeSlotBonus ?? 0,
     allowedSkillOrders: config?.allowedSkillOrders ?? Array.from({ length: 27 }, (_, i) => i + 1),
-    allowedSkillEnhancements: config?.allowedSkillEnhancements ?? ['flash', 'gold', 'laser', 'black'],
+    allowedSkillEnhancements:
+      config?.allowedSkillEnhancements ?? ['flash', 'gold', 'laser', 'black'],
+    runBanSkillShopEdges: config?.banSkillShopEdges ?? false,
     runTargetMultiplier: targetMult,
+    runBossTargetMultiplier: bossTargetMult,
+    runBannedRankMax,
+    runBanFaceCardScore,
+    runShopPremiumSlotCount: config?.shopPremiumSlotCount ?? 0,
+    runShopPremiumPriceMultiplier: config?.shopPremiumPriceMultiplier ?? 5,
     runStageCount: stageCount,
   };
 }
@@ -184,6 +226,9 @@ export function advanceToNextStage(
   const stageCount = run.runStageCount ?? STANDARD_TOTAL_STAGES;
   const tplList = stageCount === 10 ? newbieTplList : stageTplList;
   const targetMult = run.runTargetMultiplier ?? 1.0;
+  const bossTargetMult = run.runBossTargetMultiplier ?? 1;
+  const runBannedRankMax = run.runBannedRankMax ?? 0;
+  const runBanFaceCardScore = run.runBanFaceCardScore ?? false;
 
   if (next >= stageCount) {
     return {
@@ -200,9 +245,15 @@ export function advanceToNextStage(
     if (i === next) {
       return {
         ...initStage(i, modId, {
-          targetGoldOverride: Math.round((tplList[i]?.targetGold ?? 0) * targetMult),
+          targetGoldOverride: stageTargetGoldOverride(
+            tplList[i] ?? { targetGold: 0, isElite: false, isBoss: false, handCount: 6, holdCount: 6 },
+            targetMult,
+            bossTargetMult,
+          ),
           holdDelta: run.runHoldDelta ?? 0,
           handsDelta: run.runHandsDelta ?? 0,
+          runBannedRankMax,
+          runBanFaceCardScore,
         }, tplList),
         status: 'active' as const,
       };

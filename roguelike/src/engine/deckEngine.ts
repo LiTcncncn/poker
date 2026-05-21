@@ -41,6 +41,7 @@ export function buildBaseDeck(): Card[] {
  * two_suits_hd  - 花色归并 ♠→♥、♣→♦；形成 26♥ + 26♦。
  * a_to_10       - 仅保留 A(14)、2-10，移除 J(11)/Q(12)/K(13)。
  * seven_to_a    - 仅保留 7-10, J, Q, K, A(14)，移除 2-6。
+ * six_to_a      - 仅保留 6-10, J, Q, K, A(14)，移除 2-5。
  * odd_only      - 仅保留奇数点数：A(14)、3、5、7、9、J(11)、K(13)。
  * even_only     - 仅保留偶数点数：2、4、6、8、10、Q(12)。
  * standard      - 同 buildBaseDeck()。
@@ -94,6 +95,17 @@ export function buildDeckForRule(rule: DeckRule): Card[] {
     case 'seven_to_a': {
       // 7,8,9,10,J(11),Q(12),K(13),A(14)，移除 2-6
       const allowed = RANKS.filter(r => r >= 7);
+      const deck: Card[] = [];
+      for (const suit of SUITS) {
+        for (const rank of allowed) {
+          deck.push(makeCard(suit, rank));
+        }
+      }
+      return deck;
+    }
+    case 'six_to_a': {
+      // 6-10,J,Q,K,A(14)，移除 2-5
+      const allowed = RANKS.filter(r => r >= 6);
       const deck: Card[] = [];
       for (const suit of SUITS) {
         for (const rank of allowed) {

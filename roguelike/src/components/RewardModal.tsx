@@ -96,6 +96,10 @@ export function RewardModal({
   const [refreshOptionsOpen, setRefreshOptionsOpen] = useState(false);
 
   const refreshCost = Math.max(0, reward.diamondRefreshCost ?? 5);
+  const premiumSlots = useMemo(
+    () => new Set(reward.shopPremiumSlotIndices ?? []),
+    [reward.shopPremiumSlotIndices],
+  );
   const canRefresh = !reward.refreshUsedWithDiamonds && diamonds >= refreshCost;
   const canRefreshWithMark = !!onIaaRefreshReward;
   const canOpenRefreshOptions = canRefresh || canRefreshWithMark;
@@ -157,9 +161,15 @@ export function RewardModal({
                 const opt = slot.opt;
                 const slotFull = ownedSkills.length >= skillSlotsAfterBuying(opt.enhancement);
                 const disabled = diamonds < opt.price || slotFull || opt.purchased;
+                const isPremium = premiumSlots.has(slotGlobalIdx);
                 return (
                   <div key={`skill-${opt.skill.id}`} className="flex w-full flex-col items-center gap-1">
                     <div className="relative w-full">
+                      {isPremium && !opt.purchased && (
+                        <span className="absolute right-0 top-0 z-10 rounded-bl-md rounded-tr-[14px] bg-amber-900/95 px-1 py-0.5 text-[9px] font-black text-amber-100">
+                          ×5
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={() => setSkillDetail({ skill: opt.skill, enhancement: opt.enhancement })}
@@ -210,9 +220,15 @@ export function RewardModal({
               if (slot.kind === 'upgrade') {
                 const opt = slot.opt;
                 const disabled = diamonds < opt.price || !!opt.purchased;
+                const isPremium = premiumSlots.has(slotGlobalIdx);
                 return (
                   <div key={`up-${slot.slotKey}`} className="flex w-full flex-col items-center gap-1">
                     <div className={clsx('relative w-full rounded-[14px]', opt.purchased && 'opacity-55')}>
+                      {isPremium && !opt.purchased && (
+                        <span className="absolute right-0 top-0 z-10 rounded-bl-md rounded-tr-[14px] bg-amber-900/95 px-1 py-0.5 text-[9px] font-black text-amber-100">
+                          ×5
+                        </span>
+                      )}
                       <div
                         className="relative w-full overflow-visible rounded-[14px] border border-rl-border/50 bg-rl-bg/20 shadow-inner"
                         style={{ aspectRatio: '2 / 3' }}
@@ -246,9 +262,15 @@ export function RewardModal({
                 );
               }
               const opt = slot.opt;
+              const isPremium = premiumSlots.has(slotGlobalIdx);
               return (
                 <div key={`attr-${opt.card.id}`} className="flex w-full flex-col items-center gap-1">
                   <div className="relative w-full">
+                    {isPremium && !opt.purchased && (
+                      <span className="absolute right-0 top-0 z-10 rounded-bl-md rounded-tr-[14px] bg-amber-900/95 px-1 py-0.5 text-[9px] font-black text-amber-100">
+                        ×5
+                      </span>
+                    )}
                     <AttrCardOption
                       card={opt.card}
                       onSelect={() => {
