@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Card as CardType } from '../shared/types/poker';
 import { HandResult } from '../types/run';
 import { Card } from '../shared/components/Card';
+import { SCORE_TEXT_CLASS, SCORE_TEXT_CLASS_STRONG } from '../utils/scoreDisplay';
 
 /** 乘倍类数值展示为 1 位小数，避免 IEEE754 连乘后出现长尾巴 */
 function formatMultiplierDisplay(n: number): string {
@@ -26,7 +27,7 @@ function ValueChip({
   tone?: 'base' | 'score' | 'mult' | 'indep';
 }) {
   const cls = (() => {
-    if (tone === 'score') return 'border-green-500/30 text-green-200';
+    if (tone === 'score') return 'border-sky-500/30 text-sky-300';
     if (tone === 'mult') return 'border-orange-500/30 text-orange-200';
     if (tone === 'indep') return 'border-purple-500/30 text-purple-200';
     return 'border-gray-700 text-gray-200';
@@ -49,7 +50,7 @@ function SkillLogChips({ r }: { r: HandResult }) {
         >
           {log.skillName}
           {log.addedScore !== undefined && (
-            <span className="text-green-300 ml-1">+${log.addedScore}</span>
+            <span className={`${SCORE_TEXT_CLASS} ml-1`}>+{log.addedScore}</span>
           )}
           {log.addedMultiplier !== undefined && (
             <span className="text-orange-300 ml-1">+{log.addedMultiplier}×</span>
@@ -108,8 +109,7 @@ function FormulaSourceModal({
               <div className="text-[11px] font-bold text-gray-400">计算公式（本手）</div>
               <div className="mt-1 flex items-center justify-center gap-2 font-mono text-xs">
                 <span className="rounded-md border-4 border-rl-border bg-black/20 px-2 py-1">
-                  <span className="text-gray-400">$</span>{' '}
-                  <span className="font-black tabular-nums text-yellow-300">{leftValue}</span>
+                  <span className={SCORE_TEXT_CLASS_STRONG}>{leftValue}</span>
                 </span>
                 <span className="text-white opacity-100">×</span>
                 <span className="rounded-md border-4 border-rl-border bg-black/20 px-2 py-1">
@@ -117,13 +117,13 @@ function FormulaSourceModal({
                   <span className="font-black tabular-nums text-red-300">{formatMultiplierDisplay(rightValue)}×</span>
                 </span>
                 <span className="text-gray-500">=</span>
-                <span className="font-black tabular-nums text-rl-gold">{r.finalGold.toLocaleString()}</span>
+                <span className={SCORE_TEXT_CLASS_STRONG}>{r.finalGold.toLocaleString()}</span>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-1">
-              <ValueChip tone="base">牌面+牌型 ${r.cardScoreSum}</ValueChip>
-              {r.skillAddedScore > 0 && <ValueChip tone="score">技能+$ +${r.skillAddedScore}</ValueChip>}
+              <ValueChip tone="base">牌面+牌型 {r.cardScoreSum}</ValueChip>
+              {r.skillAddedScore > 0 && <ValueChip tone="score">技能加分 +{r.skillAddedScore}</ValueChip>}
               <ValueChip tone="mult">牌型倍+技能倍 {formatMultiplierDisplay(r.multiplierTotal)}×</ValueChip>
               {r.independentMultiplier !== 1 && (
                 <ValueChip tone="indep">独立乘区 ×{formatMultiplierDisplay(r.independentMultiplier)}</ValueChip>
@@ -157,12 +157,12 @@ export function SettlementBlock({ r, preview }: SettlementBlockProps) {
           className={
             preview
               ? 'inline-flex items-baseline justify-center gap-4 text-4xl font-black text-white tracking-wide'
-              : 'inline-flex items-baseline justify-center gap-4 text-4xl font-black text-rl-gold tracking-wide'
+              : 'inline-flex items-baseline justify-center gap-4 text-4xl font-black text-white tracking-wide'
           }
         >
           {r.handName}
-          <span className={preview ? 'text-3xl text-white' : 'text-3xl text-cyan-300'}>
-            +${r.finalGold.toLocaleString()}
+          <span className={preview ? 'text-3xl text-white' : `text-3xl ${SCORE_TEXT_CLASS_STRONG}`}>
+            +{r.finalGold.toLocaleString()}
           </span>
         </span>
       </div>

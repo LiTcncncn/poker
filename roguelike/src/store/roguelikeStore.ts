@@ -1328,7 +1328,7 @@ export const useRLStore = create<RLStore>()(
               runShopUpgradeSlotBonus: (p.run as RunState & { runShopUpgradeSlotBonus?: number }).runShopUpgradeSlotBonus ?? 0,
               runShopAttributeSlotBonus: (p.run as RunState & { runShopAttributeSlotBonus?: number }).runShopAttributeSlotBonus ?? 0,
               runBanSkillShopEdges: (p.run as RunState & { runBanSkillShopEdges?: boolean }).runBanSkillShopEdges ?? false,
-              allowedSkillOrders: (p.run as RunState & { allowedSkillOrders?: number[] }).allowedSkillOrders ?? Array.from({ length: 27 }, (_, i) => i + 1),
+              allowedSkillOrders: (p.run as RunState & { allowedSkillOrders?: number[] }).allowedSkillOrders ?? Array.from({ length: 29 }, (_, i) => i + 1),
               runTargetMultiplier: (p.run as RunState & { runTargetMultiplier?: number }).runTargetMultiplier ?? 1.0,
               runBossTargetMultiplier: (p.run as RunState & { runBossTargetMultiplier?: number }).runBossTargetMultiplier ?? 1,
               runBannedRankMax: (p.run as RunState & { runBannedRankMax?: number }).runBannedRankMax ?? 0,

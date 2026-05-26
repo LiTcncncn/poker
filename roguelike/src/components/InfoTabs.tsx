@@ -8,7 +8,7 @@ import { getEffectiveSkillSlotCap } from '../engine/runEngine';
 import { getEffectiveStage, runScoringFromRun } from '../engine/stageEngine';
 import { Card } from '../shared/components/Card';
 
-// 主界面赔率区：5x2 两列展示（共 10 个牌型）
+// 主界面牌型区：5x2 两列展示（共 10 个牌型）
 // 皇家同花顺与同花顺数值相同，不单独列出
 const ORDERED_HAND_TYPES: HandType[] = [
   'high_card',
@@ -22,7 +22,7 @@ const ORDERED_HAND_TYPES: HandType[] = [
   'five_of_a_kind',
   'straight_flush',
 ];
-// 赔率区显示顺序：左列 1-5，右列 6-10（按 grid 行优先渲染）
+// 牌型区显示顺序：左列 1-5，右列 6-10（按 grid 行优先渲染）
 const ODDS_DISPLAY_ORDER: HandType[] = (() => {
   const half = ORDERED_HAND_TYPES.length / 2;
   const left = ORDERED_HAND_TYPES.slice(0, half);
@@ -48,7 +48,7 @@ export default function InfoTabs({ run }: Props) {
 
   const tabs: { key: TabKey; label: string; badge?: string | number }[] = [
     { key: 'skills', label: '技能', badge: skillCountLabel },
-    { key: 'odds',   label: '赔率' },
+    { key: 'odds',   label: '牌型' },
     { key: 'pool',   label: '超级牌', badge: attrCards.length || undefined },
   ];
 
@@ -110,7 +110,7 @@ export default function InfoTabs({ run }: Props) {
           )
         )}
 
-        {/* ── 赔率（5x2） ── */}
+        {/* ── 牌型（5x2） ── */}
         {tab === 'odds' && (
           <div className="flex flex-col gap-2">
             <div className="grid grid-cols-2 gap-2">
@@ -136,8 +136,8 @@ export default function InfoTabs({ run }: Props) {
                       <span className={`text-center font-bold tabular-nums ${upgraded ? 'text-rl-gold' : 'text-gray-400'}`}>
                         Lv.{level}
                       </span>
-                      <span className="text-right text-yellow-300 font-mono tabular-nums">
-                        ${stats.baseScore}
+                      <span className="text-right text-sky-400 font-mono tabular-nums">
+                        {stats.baseScore}
                       </span>
                       <span className={`text-right font-mono font-black tabular-nums ${
                         upgraded ? 'text-rl-gold' : 'text-red-400'

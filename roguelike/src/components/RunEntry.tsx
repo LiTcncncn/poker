@@ -18,6 +18,18 @@ function RuleChip({ label, variant = 'debuff' }: { label: string; variant?: 'deb
   );
 }
 
+/** 主线局名展示：按 4 字宽度固定占位，≥5 字缩小字号避免换行 */
+const RUN_TITLE_BOX_WIDTH_REM = 15;
+const RUN_TITLE_FONT_NORMAL = 'text-6xl';
+const RUN_TITLE_FONT_COMPACT = 'text-5xl';
+
+function runTitleFontClass(title: string): string {
+  const charCount = [...title].length;
+  if (charCount <= 4) return RUN_TITLE_FONT_NORMAL;
+  if (charCount === 5) return RUN_TITLE_FONT_COMPACT;
+  return 'text-4xl';
+}
+
 // ─── 通关状态印记 ──────────────────────────────────────────────
 function ClearBadge({ cleared, label }: { cleared: boolean; label: string }) {
   if (!cleared) return null;
@@ -58,6 +70,7 @@ export function RunEntry() {
   const maxNavigable = Math.min(50, titleVisibleUpTo + 1);
   const isMystery = currentRunNo > titleVisibleUpTo;
   const displayTitle = isMystery ? '？？？' : (runDef?.title ?? `第 ${currentRunNo} 局`);
+  const titleFontClass = runTitleFontClass(displayTitle);
 
   const goPrev = () => setCurrentRunNo(n => Math.max(1, n - 1));
   const goNext = () => setCurrentRunNo(n => Math.min(maxNavigable, n + 1));
@@ -123,16 +136,28 @@ export function RunEntry() {
             </button>
 
             <div className="flex flex-col items-center gap-2 flex-1 text-center">
-              <div className="relative flex items-center justify-center select-none" style={{ lineHeight: 1 }}>
-                <span aria-hidden className="absolute font-black text-6xl pointer-events-none"
-                  style={{ color: '#69C9D0', transform: 'translate(-3px, -2px)', mixBlendMode: 'screen', opacity: 0.5 }}>
+              <div
+                className="relative flex items-center justify-center select-none shrink-0"
+                style={{ width: `${RUN_TITLE_BOX_WIDTH_REM}rem`, lineHeight: 1 }}
+              >
+                <span
+                  aria-hidden
+                  className={`absolute font-black whitespace-nowrap pointer-events-none ${titleFontClass}`}
+                  style={{ color: '#69C9D0', transform: 'translate(-3px, -2px)', mixBlendMode: 'screen', opacity: 0.5 }}
+                >
                   {displayTitle}
                 </span>
-                <span aria-hidden className="absolute font-black text-6xl pointer-events-none"
-                  style={{ color: '#EE1D52', transform: 'translate(5px, 3px)', mixBlendMode: 'screen' }}>
+                <span
+                  aria-hidden
+                  className={`absolute font-black whitespace-nowrap pointer-events-none ${titleFontClass}`}
+                  style={{ color: '#EE1D52', transform: 'translate(5px, 3px)', mixBlendMode: 'screen' }}
+                >
                   {displayTitle}
                 </span>
-                <span className="relative font-black text-6xl" style={{ color: isHard ? '#fca5a5' : '#ffffff' }}>
+                <span
+                  className={`relative font-black whitespace-nowrap ${titleFontClass}`}
+                  style={{ color: isHard ? '#fca5a5' : '#ffffff' }}
+                >
                   {displayTitle}
                 </span>
               </div>

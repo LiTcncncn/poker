@@ -30,7 +30,7 @@ function SettlementIdlePlaceholder() {
         <div className="w-full px-1 text-center">
           <span className="inline-flex items-baseline justify-center gap-4 text-4xl font-black tracking-wide opacity-0">
             <span>占位</span>
-            <span className="text-3xl">+$0</span>
+            <span className="text-3xl">+0</span>
           </span>
         </div>
 
@@ -419,7 +419,7 @@ export function StageView() {
               )}
             </div>
 
-            {/* 技能 / 赔率 / 超级牌 */}
+            {/* 技能 / 牌型 / 超级牌 */}
             <div className="max-h-[min(44vh,360px)] min-h-0 shrink-0 overflow-y-auto [-webkit-overflow-scrolling:touch]">
               <InfoTabs run={run} />
             </div>
@@ -429,7 +429,7 @@ export function StageView() {
         {/* 本关目标 */}
         <div className="flex items-center justify-center text-sm px-1">
           <span className="text-gray-300">
-            本关目标 <span className="text-rl-gold font-bold">${stage.accumulatedGold.toLocaleString()}/{stageTargetGold.toLocaleString()}</span>
+            本关目标 <span className="text-sky-300 font-bold tabular-nums">{stage.accumulatedGold.toLocaleString()}/{stageTargetGold.toLocaleString()}</span>
           </span>
         </div>
 

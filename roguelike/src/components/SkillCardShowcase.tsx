@@ -29,7 +29,7 @@ const SHOWCASE_ACCUM_DEMO: Record<string, number> = {
   pair_accum: 80,
 };
 
-/** 牌面双基础数值（+$30 / +4倍）+ 特殊边示意：runSkillPool `ace_combo` */
+/** 牌面双基础数值（+30 / +4倍）+ 特殊边示意：runSkillPool `ace_combo` */
 const SHOWCASE_ACE_COMBO_SKILL = ALL_SKILLS.find((s) => s.id === 'ace_combo');
 const SHOWCASE_ACE_COMBO_EDGES = ['flash', 'gold', 'laser', 'black'] as const satisfies readonly SkillEnhancement[];
 
@@ -124,7 +124,7 @@ export function SkillCardShowcase() {
         <section className="rounded-xl border border-rl-border bg-rl-surface/40 px-3 py-5">
           <h2 className="mb-1 text-base font-black text-white">A加注加倍率 · 双数值 + 特殊边</h2>
           <p className="mb-5 text-[11px] leading-relaxed text-slate-400">
-            <code className="text-cyan-300/90">ace_combo</code>：+$30 与 +4 倍；以下为银 / 金 / 彩 / 黑四档（纵向便于手机浏览）。
+            <code className="text-cyan-300/90">ace_combo</code>：+30 与 +4 倍；以下为银 / 金 / 彩 / 黑四档（纵向便于手机浏览）。
           </p>
           <div className="flex flex-col items-center gap-6">
             {SHOWCASE_ACE_COMBO_EDGES.map((e) => (

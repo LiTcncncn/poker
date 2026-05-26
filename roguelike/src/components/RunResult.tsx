@@ -92,7 +92,7 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
     const hasMultAccum = skill.effects.some(
       e => e.type === 'accumulate_multiplier' || e.type === 'accumulate_multiplier_no_draw',
     );
-    if (hasScoreAccum) return `${fallbackName}+$${accumulated}`;
+    if (hasScoreAccum) return `${fallbackName}+${accumulated}`;
     if (hasMultAccum) return `${fallbackName}+${accumulated}倍`;
     return fallbackName;
   };
@@ -218,8 +218,8 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
               <span className="text-gray-200 font-bold">
                 {peakHand ? handTypeCategoryLabel(peakHand.handType) : '—'}
               </span>
-              <span className="text-rl-gold font-black ml-1.5">
-                +${maxSingleHandGold.toLocaleString()}
+              <span className="text-sky-300 font-black tabular-nums ml-1.5">
+                +{maxSingleHandGold.toLocaleString()}
               </span>
             </>
           ) : (

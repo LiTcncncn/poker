@@ -5,7 +5,11 @@
  *
  * 解锁顺序 1 = 默认已解锁，第 1、2 局可用。
  * 后续顺序通过普通局胜利逐步解锁，见 mainlineRuns.ts 中各局的 allowedSkillOrders。
+ * 28、29 为从顺序 3 拆出的延后批次（第 14 / 16 局普通通关），保证每批 ≤3 张。
  */
+export const SKILL_UNLOCK_ORDER_RAINBOW_DEFERRED = 28;
+export const SKILL_UNLOCK_ORDER_FORWARD_DEFERRED = 29;
+
 export const SKILL_UNLOCK_ORDER_MAP: Record<number, string[]> = {
   1: [
     'high_card_all',
@@ -40,7 +44,9 @@ export const SKILL_UNLOCK_ORDER_MAP: Record<number, string[]> = {
     'random_double_hand',
   ],
   2: ['last_hand_double', 'odd_trips_score_60', 'even_trips_mult_8'],
-  3: ['pair_score_30', 'trips_score_30', 'flush_score_60', 'rainbow_suits_x2', 'forward_rush'],
+  3: ['pair_score_30', 'trips_score_30', 'flush_score_60'],
+  [SKILL_UNLOCK_ORDER_RAINBOW_DEFERRED]: ['rainbow_suits_x2'],
+  [SKILL_UNLOCK_ORDER_FORWARD_DEFERRED]: ['forward_rush'],
   4: ['black_flush', 'red_flush'],
   5: ['small_cards_score', 'unscored_bonus'],
   6: ['diamond_score_per_gem', 'diamond_mult_per_gem'],
@@ -92,6 +98,9 @@ export function getUnlockedOrdersAfterNormalRun(highestNormalCleared: number): n
   if (highestNormalCleared >= 3) orders.push(3);
   // 第 5 局胜利解锁顺序 4
   if (highestNormalCleared >= 5) orders.push(4);
+  // 第 14 / 16 局胜利解锁延后批次（原属顺序 3，每批 1 张）
+  if (highestNormalCleared >= 14) orders.push(SKILL_UNLOCK_ORDER_RAINBOW_DEFERRED);
+  if (highestNormalCleared >= 16) orders.push(SKILL_UNLOCK_ORDER_FORWARD_DEFERRED);
   // 之后基本每隔 2 局解锁一次（顺序 5 对应第 7 局，6 对应第 9 局...）
   // 通用公式：解锁顺序 k（k >= 5）= 第 (5 + (k - 5) * 2 + 2) 局 = 第 (2k - 3) 局
   for (let k = 5; k <= 27; k++) {

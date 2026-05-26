@@ -16,7 +16,7 @@ export interface SkillCardFaceStatsOptions {
 export interface SkillCardFaceStats {
   /** 非累积类效果的简短数值摘要 */
   baseText: string;
-  /** 有累积类技能时展示当前池（含 $0 / +0倍） */
+  /** 有累积类技能时展示当前池（含 0 / +0倍） */
   accumText: string | null;
   /** 超级牌独立乘区：有张数时展示当前 ×，否则展示每牌 Δ */
   superCardText: string | null;
@@ -25,7 +25,7 @@ export interface SkillCardFaceStats {
 function formatEffectBase(ef: SkillEffect): string | null {
   switch (ef.type) {
     case 'add_score':
-      return ef.value !== 0 ? `+$${ef.value}` : null;
+      return ef.value !== 0 ? `+${ef.value}` : null;
     case 'add_multiplier':
       return ef.value !== 0 ? `+${ef.value}倍` : null;
     case 'independent_multiply':
@@ -34,21 +34,21 @@ function formatEffectBase(ef: SkillEffect): string | null {
     case 'super_card_independent_multiply':
       return null;
     case 'hand_add_score':
-      return `+$${ef.value}`;
+      return `+${ef.value}`;
     case 'hand_add_multiplier':
       return `+${ef.value}倍`;
     case 'all_cards_score':
-      return ef.value !== 0 ? `全+$${ef.value}` : '全计分';
+      return ef.value !== 0 ? `全+${ef.value}` : '全计分';
     case 'per_scoring_card_score':
-      return `分牌+$${ef.value}`;
+      return `分牌+${ef.value}`;
     case 'per_scoring_card_multiplier':
       return `分牌+${ef.value}倍`;
     case 'per_non_scoring_card_multiplier':
       return `非分+${ef.value}倍`;
     case 'accumulate_score':
-      return `+$${ef.value}/触发`;
+      return `+${ef.value}/触发`;
     case 'accumulate_score_saved_hands':
-      return `+$${ef.value}/省手`;
+      return `+${ef.value}/省手`;
     case 'accumulate_multiplier':
       return `+${ef.value}倍/触发`;
     case 'accumulate_multiplier_no_draw':
@@ -89,7 +89,7 @@ export function getSkillCardFaceStats(skill: SkillDef, opts?: SkillCardFaceStats
   );
 
   let accumText: string | null = null;
-  if (hasScoreAccum) accumText = `累积 $${accumulated}`;
+  if (hasScoreAccum) accumText = `累积 ${accumulated}`;
   else if (hasMultAccum) accumText = `累积 +${accumulated}倍`;
 
   let superCardText: string | null = null;
@@ -114,7 +114,7 @@ function formatIndependentFactorShort(f: number): string {
 function faceBaseNumericSegmentFromEffect(ef: SkillEffect): SkillNumericSegment | null {
   switch (ef.type) {
     case 'add_score':
-      return ef.value !== 0 ? { kind: 'score', text: `+$${ef.value}` } : null;
+      return ef.value !== 0 ? { kind: 'score', text: `+${ef.value}` } : null;
     case 'add_multiplier':
       return ef.value !== 0 ? { kind: 'mult_add', text: `+${ef.value} 倍` } : null;
     case 'independent_multiply':
@@ -125,13 +125,13 @@ function faceBaseNumericSegmentFromEffect(ef: SkillEffect): SkillNumericSegment 
     case 'super_card_independent_multiply':
       return null;
     case 'hand_add_score':
-      return ef.value !== 0 ? { kind: 'score', text: `+$${ef.value}` } : null;
+      return ef.value !== 0 ? { kind: 'score', text: `+${ef.value}` } : null;
     case 'hand_add_multiplier':
       return ef.value !== 0 ? { kind: 'mult_add', text: `+${ef.value} 倍` } : null;
     case 'all_cards_score':
-      return ef.value !== 0 ? { kind: 'score', text: `+$${ef.value}` } : null;
+      return ef.value !== 0 ? { kind: 'score', text: `+${ef.value}` } : null;
     case 'per_scoring_card_score':
-      return ef.value !== 0 ? { kind: 'score', text: `+$${ef.value}` } : null;
+      return ef.value !== 0 ? { kind: 'score', text: `+${ef.value}` } : null;
     case 'per_scoring_card_multiplier':
       return ef.value !== 0 ? { kind: 'mult_add', text: `+${ef.value} 倍` } : null;
     case 'per_non_scoring_card_multiplier':
@@ -158,13 +158,13 @@ function faceBaseNumericSegmentFromEffect(ef: SkillEffect): SkillNumericSegment 
   }
 }
 
-/** A 加注加倍率：缩短文案便于单行字号略大（仍为 $→蓝、倍→红） */
+/** A 加注加倍率：缩短文案便于单行字号略大（加分蓝、倍红） */
 function aceComboFaceBaseSegments(skill: Pick<SkillDef, 'effects'>): SkillNumericSegment[] | null {
   const scoreEf = skill.effects.find((e) => e.type === 'per_scoring_card_score');
   const multEf = skill.effects.find((e) => e.type === 'per_scoring_card_multiplier');
   if (!scoreEf || !multEf) return null;
   return [
-    { kind: 'score', text: `$${scoreEf.value}` },
+    { kind: 'score', text: `${scoreEf.value}` },
     { kind: 'mult_add', text: `${multEf.value} 倍` },
   ];
 }
@@ -207,7 +207,7 @@ export function getSkillFaceBaseNumericSegments(
     const v = ef?.value ?? 3;
     const cost = Math.max(1, ef?.perRunDiamondsCost ?? 1);
     const steps = Math.floor(gems / cost);
-    return [{ kind: 'score', text: `+$${steps * v}` }];
+    return [{ kind: 'score', text: `+${steps * v}` }];
   }
   const dmEf = skill.effects.find((e) => e.type === 'per_run_diamond_multiplier');
   if (dmEf && gems !== undefined) {
@@ -258,7 +258,7 @@ export function getSkillFaceBaseNumericSegments(
 }
 
 /**
- * 牌面「动态最终值」分段（× / +$ / +N 倍），超级牌乘倍仅在传入 `superCardCount` 时加入。
+ * 牌面「动态最终值」分段（× / 加分 / +N 倍），超级牌乘倍仅在传入 `superCardCount` 时加入。
  */
 export function getSkillCumulativeFinalSegments(
   skill: Pick<SkillDef, 'id' | 'effects'>,
@@ -302,7 +302,7 @@ export function getSkillCumulativeFinalSegments(
     return out;
   }
 
-  if (hasScoreAccum) out.push({ kind: 'score', text: `+$${accumulated}` });
+  if (hasScoreAccum) out.push({ kind: 'score', text: `+${accumulated}` });
   else if (hasMultAccum) out.push({ kind: 'mult_add', text: `+${accumulated} 倍` });
 
   return out;

@@ -62,7 +62,7 @@ export function SkillFaceNumericOneLineRow({
   );
 }
 
-/** 底部边数值（如 +$30、+10 倍、×1.5）：单行，随牌宽缩小字号 */
+/** 底部边数值（如 +30、+10 倍、×1.5）：单行，随牌宽缩小字号 */
 export function SkillEdgeValueOneLine({
   value,
   enhancement,
@@ -375,7 +375,7 @@ export interface SkillPlayingCardProps {
 
 /**
  * 扑克同轮廓技能牌（2:3、rounded-[14px]）。用于预览页及后续商店/ HUD。
- * 牌面：大字技能名 + 即时基础数值单行（ace_combo 为 `$30,4 倍` 缩短文案）+ 累积池/超级牌最终行；底边全宽流光条为附加边数值（与周缘同套金银彩动效）。
+ * 牌面：大字技能名 + 即时基础数值单行（ace_combo 为 `30,4 倍` 缩短文案）+ 累积池/超级牌最终行；底边全宽流光条为附加边数值（与周缘同套金银彩动效）。
  */
 export function SkillPlayingCard({
   skill,

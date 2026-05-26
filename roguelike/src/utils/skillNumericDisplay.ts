@@ -1,5 +1,5 @@
 /**
- * 牌面数值标识色：+$ 蓝、+N 倍 红、×N 橙（与策划约定一致）
+ * 牌面数值标识色：加分蓝、+N 倍红、×N 橙（与策划约定一致；展示不写 $）
  */
 export type SkillNumericKind = 'score' | 'mult_add' | 'times';
 

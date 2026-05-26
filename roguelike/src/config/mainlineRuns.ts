@@ -1,3 +1,7 @@
+import {
+  SKILL_UNLOCK_ORDER_FORWARD_DEFERRED,
+  SKILL_UNLOCK_ORDER_RAINBOW_DEFERRED,
+} from './skillUnlockOrders';
 import { FRAME_DEFS, MainlineRunDef, RunConfig } from '../types/profile';
 import type { SkillEnhancement } from '../types/skill';
 
@@ -66,6 +70,19 @@ export function hardFromNormal(
   return { ...normal, ...extra };
 }
 
+/** 第 14 / 16 局通关解锁的延后技能顺序，自第 15 / 17 局起进入当局商店池 */
+function withDeferredSkillOrders(runNo: number, allowed: number[] | undefined): number[] {
+  if (!allowed?.length) return allowed ?? [];
+  const list = [...allowed];
+  if (runNo >= 15 && !list.includes(SKILL_UNLOCK_ORDER_RAINBOW_DEFERRED)) {
+    list.push(SKILL_UNLOCK_ORDER_RAINBOW_DEFERRED);
+  }
+  if (runNo >= 17 && !list.includes(SKILL_UNLOCK_ORDER_FORWARD_DEFERRED)) {
+    list.push(SKILL_UNLOCK_ORDER_FORWARD_DEFERRED);
+  }
+  return list;
+}
+
 function mainlineRun(
   runNo: number,
   title: string,
@@ -74,11 +91,15 @@ function mainlineRun(
   displayTags: string[],
   hardDisplayTags: string[],
 ): MainlineRunDef {
+  const patchedNormal: RunConfigSans = {
+    ...normalConfig,
+    allowedSkillOrders: withDeferredSkillOrders(runNo, normalConfig.allowedSkillOrders),
+  };
   return {
     runNo,
     title,
-    normalConfig,
-    hardConfig: hardFromNormal(normalConfig, hardExtra),
+    normalConfig: patchedNormal,
+    hardConfig: hardFromNormal(patchedNormal, hardExtra),
     displayTags,
     hardDisplayTags,
   };
@@ -693,7 +714,7 @@ export function buildFreeplayConfig(): RunConfig {
     deckRule: 'standard',
     allHandTypesLv2: false,
     skillSlotBonus: 0,
-    allowedSkillOrders: Array.from({ length: 27 }, (_, i) => i + 1),
+    allowedSkillOrders: Array.from({ length: 29 }, (_, i) => i + 1),
     allowedSkillEnhancements: ['flash', 'gold', 'laser', 'black'],
     shopRefreshCostDelta: 0,
     shopPriceDelta: 0,

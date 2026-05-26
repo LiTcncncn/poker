@@ -2,6 +2,7 @@ import React from 'react';
 import { StageState } from '../types/run';
 import { TOTAL_STAGES } from '../engine/runEngine';
 import { getStageTargetGold } from '../engine/stageEngine';
+import { SCORE_TEXT_CLASS_STRONG } from '../utils/scoreDisplay';
 
 interface Props {
   stage: StageState;
@@ -19,9 +20,9 @@ export function ScoreDisplay({ stage, runStageCount }: Props) {
       {/* 目标金币 */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-gray-400">本关目标</span>
-        <span className="font-bold text-rl-gold">
+        <span className={`font-bold ${SCORE_TEXT_CLASS_STRONG}`}>
           {stage.accumulatedGold.toLocaleString()}
-          <span className="text-gray-400 font-normal"> / {targetGold.toLocaleString()}</span>
+          <span className="text-sky-400/70 font-normal"> / {targetGold.toLocaleString()}</span>
         </span>
       </div>
       {/* 进度条 */}

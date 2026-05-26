@@ -189,7 +189,7 @@ export function initRun(config?: RunConfig): RunState {
     runShopPriceDelta: config?.shopPriceDelta ?? 0,
     runShopUpgradeSlotBonus: config?.shopUpgradeSlotBonus ?? 0,
     runShopAttributeSlotBonus: config?.shopAttributeSlotBonus ?? 0,
-    allowedSkillOrders: config?.allowedSkillOrders ?? Array.from({ length: 27 }, (_, i) => i + 1),
+    allowedSkillOrders: config?.allowedSkillOrders ?? Array.from({ length: 29 }, (_, i) => i + 1),
     allowedSkillEnhancements:
       config?.allowedSkillEnhancements ?? ['flash', 'gold', 'laser', 'black'],
     runBanSkillShopEdges: config?.banSkillShopEdges ?? false,
