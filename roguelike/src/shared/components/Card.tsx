@@ -48,7 +48,7 @@ export const Card: React.FC<CardProps> = ({
       <div className={clsx('relative h-full w-full overflow-hidden', cardCornerClass)}>
         <div
           className={clsx(
-            'relative h-full w-full transition-transform duration-[250ms] ease-out',
+            'relative h-full w-full transition-transform duration-[650ms] ease-out',
             isFlipped ? 'rotate-y-0' : 'rotate-y-180'
           )}
           style={{ transformStyle: 'preserve-3d', WebkitTransformStyle: 'preserve-3d' }}

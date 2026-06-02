@@ -8,6 +8,7 @@ import { SkillFaceTestBoard } from './components/SkillFaceTestBoard';
 import { EndlessChoiceModal } from './components/EndlessChoiceModal';
 import { GameToast } from './components/GameToast';
 import { roguelikeLocalStorageKeysForHardReset } from './config/storageNamespace';
+import { useTutorialStore } from './store/tutorialStore';
 
 // ── 错误边界：防止任何运行时错误导致白屏 ──────────────────────────
 class ErrorBoundary extends Component<
@@ -62,7 +63,7 @@ function AppInner() {
     new URLSearchParams(window.location.search).get('skillFaceTest') === '1';
 
   const { run, handState, reward, dealInitialHand, enterEndlessMode, abandonRun } = useRLStore();
-  const { recordNormalClear, recordHardClear } = useProfileStore();
+  const { recordNormalClear, recordHardClear, profile } = useProfileStore();
 
   const hasActiveRun =
     run !== null &&
@@ -78,8 +79,25 @@ function AppInner() {
     }
   }, [run?.status, run?.runNo, run?.difficulty, run?.isEndless, recordNormalClear, recordHardClear]);
 
-  // 恢复兜底：run 存在但 handState 丢失时自动补发
-  // 有 reward 待处理（如开局三选一）时不自动发牌
+  // 未完成引导时：若本地恢复了 tutorial run 但主界面引导步进仍在，视为中断，清局回 A1
+  useEffect(() => {
+    if (showSkillPreview || showSkillFaceTest || profile.tutorialCompleted) return;
+    const homeStep = useTutorialStore.getState().homeStep;
+    if (run?.isTutorialRun && homeStep != null) {
+      abandonRun();
+      useTutorialStore.getState().resetHomeTutorial();
+    }
+  }, [showSkillPreview, showSkillFaceTest, profile.tutorialCompleted, run?.isTutorialRun, run?.runId, abandonRun]);
+
+  // 引导完成后：解除本局 tutorial run 限制，恢复正常游玩（否则 runStep 清空后会被各 action 门禁拦住）
+  useEffect(() => {
+    if (!profile.tutorialCompleted) return;
+    if (!run?.isTutorialRun) return;
+    useRLStore.setState((s) => ({
+      run: s.run ? { ...s.run, isTutorialRun: false } : s.run,
+    }));
+  }, [profile.tutorialCompleted, run?.isTutorialRun]);
+
   useEffect(() => {
     if (showSkillPreview || showSkillFaceTest) return;
     const endlessStageMissing =

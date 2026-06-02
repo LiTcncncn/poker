@@ -121,6 +121,8 @@ export interface RunClearRecord {
 
 export interface ProfileState {
   schemaVersion: number;
+  /** 新手引导（阶段 D）是否已完成 */
+  tutorialCompleted: boolean;
   /** 已通关的最高普通局编号（0 = 尚未通关任何普通局） */
   highestNormalRunCleared: number;
   /** 普通局通关记录 runNo → 记录 */

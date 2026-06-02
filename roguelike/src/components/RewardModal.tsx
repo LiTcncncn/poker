@@ -16,6 +16,8 @@ import { UpgradePlayingCard } from './UpgradePlayingCard';
 import { clampSkillSellExtraDiamonds } from '../engine/runEngine';
 import type { HandTypeUpgradeMap } from '../types/run';
 import { IaaPlayMark } from './IaaPlayMark';
+import { tutorialHighlightClass } from './TutorialOverlay';
+import type { RunTutorialStep } from '../store/tutorialStore';
 
 interface Props {
   reward: RewardState;
@@ -40,6 +42,8 @@ interface Props {
   onIaaClaimDiamonds?:  () => void;
   onIaaBuyItem?:        () => void;
   onContinue:           () => void;
+  tutorialRun?:         boolean;
+  tutorialShopStep?:    RunTutorialStep | null;
 }
 
 type UnifiedShopSlot =
@@ -87,6 +91,8 @@ export function RewardModal({
   onIaaClaimDiamonds,
   onIaaBuyItem,
   onContinue,
+  tutorialRun = false,
+  tutorialShopStep = null,
 }: Props) {
   const [skillDetail, setSkillDetail] = useState<{
     skill: SkillDef;
@@ -129,10 +135,16 @@ export function RewardModal({
     return qualityVal[skill.quality] + enhancementVal[enhancement] + extra;
   }
 
+  const tutorialBuyingFirstSkill = tutorialRun && tutorialShopStep === 'shop_buy' && reward.step === 'unified';
+
   return (
     <div className="fixed inset-0 z-50 flex animate-fade-in justify-center bg-slate-950/88 backdrop-blur-md">
       <div className="animate-modal-pop-in relative flex h-[100dvh] max-h-[100dvh] w-full max-w-[390px] flex-col overflow-hidden bg-rl-surface border-x border-rl-border/80 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="grid shrink-0 grid-cols-[minmax(2.5rem,1fr)_auto_minmax(2.5rem,1fr)] items-center gap-1 px-4">
+        {/* 引导：购买第一个技能牌时，除了首格技能牌与其购买按钮，其余区域统一蒙黑 */}
+        {tutorialBuyingFirstSkill && (
+          <div className="pointer-events-none absolute inset-0 z-[15] bg-black/55" aria-hidden />
+        )}
+        <div className={`grid shrink-0 grid-cols-[minmax(2.5rem,1fr)_auto_minmax(2.5rem,1fr)] items-center gap-1 px-4 ${tutorialBuyingFirstSkill ? 'opacity-25' : ''}`}>
           {/* 左：钻石余额 + IAA 补钻小按钮（unified 商店专属） */}
           <div className="justify-self-start flex items-center gap-1.5">
             <span className="text-[16px] font-bold tabular-nums text-rl-gold">💎{diamonds}</span>
@@ -157,13 +169,31 @@ export function RewardModal({
           <div className="mx-auto grid w-max max-w-full grid-cols-[repeat(3,5.175rem)] grid-rows-2 justify-center gap-x-3 gap-y-4">
             {buildUnifiedShopSlots(reward).map((slot, slotGlobalIdx) => {
               const isIaaSlot = onIaaBuyItem != null && reward.iaaItemSlotIndex === slotGlobalIdx;
+              const tutorialBuyingFirstSkill =
+                tutorialRun &&
+                tutorialShopStep === 'shop_buy' &&
+                reward.step === 'unified';
+              const tutorialFocusSlot =
+                tutorialBuyingFirstSkill && slotGlobalIdx === 0 && slot.kind === 'skill';
+              const dimThisSlot = tutorialBuyingFirstSkill && !tutorialFocusSlot;
               if (slot.kind === 'skill') {
                 const opt = slot.opt;
                 const slotFull = ownedSkills.length >= skillSlotsAfterBuying(opt.enhancement);
-                const disabled = diamonds < opt.price || slotFull || opt.purchased;
+                const tutorialLocked = tutorialRun && slotGlobalIdx !== 0;
+                const tutorialBuy =
+                  tutorialRun && slotGlobalIdx === 0 && tutorialShopStep === 'shop_buy';
+                const disabled =
+                  tutorialLocked ||
+                  diamonds < opt.price ||
+                  slotFull ||
+                  opt.purchased ||
+                  (tutorialRun && slotGlobalIdx === 0 && tutorialShopStep !== 'shop_buy');
                 const isPremium = premiumSlots.has(slotGlobalIdx);
                 return (
-                  <div key={`skill-${opt.skill.id}`} className="flex w-full flex-col items-center gap-1">
+                  <div
+                    key={`skill-${opt.skill.id}`}
+                    className={`flex w-full flex-col items-center gap-1 ${dimThisSlot ? 'opacity-25' : ''} ${tutorialFocusSlot ? 'relative z-20' : ''}`}
+                  >
                     <div className="relative w-full">
                       {isPremium && !opt.purchased && (
                         <span className="absolute right-0 top-0 z-10 rounded-bl-md rounded-tr-[14px] bg-amber-900/95 px-1 py-0.5 text-[9px] font-black text-amber-100">
@@ -209,7 +239,7 @@ export function RewardModal({
                         type="button"
                         disabled={disabled}
                         onClick={() => onChooseSkill(opt.skill, opt.enhancement, opt.price)}
-                        className="h-9 w-full bg-rl-gold disabled:bg-gray-700 disabled:text-gray-400 text-black text-[16px] font-bold rounded-lg leading-none"
+                        className={`h-9 w-full bg-rl-gold disabled:bg-gray-700 disabled:text-gray-400 text-black text-[16px] font-bold rounded-lg leading-none ${tutorialHighlightClass(tutorialBuy)}`}
                       >
                         {opt.purchased ? '已购' : `💎${opt.price}`}
                       </button>
@@ -219,10 +249,13 @@ export function RewardModal({
               }
               if (slot.kind === 'upgrade') {
                 const opt = slot.opt;
-                const disabled = diamonds < opt.price || !!opt.purchased;
+                const disabled =
+                  (tutorialRun) ||
+                  diamonds < opt.price ||
+                  !!opt.purchased;
                 const isPremium = premiumSlots.has(slotGlobalIdx);
                 return (
-                  <div key={`up-${slot.slotKey}`} className="flex w-full flex-col items-center gap-1">
+                  <div key={`up-${slot.slotKey}`} className={`flex w-full flex-col items-center gap-1 ${dimThisSlot ? 'opacity-25' : ''}`}>
                     <div className={clsx('relative w-full rounded-[14px]', opt.purchased && 'opacity-55')}>
                       {isPremium && !opt.purchased && (
                         <span className="absolute right-0 top-0 z-10 rounded-bl-md rounded-tr-[14px] bg-amber-900/95 px-1 py-0.5 text-[9px] font-black text-amber-100">
@@ -263,8 +296,9 @@ export function RewardModal({
               }
               const opt = slot.opt;
               const isPremium = premiumSlots.has(slotGlobalIdx);
+              const attrDisabled = tutorialRun || diamonds < opt.price || !!opt.purchased;
               return (
-                <div key={`attr-${opt.card.id}`} className="flex w-full flex-col items-center gap-1">
+                <div key={`attr-${opt.card.id}`} className={`flex w-full flex-col items-center gap-1 ${dimThisSlot ? 'opacity-25' : 'opacity-90'}`}>
                   <div className="relative w-full">
                     {isPremium && !opt.purchased && (
                       <span className="absolute right-0 top-0 z-10 rounded-bl-md rounded-tr-[14px] bg-amber-900/95 px-1 py-0.5 text-[9px] font-black text-amber-100">
@@ -293,7 +327,7 @@ export function RewardModal({
                       onClick={() => {
                         if (diamonds >= opt.price && !opt.purchased) onChooseAttributeCard(opt.card);
                       }}
-                      disabled={diamonds < opt.price || !!opt.purchased}
+                      disabled={attrDisabled}
                       className="h-9 w-full bg-rl-gold disabled:bg-gray-700 disabled:text-gray-400 text-black text-[16px] font-bold rounded-lg leading-none"
                     >
                       {opt.purchased ? '已购' : `💎${opt.price}`}
@@ -409,7 +443,7 @@ export function RewardModal({
         )}
         </div>
 
-        <div className="flex h-[185px] shrink-0 flex-col border-t border-rl-border bg-rl-surface">
+        <div className={`flex h-[185px] shrink-0 flex-col border-t border-rl-border bg-rl-surface ${tutorialBuyingFirstSkill ? 'opacity-25 pointer-events-none' : ''}`}>
           <div className="flex items-center justify-between px-4 pt-2">
             <div className="text-xs text-gray-400">已拥有技能 {ownedSkills.length}/{skillSlotCap}</div>
             <div className="inline-flex rounded-lg border border-rl-border bg-rl-bg/30 p-0.5">
@@ -519,21 +553,23 @@ export function RewardModal({
         </div>
 
         {/* 底部操作行：一个刷新入口，继续最大 */}
-        <div className="flex shrink-0 gap-2 px-4 pt-2">
+        <div className={`flex shrink-0 gap-2 px-4 pt-2 ${tutorialBuyingFirstSkill ? 'opacity-25 pointer-events-none' : ''}`}>
           {/* 刷新入口：点击后选择 💎 或播放标识刷新 */}
           <button
             type="button"
             onClick={handleRefreshEntryClick}
-            disabled={!canOpenRefreshOptions}
+            disabled={!canOpenRefreshOptions || tutorialRun}
             className="flex-1 bg-rl-blue disabled:bg-gray-700 disabled:text-gray-400 rounded-lg py-2 font-bold text-[13px]"
           >
             刷新
           </button>
-          {/* 继续：最宽 */}
           <button
             type="button"
             onClick={onContinue}
-            className="flex-[1.8] bg-rl-gold text-black rounded-lg py-2 font-bold text-[14px]"
+            disabled={tutorialRun && tutorialShopStep !== 'shop_continue'}
+            className={`flex-[1.8] bg-rl-gold text-black rounded-lg py-2 font-bold text-[14px] disabled:bg-gray-700 disabled:text-gray-400 ${tutorialHighlightClass(
+              tutorialRun && tutorialShopStep === 'shop_continue',
+            )}`}
           >
             继续
           </button>

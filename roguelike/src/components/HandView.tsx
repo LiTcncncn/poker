@@ -234,6 +234,12 @@ interface HandViewProps {
   phase: 'deal' | 'hold' | 'drew' | 'result';
   lastResult: HandResult | null;
   onToggleHold: (index: number) => void;
+  /** 引导：仅这些 index 可点 */
+  holdAllowedIndices?: number[];
+  /** 引导：外圈闪烁 */
+  highlightHoldIndices?: number[];
+  /** 引导：让外部拿到每张牌容器的 DOM ref（用于手势定位） */
+  setCardContainerRef?: (index: number, el: HTMLDivElement | null) => void;
 }
 
 /** 仅手牌区（结算在 StageView 中部独立展示） */
@@ -243,6 +249,9 @@ export function HandView({
   phase,
   lastResult,
   onToggleHold,
+  holdAllowedIndices,
+  highlightHoldIndices,
+  setCardContainerRef,
 }: HandViewProps) {
   const scoringIds = new Set(lastResult?.scoringCardIds ?? []);
   const isResult = phase === 'result';
@@ -257,16 +266,30 @@ export function HandView({
         {hand.map((card, i) => {
           const held = heldIndices.includes(i);
           const scoring = isResult && scoringIds.has(card.id);
+          const allowed =
+            canToggle &&
+            (holdAllowedIndices == null || holdAllowedIndices.includes(i));
+          const highlight = highlightHoldIndices?.includes(i) ?? false;
 
           return (
-            <Card
+            <div
               key={card.id}
-              card={card}
-              isFlipped={!isDeal}
-              isHeld={held}
-              isScoring={scoring}
-              onClick={() => canToggle && onToggleHold(i)}
-            />
+              ref={(el) => setCardContainerRef?.(i, el)}
+              className={`min-w-0 flex-1 max-w-[4.5rem] ${
+                highlight
+                  ? 'ring-2 ring-yellow-400 rounded-[14px] animate-[pulse_0.7s_ease-in-out_infinite] z-10'
+                  : ''
+              }`}
+            >
+              <Card
+                card={card}
+                isFlipped={!isDeal}
+                isHeld={held}
+                isScoring={scoring}
+                onClick={() => allowed && onToggleHold(i)}
+                className={!allowed && canToggle ? 'pointer-events-none' : undefined}
+              />
+            </div>
           );
         })}
       </div>

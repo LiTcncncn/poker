@@ -51,10 +51,7 @@ export interface RewardState {
    * 完成当前步时：若非空则切到下一步；若为空则推进到下一关。
    */
   pendingSteps?: RewardStep[];
-  /**
-   * 是否为开局奖励（Run 开始前的首次技能三选一）。
-   * 开局奖励选完后不推进关卡，只记录技能并开始第一关。
-   */
+  /** @deprecated 产品已取消开局技能三选一，保留字段仅为旧存档兼容 */
   isOpeningReward?: boolean;
   /**
    * 是否处于精英/Boss 关后奖励上下文。

@@ -40,9 +40,37 @@ import {
 } from '../config/storageNamespace';
 import { getAllowedSkillEnhancementsAfterNormalRun } from '../config/mainlineRuns';
 import { getIaaStageKey } from '../utils/iaaStageKey';
+import { useProfileStore } from './profileStore';
+import { useTutorialStore } from './tutorialStore';
+import {
+  TUTORIAL_FIRST_HAND,
+  TUTORIAL_HOLD_INDICES,
+  TUTORIAL_DRAW_CARD,
+  TUTORIAL_SKILL_ID,
+  buildTutorialDeckAfterFirstHand,
+} from '../tutorial/tutorialConfig';
+import { AUTO_FLIP_DELAY_MS } from '../tutorial/tutorialConfig';
+import { patchTutorialFirstShop } from '../tutorial/patchTutorialShop';
 
 const HAND_SIZE = 5;
 const IAA_DIAMOND_REFILL_LIMIT = 2;
+let autoFlipTimer: number | null = null;
+let lastAutoFlipKey = '';
+
+function scheduleAutoFlip(run: RunState, handState: HandState, flipCards: () => void) {
+  if (typeof window === 'undefined') return;
+  if (handState.phase !== 'deal' || run.status !== 'running') return;
+  const key = `${run.runId}-${run.currentStageIndex}-${run.handsPlayedTotal ?? 0}`;
+  if (lastAutoFlipKey === key) return;
+  lastAutoFlipKey = key;
+  if (autoFlipTimer != null) window.clearTimeout(autoFlipTimer);
+  useTutorialStore.getState().setAutoFlipLocked(true);
+  autoFlipTimer = window.setTimeout(() => {
+    flipCards();
+    useTutorialStore.getState().setAutoFlipLocked(false);
+    autoFlipTimer = null;
+  }, AUTO_FLIP_DELAY_MS);
+}
 
 function withRunShopRules(reward: RewardState, run: RunState): RewardState {
   return applyRunShopRules(reward, {
@@ -287,6 +315,11 @@ function _commitScore(
 
   if (newStage.status === 'won') {
     const diamondsGained = calcStageDiamondReward(newStage);
+    if (newRun.isTutorialRun && stage.stageIndex === 0) {
+      useTutorialStore.getState().setLastStageDiamondReward(diamondsGained);
+      // 引导：过关提示文案用“浮层提示”展示，但按钮步骤直接进入 next_stage，保证「下一关」可点
+      useTutorialStore.getState().setRunStep('next_stage');
+    }
     newRun = {
       ...newRun,
       runDiamonds: clampRunDiamonds(newRun.runDiamonds + diamondsGained),
@@ -357,7 +390,12 @@ function _commitScore(
           shopUpgradeBonus,
           shopAttributeBonus,
         );
-        set({ run: newRun, handState: newHandState, reward: withRunShopRules(rewardState, newRun) });
+        let finalReward = withRunShopRules(rewardState, newRun);
+        if (newRun.isTutorialRun && stage.stageIndex === 0) {
+          finalReward = patchTutorialFirstShop(finalReward);
+          // 注意：不要在此处推进到 shop_intro，否则会覆盖「下一关」引导态，导致按钮无响应。
+        }
+        set({ run: newRun, handState: newHandState, reward: finalReward });
       }
     }
   } else if (newStage.status === 'lost') {
@@ -451,7 +489,33 @@ export const useRLStore = create<RLStore>()(
 
       // ─── 开始新 Run ────────────────────────────────────────────
       startNewRun: (config?: RunConfig) => {
-        const run = initRun(config);
+        const profile = useProfileStore.getState().profile;
+        const isTutorialRun =
+          config?.runNo === 1 &&
+          config?.difficulty === 'normal' &&
+          !profile.tutorialCompleted;
+
+        const run: RunState = { ...initRun(config), isTutorialRun };
+        useTutorialStore.getState().setRunStep(null);
+
+        if (isTutorialRun) {
+          const hs: HandState = {
+            deck: buildTutorialDeckAfterFirstHand(),
+            hand: [...TUTORIAL_FIRST_HAND],
+            heldIndices: [],
+            phase: 'deal',
+            drawsUsed: 0,
+            lastResult: null,
+          };
+          set({
+            run,
+            reward: null,
+            handState: hs,
+          });
+          scheduleAutoFlip(run, hs, get().flipCards);
+          return;
+        }
+
         const stage0 = getEffectiveStage(run.stages[0], run.acquiredSkillIds, runScoringFromRun(run));
         const banJokers = run.runBanJokers || stage0.banJokers === true;
         const jP = jokerInjectProbability(run.acquiredSkillIds, banJokers);
@@ -460,16 +524,21 @@ export const useRLStore = create<RLStore>()(
         const deck = shuffle(injectJokers(baseDeck, jP));
         const dealt = dealCards(deck, HAND_SIZE);
         const { hand, remaining } = capJokersInHand(dealt.hand, dealt.remaining, maxJ);
+        const hs: HandState = { deck: remaining, hand, heldIndices: [], phase: 'deal', drawsUsed: 0, lastResult: null };
         set({
           run,
           reward: null,
-          handState: { deck: remaining, hand, heldIndices: [], phase: 'deal', drawsUsed: 0, lastResult: null },
+          handState: hs,
         });
+        scheduleAutoFlip(run, hs, get().flipCards);
       },
 
       abandonRun: () => {
         const { run } = get();
         if (run) recordRunOnAbandon(run);
+        if (run?.isTutorialRun) {
+          useTutorialStore.getState().resetHomeTutorial();
+        }
         set({ run: null, handState: null, reward: null });
       },
 
@@ -523,40 +592,67 @@ export const useRLStore = create<RLStore>()(
         const { hand, remaining } = capJokersInHand(dealt.hand, dealt.remaining, maxJ);
         const nextRun = { ...run };
         delete nextRun.pendingRandomHandMult;
+        const hs: HandState = { deck: remaining, hand, heldIndices: [], phase: 'deal', drawsUsed: 0, lastResult: null };
         set({
           run: nextRun,
-          handState: { deck: remaining, hand, heldIndices: [], phase: 'deal', drawsUsed: 0, lastResult: null },
+          handState: hs,
           reward: null,
         });
+        scheduleAutoFlip(nextRun, hs, get().flipCards);
       },
 
       // ─── 翻牌：deal → hold ────────────────────────────────────
       flipCards: () => {
         const { handState, run } = get();
         if (!handState || !run || handState.phase !== 'deal') return;
+        const st = get().currentStage();
+        const usedHands = st
+          ? getEffectiveStage(st, run.acquiredSkillIds, runScoringFromRun(run)).usedHands
+          : 0;
         const skills = getSkillsByIds(run.acquiredSkillIds);
         const rolled = rollRandomHandAddMultiplier(skills);
         const nextRun = { ...run };
         if (rolled !== undefined) nextRun.pendingRandomHandMult = rolled;
         else delete nextRun.pendingRandomHandMult;
         set({ run: nextRun, handState: { ...handState, phase: 'hold' } });
+
+        // 引导：自动翻牌后推进到下一段文案（必须放在 store，因为自动翻牌也在 store 内触发）
+        if (run.isTutorialRun && usedHands === 0) {
+          if (run.currentStageIndex === 0) {
+            useTutorialStore.getState().onTutorialStage0FlipDone();
+          } else if (run.currentStageIndex === 1) {
+            useTutorialStore.getState().onTutorialStage1FlipDone();
+          }
+        }
       },
 
       // ─── 切换 hold（hold 阶段选/取消选牌）──────────────────────
       toggleHold: (index: number) => {
-        const { handState } = get();
+        const { handState, run } = get();
         if (!handState || handState.phase !== 'hold') return;
+        if (run?.isTutorialRun) {
+          const step = useTutorialStore.getState().runStep;
+          if (step !== 'hold_four') return;
+          if (!(TUTORIAL_HOLD_INDICES as readonly number[]).includes(index)) return;
+        }
         const held = handState.heldIndices;
         const next = held.includes(index)
           ? held.filter(i => i !== index)
           : [...held, index];
         set({ handState: { ...handState, heldIndices: next } });
+        if (run?.isTutorialRun && useTutorialStore.getState().runStep === 'hold_four') {
+          const complete =
+            next.length === TUTORIAL_HOLD_INDICES.length &&
+            TUTORIAL_HOLD_INDICES.every((i) => next.includes(i));
+          if (complete) useTutorialStore.getState().onHoldFourComplete();
+        }
       },
 
       // ─── 补牌（hold 阶段，可多次，消耗 holdUsed）──────────────
       drawCards: () => {
         const { handState, run } = get();
         if (!handState || !run || handState.phase !== 'hold') return;
+        if (run.isTutorialRun && useTutorialStore.getState().runStep !== 'draw') return;
         const rawStage = get().currentStage();
         if (!rawStage) return;
         const stage = getEffectiveStage(rawStage, run.acquiredSkillIds, runScoringFromRun(run));
@@ -584,9 +680,25 @@ export const useRLStore = create<RLStore>()(
         }
 
         // 换牌
-        const replaced = replaceUnheld(handState.hand, handState.heldIndices, handState.deck);
+        let newHand: Card[];
+        let remaining: Card[];
+        if (run.isTutorialRun) {
+          newHand = [...handState.hand];
+          for (let i = 0; i < newHand.length; i++) {
+            if (!handState.heldIndices.includes(i)) newHand[i] = TUTORIAL_DRAW_CARD;
+          }
+          remaining = handState.deck;
+        } else {
+          const replaced = replaceUnheld(handState.hand, handState.heldIndices, handState.deck);
+          const maxJ = maxJokersInHandCap(run.acquiredSkillIds);
+          const capped = capJokersInHand(replaced.newHand, replaced.remaining, maxJ);
+          newHand = capped.hand;
+          remaining = capped.remaining;
+        }
         const maxJ = maxJokersInHandCap(run.acquiredSkillIds);
-        const { hand: newHand, remaining } = capJokersInHand(replaced.newHand, replaced.remaining, maxJ);
+        const cappedFinal = capJokersInHand(newHand, remaining, maxJ);
+        newHand = cappedFinal.hand;
+        remaining = cappedFinal.remaining;
 
         // 触发 hold 型技能积累
         const heldCards = handState.heldIndices.map(i => handState.hand[i]);
@@ -602,15 +714,19 @@ export const useRLStore = create<RLStore>()(
             deck: remaining,
             heldIndices: [],
             drawsUsed: handState.drawsUsed + 1,
-            phase: 'hold',   // 保持 hold 状态，可继续补牌或结算
+            phase: 'hold',
           },
         });
+        if (run.isTutorialRun) {
+          useTutorialStore.getState().setRunStep('score');
+        }
       },
 
       // ─── 结算（hold 阶段 → result）────────────────────────────
       scoreHand: () => {
         const { handState, run } = get();
         if (!handState || !run || handState.phase !== 'hold') return;
+        if (run.isTutorialRun && useTutorialStore.getState().runStep !== 'score') return;
         const rawStage = get().currentStage();
         if (!rawStage) return;
         const stage = getEffectiveStage(rawStage, run.acquiredSkillIds, runScoringFromRun(run));
@@ -621,6 +737,10 @@ export const useRLStore = create<RLStore>()(
       chooseSkill: (skill: SkillDef, enhancement: SkillEnhancement, price: number) => {
         const { run, reward } = get();
         if (!run || !reward || (reward.step !== 'skill' && reward.step !== 'unified')) return;
+        if (run.isTutorialRun) {
+          const step = useTutorialStore.getState().runStep;
+          if (step !== 'shop_buy' || skill.id !== TUTORIAL_SKILL_ID) return;
+        }
         if (run.runDiamonds < price) return;
         if (run.acquiredSkillIds.includes(skill.id)) return;
         const blacksAfter =
@@ -673,12 +793,16 @@ export const useRLStore = create<RLStore>()(
           s.skill.id === skill.id ? { ...s, purchased: true } : s
         );
         set({ run: newRun, reward: { ...reward, skillOptions: newSkillOptions } });
+        if (run.isTutorialRun) {
+          useTutorialStore.getState().setRunStep('shop_continue');
+        }
       },
 
       // ─── 卖出技能（先卖后买）────────────────────────────────────
       sellSkill: (skillId: string) => {
         const { run } = get();
         if (!run) return;
+        if (run.isTutorialRun) return;
         if (!run.acquiredSkillIds.includes(skillId)) return;
         const skill = getSkillsByIds([skillId])[0];
         if (!skill) return;
@@ -716,6 +840,7 @@ export const useRLStore = create<RLStore>()(
       chooseUpgrade: (option: UpgradeOption) => {
         const { run, reward } = get();
         if (!run || !reward || (reward.step !== 'upgrade' && reward.step !== 'unified')) return;
+        if (run.isTutorialRun) return;
         const target = reward.upgradeOptions.find(u =>
           u.option.handType === option.handType && u.option.handName === option.handName
         );
@@ -745,6 +870,7 @@ export const useRLStore = create<RLStore>()(
       chooseAttributeCard: (card: Card) => {
         const { run, reward } = get();
         if (!run || !reward || (reward.step !== 'attribute' && reward.step !== 'unified')) return;
+        if (run.isTutorialRun) return;
         const target = reward.attributeOptions.find(a => a.card.id === card.id);
         if (!target) return;
         if (target.purchased) return;
@@ -769,6 +895,7 @@ export const useRLStore = create<RLStore>()(
       refreshRewardWithDiamonds: () => {
         const { run, reward } = get();
         if (!run || !reward) return;
+        if (run.isTutorialRun) return;
         if (reward.refreshUsedWithDiamonds) return;
         const refreshCost = Math.max(0, reward.diamondRefreshCost ?? getDefaultDiamondRefreshCost());
         if (run.runDiamonds < refreshCost) return;
@@ -838,6 +965,7 @@ export const useRLStore = create<RLStore>()(
       proceedRewardStep: () => {
         const { run, reward } = get();
         if (!run || !reward) return;
+        if (run.isTutorialRun && useTutorialStore.getState().runStep !== 'shop_continue') return;
 
         // 黑边定向保底：在离开本关商店时更新 pity/cooldown（每关一次）
         if (reward.step === 'unified' && reward.shopStageK != null) {
@@ -925,7 +1053,12 @@ export const useRLStore = create<RLStore>()(
           }
         }
         set({ run: advanced, reward: null });
-        if (advanced.status === 'running') get().dealInitialHand();
+        if (advanced.status === 'running') {
+          get().dealInitialHand();
+          if (advanced.isTutorialRun && advanced.currentStageIndex === 1) {
+            useTutorialStore.getState().setRunStep(null);
+          }
+        }
       },
 
       // ─── IAA 辅助函数 ─────────────────────────────────────────

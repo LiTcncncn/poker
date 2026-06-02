@@ -1,5 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRLStore } from '../store/roguelikeStore';
+import { useTutorialStore } from '../store/tutorialStore';
+import { AUTO_FLIP_DELAY_MS } from '../tutorial/tutorialConfig';
+import { TUTORIAL_HOLD_INDICES } from '../tutorial/tutorialConfig';
+import { TutorialOverlay, tutorialHighlightClass } from './TutorialOverlay';
 import { HandView, SettlementBlock } from './HandView';
 import { RewardModal } from './RewardModal';
 import { RunResult } from './RunResult';
@@ -62,27 +66,26 @@ export function StageView() {
     iaaGrantExtraHold, iaaExtraHand, iaaRevive,
   } = useRLStore();
 
-  // rewardVisible: 结算后先停留在 result，点击「下一关」才弹出
-  // 例外：开局三选一（第一关第一手前）自动弹出
   const [rewardVisible, setRewardVisible] = useState(false);
   useEffect(() => { if (!reward) setRewardVisible(false); }, [reward]);
 
-  // defeatReady: 失败时先显示最后一手结果，点击「本局失败 →」才跳转结束画面
+  const runStep = useTutorialStore((s) => s.runStep);
+  const tutorialLineIndex = useTutorialStore((s) => s.lineIndex);
+  const lastStageDiamondReward = useTutorialStore((s) => s.lastStageDiamondReward);
+  const autoFlipLocked = useTutorialStore((s) => s.autoFlipLocked);
+  const advanceRunLines = useTutorialStore((s) => s.advanceRunLines);
+
   const [defeatReady, setDefeatReady] = useState(false);
-  /** 精英/Boss 词缀条截断时点击展开全文 */
   const [eliteModifierSheet, setEliteModifierSheet] = useState<string | null>(null);
+  const autoFlipKeyRef = useRef('');
+  const holdCardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const holdGestureTargetRef = useRef<HTMLElement | null>(null);
+  const [holdGestureKey, setHoldGestureKey] = useState(0);
+
   useEffect(() => { setDefeatReady(false); }, [run?.runId]);
   useEffect(() => {
     setEliteModifierSheet(null);
   }, [run?.runId, run?.currentStageIndex]);
-  useEffect(() => {
-    if (reward && run && handState?.phase === 'deal') {
-      const s = run.stages[run.currentStageIndex];
-      if (s && s.usedHands === 0 && run.currentStageIndex === 0) {
-        setRewardVisible(true);
-      }
-    }
-  }, [reward, run, handState?.phase]);
 
   const previewHandResult = useMemo<HandResult | null>(() => {
     if (!run || !handState || handState.phase !== 'hold') return null;
@@ -128,7 +131,49 @@ export function StageView() {
     };
   }, [currentStage, handState, run]);
 
+  const phaseForFlip = handState?.phase;
+  const runIdForFlip = run?.runId;
+  const stageIdxForFlip = run?.currentStageIndex;
+  const runStatusForFlip = run?.status;
+  const isTutorialRunForFlip = run?.isTutorialRun;
+
+  useEffect(() => {
+    if (!run || !handState || phaseForFlip !== 'deal' || runStatusForFlip !== 'running') return;
+    const st = currentStage();
+    const usedHands = st
+      ? getEffectiveStage(st, run.acquiredSkillIds, runScoringFromRun(run)).usedHands
+      : 0;
+    const key = `${run.runId}-${run.currentStageIndex}-${usedHands}`;
+    if (autoFlipKeyRef.current === key) return;
+    autoFlipKeyRef.current = key;
+    useTutorialStore.getState().setAutoFlipLocked(true);
+    const t = window.setTimeout(() => {
+      flipCards();
+      useTutorialStore.getState().setAutoFlipLocked(false);
+      if (run.isTutorialRun) {
+        if (run.currentStageIndex === 0) {
+          useTutorialStore.getState().onTutorialStage0FlipDone();
+        } else if (run.currentStageIndex === 1) {
+          useTutorialStore.getState().onTutorialStage1FlipDone();
+        }
+      }
+    }, AUTO_FLIP_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [
+    phaseForFlip,
+    runIdForFlip,
+    stageIdxForFlip,
+    runStatusForFlip,
+    isTutorialRunForFlip,
+    flipCards,
+    run,
+    handState,
+    currentStage,
+  ]);
+
   if (!run || !handState) return null;
+
+  const isTutorial = !!run.isTutorialRun;
 
   // 主线胜利（非无尽）：由 App.tsx 的 EndlessChoiceModal 处理，StageView 不渲染
   if (run.status === 'victory' && !run.isEndless) return null;
@@ -186,12 +231,17 @@ export function StageView() {
   /** 与顶部「剩余 X 手」一致：未打完的本关手数 / 本关总手数 */
   const handsRemainLabel = `（${handsLeft}/${effectiveStage.totalHands}）`;
 
-  // ── 结算后下一步 ────────────────────────────────────────────
   function handleNext() {
+    if (isTutorial && runStep !== 'next_stage' && stage!.status === 'won') return;
+
     if (reward && stage!.status === 'won') {
+      if (isTutorial && stage!.stageIndex === 0) {
+        // 只有点击「下一关」后才进入商店引导文案
+        useTutorialStore.getState().setRunStep('shop_intro');
+      }
       setRewardVisible(true);
     } else if (stage!.status === 'lost') {
-      setDefeatReady(true);   // 先显示最后一手结果，再跳转本局失败画面
+      setDefeatReady(true);
     } else {
       dealInitialHand();
     }
@@ -235,8 +285,39 @@ export function StageView() {
     iaaPerStage.extraHandUsed &&    // 手数+1 已用
     !iaaState?.runReviveUsed;
 
+  const showRunTutorialOverlay =
+    isTutorial &&
+    runStep != null &&
+    ['hand_intro', 'stage_clear', 'rules_extra'].includes(runStep);
+
+  const tutorialOverlayPlacement =
+    (runStep === 'hand_intro' || runStep === 'rules_extra') ? 'center' as const : 'bottom' as const;
+  const nextHoldIndex = useMemo(() => {
+    if (!isTutorial || runStep !== 'hold_four') return null;
+    const held = new Set(handState.heldIndices);
+    const next = [...TUTORIAL_HOLD_INDICES].find((i) => !held.has(i));
+    return next ?? null;
+  }, [isTutorial, runStep, handState.heldIndices]);
+
+  useEffect(() => {
+    if (nextHoldIndex == null) {
+      holdGestureTargetRef.current = null;
+      return;
+    }
+    holdGestureTargetRef.current = holdCardRefs.current[nextHoldIndex];
+    setHoldGestureKey((k) => k + 1);
+  }, [nextHoldIndex]);
+
   // ── 底部按钮区 ──────────────────────────────────────────────
   function renderButtons() {
+    if (isDeal || autoFlipLocked) {
+      return (
+        <div className="w-full py-3 text-center text-xs text-gray-500 font-medium">
+          翻牌中…
+        </div>
+      );
+    }
+
     if (isResult) {
       const isLost = stage!.status === 'lost';
       const isWon  = stage!.status === 'won';
@@ -245,8 +326,9 @@ export function StageView() {
         : isLost
           ? (run!.isEndless ? '挑战结束 →' : '本局失败 →')
           : `下一手 →${handsRemainLabel}`;
+      const highlightNext = isTutorial && isWon && runStep === 'next_stage';
       const primaryCls = isWon
-        ? 'w-full bg-rl-gold hover:bg-yellow-300 text-black font-black py-3 rounded-xl transition-colors'
+        ? `w-full bg-rl-gold hover:bg-yellow-300 text-black font-black py-3 rounded-xl transition-colors ${highlightNext ? 'relative z-[170] rl-tutorial-focus-orange' : ''}`
         : 'w-full bg-rl-green/20 border border-rl-green text-rl-green hover:bg-rl-green hover:text-black font-black py-3 rounded-xl transition-colors';
 
       if (isLost && (showIaaExtraHand || showIaaRevive)) {
@@ -283,7 +365,7 @@ export function StageView() {
       return (
         <button
           onClick={handleNext}
-          disabled={stageDone && !reward && !isLost}
+          disabled={(stageDone && !reward && !isLost) || (isTutorial && isWon && runStep !== 'next_stage')}
           className={primaryCls}
         >
           {label}
@@ -291,21 +373,14 @@ export function StageView() {
       );
     }
 
-    if (isDeal) {
-      return (
-        <button
-          onClick={flipCards}
-          className="w-full bg-rl-gold hover:bg-yellow-300 text-black font-black py-3 rounded-xl transition-colors shadow-md shadow-yellow-900/30"
-        >
-          翻牌
-        </button>
-      );
-    }
-
     if (isHold) {
-      const canDrawFinal = canDrawNow || iaaHoldGranted || canIaaGrantHold;
+      const canDrawFinal =
+        !isTutorial &&
+        (canDrawNow || iaaHoldGranted || canIaaGrantHold);
+      const tutorialCanDraw = isTutorial && runStep === 'draw';
+      const drawEnabled = canDrawFinal || tutorialCanDraw;
       const handleDrawClick = () => {
-        if (canDrawNow || iaaHoldGranted) {
+        if (tutorialCanDraw || canDrawNow || iaaHoldGranted) {
           drawCards();
           return;
         }
@@ -314,14 +389,17 @@ export function StageView() {
           drawCards();
         }
       };
+      const tutorialCanScore = !isTutorial || runStep === 'score';
+      const tutorialFocusDraw = isTutorial && runStep === 'draw';
       return (
         <div className="flex gap-2">
-          {/* 补牌（左）：普通补牌 / 播放标识补牌共用同一个按钮 */}
           <button
-            onClick={canDrawFinal ? handleDrawClick : undefined}
-            disabled={!canDrawFinal}
-            className={`flex-1 flex items-center justify-center gap-2 font-black py-3 rounded-xl transition-colors ${
-              canDrawFinal
+            onClick={drawEnabled ? handleDrawClick : undefined}
+            disabled={!drawEnabled}
+            className={`flex-1 flex items-center justify-center gap-2 font-black py-3 rounded-xl transition-colors ${tutorialHighlightClass(
+              tutorialFocusDraw,
+            )} ${
+              drawEnabled
                 ? 'bg-rl-blue hover:bg-blue-400 text-white shadow-md shadow-blue-900/30'
                 : 'bg-transparent border border-rl-border text-gray-600 cursor-not-allowed'
             }`}
@@ -332,10 +410,14 @@ export function StageView() {
             </span>
             {iaaHoldGranted && <IaaPlayMark />}
           </button>
-          {/* 结算（右） */}
           <button
-            onClick={scoreHand}
-            className="flex-1 bg-rl-gold hover:bg-yellow-300 text-black font-black py-3 rounded-xl transition-colors shadow-md shadow-yellow-900/20"
+            onClick={tutorialCanScore ? scoreHand : undefined}
+            disabled={!tutorialCanScore}
+            className={`flex-1 font-black py-3 rounded-xl transition-colors shadow-md shadow-yellow-900/20 ${
+              tutorialCanScore
+                ? 'bg-rl-gold hover:bg-yellow-300 text-black'
+                : 'bg-gray-700/60 text-gray-400'
+            } ${tutorialHighlightClass(isTutorial && runStep === 'score')}`}
           >
             结算{handsRemainLabel}
           </button>
@@ -349,9 +431,77 @@ export function StageView() {
   /** 底栏（手牌 + 主按钮 + 安全区）占位，避免与中部结算区重叠 */
   const dockBottomReserve =
     'pb-[calc(268px+env(safe-area-inset-bottom,0px))]';
+  const showStageClearOverlay =
+    isTutorial &&
+    stage?.status === 'won' &&
+    stage.stageIndex === 0 &&
+    runStep === 'next_stage' &&
+    lastStageDiamondReward > 0;
 
   return (
     <>
+      {showRunTutorialOverlay && (
+        <TutorialOverlay
+          runStep={runStep}
+          lineIndex={tutorialLineIndex}
+          diamondReward={lastStageDiamondReward}
+          placement={tutorialOverlayPlacement}
+          onTap={() => advanceRunLines()}
+        />
+      )}
+      {/* 引导：第一关过关提示（全屏半透黑；点击任意处进入商店；“下一关”按钮置顶且橙色快闪） */}
+      {showStageClearOverlay && (
+        <>
+          {/* 全屏蒙层：包括 5 张牌一起变暗；点击任意处进入商店 */}
+          <div
+            className="fixed inset-0 z-[150] bg-black/55"
+            aria-hidden
+            onClick={() => {
+              if (reward) {
+                useTutorialStore.getState().setRunStep('shop_intro');
+                setRewardVisible(true);
+              }
+            }}
+          />
+
+          {/* 中央提示框（不挡点击） */}
+          <div className="pointer-events-none fixed inset-0 z-[160] flex items-center justify-center px-2">
+            <div className="w-full max-w-[390px] rounded-2xl border border-white/10 bg-black/85 px-5 py-6 shadow-2xl">
+              <div className="h-[5.6rem] overflow-hidden">
+                <p className="whitespace-pre-line text-white text-xl font-bold leading-relaxed tracking-wide">
+                  本关目标达成，获得 💎{lastStageDiamondReward}！
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 仅保留「下一关」按钮置顶可点（不被蒙黑，橙色边框快闪） */}
+          <div className="fixed inset-x-0 bottom-0 z-[200] flex justify-center pointer-events-none pb-[max(12px,env(safe-area-inset-bottom,0px))]">
+            <div className="pointer-events-auto w-full max-w-[390px] px-3 pt-2">
+              <button
+                type="button"
+                onClick={handleNext}
+                className="w-full bg-rl-gold hover:bg-yellow-300 text-black font-black py-3 rounded-xl transition-colors relative z-[170] rl-tutorial-focus-orange"
+              >
+                下一关 →
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      {isTutorial && runStep === 'hold_four' && (
+        <TutorialOverlay
+          runStep={runStep}
+          lineIndex={tutorialLineIndex}
+          diamondReward={lastStageDiamondReward}
+          placement="center"
+          onTap={() => { /* hold 步骤不靠点遮罩推进 */ }}
+          gestureTargetRef={holdGestureTargetRef}
+          gestureRecalcKey={holdGestureKey}
+          dimBackground={false}
+        />
+      )}
+
       {/* 纵向：顶—技能—目标 上对齐小间距 → 中部结算区 flex 吃满 → 底栏 fixed 仅手牌+按钮 */}
       <div className="flex w-full flex-1 min-h-0 flex-col">
         <div
@@ -387,13 +537,15 @@ export function StageView() {
                 >
                   {stageTitle}
                 </span>
-                <button
-                  type="button"
-                  onClick={abandonRun}
-                  className="absolute right-0 rounded border border-rl-border/50 px-2.5 py-1 text-xs text-gray-500 transition-colors hover:border-rl-border hover:text-gray-300"
-                >
-                  退出
-                </button>
+                {!isTutorial && (
+                  <button
+                    type="button"
+                    onClick={abandonRun}
+                    className="absolute right-0 rounded border border-rl-border/50 px-2.5 py-1 text-xs text-gray-500 transition-colors hover:border-rl-border hover:text-gray-300"
+                  >
+                    退出
+                  </button>
+                )}
               </div>
 
               {showStageModifierStrip && (
@@ -420,7 +572,7 @@ export function StageView() {
             </div>
 
             {/* 技能 / 牌型 / 超级牌 */}
-            <div className="max-h-[min(44vh,360px)] min-h-0 shrink-0 overflow-y-auto [-webkit-overflow-scrolling:touch]">
+            <div className="relative max-h-[min(44vh,360px)] min-h-0 shrink-0 overflow-y-auto [-webkit-overflow-scrolling:touch]">
               <InfoTabs run={run} />
             </div>
 
@@ -477,7 +629,9 @@ export function StageView() {
       {/* 底栏：仅牌区 + 主按钮，下对齐 + 安全区 */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center">
         <div
-          className="pointer-events-auto w-full max-w-[390px] border-t border-rl-border/40 px-3 pt-2 pb-[max(12px,env(safe-area-inset-bottom,0px))]"
+          className={`pointer-events-auto w-full max-w-[390px] border-t border-rl-border/40 px-3 pt-2 pb-[max(12px,env(safe-area-inset-bottom,0px))] ${
+            showStageClearOverlay ? 'pointer-events-none' : ''
+          }`}
         >
           <div className="flex flex-col gap-2">
             <HandView
@@ -486,6 +640,17 @@ export function StageView() {
               phase={phase}
               lastResult={handState.lastResult}
               onToggleHold={toggleHold}
+              holdAllowedIndices={
+                isTutorial && runStep === 'hold_four'
+                  ? [...TUTORIAL_HOLD_INDICES]
+                  : undefined
+              }
+              highlightHoldIndices={
+                isTutorial && runStep === 'hold_four'
+                  ? [...TUTORIAL_HOLD_INDICES].filter((i) => !handState.heldIndices.includes(i))
+                  : undefined
+              }
+              setCardContainerRef={(idx, el) => { holdCardRefs.current[idx] = el; }}
             />
             {renderButtons()}
           </div>
@@ -514,6 +679,17 @@ export function StageView() {
           onIaaClaimDiamonds={showIaaDiamondRefill ? iaaClaimDiamonds : undefined}
           onIaaBuyItem={showIaaShopBuy ? iaaBuyItem : undefined}
           onContinue={proceedRewardStep}
+          tutorialRun={isTutorial}
+          tutorialShopStep={isTutorial ? runStep : null}
+        />
+      )}
+
+      {isTutorial && rewardVisible && runStep === 'shop_intro' && (
+        <TutorialOverlay
+          runStep="shop_intro"
+          lineIndex={0}
+          onTap={() => advanceRunLines()}
+          placement="center"
         />
       )}
 

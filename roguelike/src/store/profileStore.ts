@@ -5,12 +5,13 @@ import { RG_STORAGE_SLUG } from '../config/storageNamespace';
 import { getUnlockedOrdersAfterNormalRun } from '../config/skillUnlockOrders';
 
 // ─── 存储版本 ──────────────────────────────────────────────────
-const PROFILE_SCHEMA_VERSION = 1 as const;
+const PROFILE_SCHEMA_VERSION = 2 as const;
 const PROFILE_PERSIST_KEY = `poker-roguelike-${RG_STORAGE_SLUG}-profile-v${PROFILE_SCHEMA_VERSION}`;
 
 // ─── 初始 Profile ──────────────────────────────────────────────
 const INITIAL_PROFILE: ProfileState = {
   schemaVersion: PROFILE_SCHEMA_VERSION,
+  tutorialCompleted: false,
   highestNormalRunCleared: 0,
   normalClears: {},
   hardClears: {},
@@ -44,6 +45,10 @@ interface ProfileStore {
 
   /** 重置 Profile（调试用） */
   resetProfile: () => void;
+  /** 标记新手引导完成 */
+  completeTutorial: () => void;
+  /** 无尽 / 排行榜是否已解锁（第 3 局普通通关） */
+  isEndlessAndLeaderboardUnlocked: () => boolean;
 }
 
 export const useProfileStore = create<ProfileStore>()(
@@ -157,10 +162,33 @@ export const useProfileStore = create<ProfileStore>()(
       resetProfile: () => {
         set({ profile: INITIAL_PROFILE });
       },
+
+      completeTutorial: () => {
+        set((state) => ({
+          profile: { ...state.profile, tutorialCompleted: true },
+        }));
+      },
+
+      isEndlessAndLeaderboardUnlocked: () => {
+        return get().profile.highestNormalRunCleared >= 3;
+      },
     }),
     {
       name: PROFILE_PERSIST_KEY,
       version: PROFILE_SCHEMA_VERSION,
+      migrate: (persisted: unknown, version: number) => {
+        const base = (persisted ?? {}) as ProfileState & { tutorialCompleted?: boolean };
+        if (version < 2) {
+          return {
+            ...INITIAL_PROFILE,
+            ...base,
+            schemaVersion: PROFILE_SCHEMA_VERSION,
+            tutorialCompleted:
+              base.tutorialCompleted === true || (base.highestNormalRunCleared ?? 0) >= 1,
+          } as ProfileState;
+        }
+        return { ...INITIAL_PROFILE, ...base, schemaVersion: PROFILE_SCHEMA_VERSION } as ProfileState;
+      },
     }
   )
 );

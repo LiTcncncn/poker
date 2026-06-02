@@ -95,6 +95,8 @@ export interface RunState {
   blackEdgePityCooldown?: number;
 
   // ── 继续挑战（无限阶段） ──────────────────────
+  /** 当前局是否为强制新手引导 Run（第 1 局普通，tutorialCompleted 前） */
+  isTutorialRun?: boolean;
   /** 是否已进入无限挑战阶段 */
   isEndless: boolean;
   /** 已完成的无限阶段关卡数（0 = 还未完成任何无限关） */
