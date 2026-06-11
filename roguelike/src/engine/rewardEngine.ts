@@ -297,6 +297,8 @@ export interface RunShopRules {
   refreshCostDelta?: number;
   premiumSlotCount?: number;
   premiumPriceMultiplier?: number;
+  /** 随机溢价槽固定售价（优先于倍率） */
+  premiumFixedPrice?: number;
   /** 所有商品标价 +N（技能/升级/属性） */
   priceDelta?: number;
 }
@@ -320,9 +322,10 @@ export function applyRunShopRules(reward: RewardState, rules: RunShopRules): Rew
     next.diamondRefreshCost = getDefaultDiamondRefreshCost() + refreshDelta;
   }
   const premiumCount = rules.premiumSlotCount ?? 0;
+  const premiumFixed = rules.premiumFixedPrice ?? 0;
   const premiumMult = rules.premiumPriceMultiplier ?? 1;
-  if (premiumCount > 0 && premiumMult > 1) {
-    next = applyShopPremiumPricing(next, premiumCount, premiumMult);
+  if (premiumCount > 0 && (premiumFixed > 0 || premiumMult > 1)) {
+    next = applyShopPremiumPricing(next, premiumCount, premiumMult, premiumFixed);
   }
   const priceDelta = rules.priceDelta ?? 0;
   if (priceDelta !== 0) {
@@ -335,6 +338,7 @@ function applyShopPremiumPricing(
   reward: RewardState,
   count: number,
   multiplier: number,
+  fixedPrice = 0,
 ): RewardState {
   const skillLen = reward.skillOptions.length;
   const upgradeLen = reward.upgradeOptions.length;
@@ -348,16 +352,18 @@ function applyShopPremiumPricing(
   }
   const picked = new Set(indices.slice(0, Math.min(count, total)));
 
+  const premiumPrice = (base: number) =>
+    fixedPrice > 0 ? fixedPrice : base * multiplier;
   const skillOptions = reward.skillOptions.map((opt, i) =>
-    picked.has(i) ? { ...opt, price: opt.price * multiplier } : opt,
+    picked.has(i) ? { ...opt, price: premiumPrice(opt.price) } : opt,
   );
   const upgradeOptions = reward.upgradeOptions.map((opt, i) => {
     const flat = skillLen + i;
-    return picked.has(flat) ? { ...opt, price: opt.price * multiplier } : opt;
+    return picked.has(flat) ? { ...opt, price: premiumPrice(opt.price) } : opt;
   });
   const attributeOptions = reward.attributeOptions.map((opt, i) => {
     const flat = skillLen + upgradeLen + i;
-    return picked.has(flat) ? { ...opt, price: opt.price * multiplier } : opt;
+    return picked.has(flat) ? { ...opt, price: premiumPrice(opt.price) } : opt;
   });
 
   return {

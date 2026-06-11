@@ -52,8 +52,12 @@ function normalBase(
     runBanFaceCardScore: false,
     runBannedHandTypePickCount: 0,
     runBannedHandTypes: [],
+    runEliteOnlyBannedHandTypes: [],
+    runEliteOnlyHandsDelta: 0,
+    runEliteStageBaseDiamond: 0,
     shopPremiumSlotCount: 0,
     shopPremiumPriceMultiplier: 5,
+    shopPremiumFixedPrice: 0,
     shopUpgradeSlotBonus: 0,
     shopAttributeSlotBonus: 0,
     ...overrides,
@@ -122,7 +126,7 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
     '出征！',
     normalBase(20, 0.92, { allowedSkillOrders: orders(1) }),
     { holdDelta: -1 },
-    ['标准 20 关'],
+    [],
     ['Hold -1'],
   ),
 
@@ -138,10 +142,10 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
   mainlineRun(
     4,
     '难上加难',
-    normalBase(20, 0.95, { allowedSkillOrders: orders(3) }),
+    normalBase(20, 0.95, { allowedSkillOrders: orders(3), runEliteOnlyHandsDelta: -1 }),
     { handsDelta: -1 },
     ['精英/Boss 手数 -1'],
-    ['全局手数 -1'],
+    ['手数-1'],
   ),
 
   mainlineRun(
@@ -156,10 +160,13 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
   mainlineRun(
     6,
     '牌型陷阱',
-    normalBase(20, 0.98, { allowedSkillOrders: orders(3) }),
-    {},
-    ['精英/Boss 可能禁高牌/一对'],
-    ['普通关也加入禁高牌'],
+    normalBase(20, 0.98, {
+      allowedSkillOrders: orders(3),
+      runBannedHandTypes: ['three_of_a_kind'],
+    }),
+    { targetMultiplier: 1.08 },
+    ['三条不计分'],
+    ['目标+8%'],
   ),
 
   mainlineRun(
@@ -192,7 +199,11 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
   mainlineRun(
     10,
     '无小丑恶梦',
-    normalBase(20, 1.02, { allowedSkillOrders: orders(5), banJokersGlobal: true }),
+    normalBase(20, 1.02, {
+      allowedSkillOrders: orders(5),
+      banJokersGlobal: true,
+      bossTargetMultiplier: 1.1,
+    }),
     { handsDelta: -1 },
     ['无 Joker', 'Boss 目标 +10%'],
     ['手数 -1'],
@@ -228,7 +239,7 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
   mainlineRun(
     14,
     '钱难赚！',
-    normalBase(20, 1.05, { allowedSkillOrders: orders(7) }),
+    normalBase(20, 1.05, { allowedSkillOrders: orders(7), runEliteStageBaseDiamond: 1 }),
     { targetMultiplier: 1.10 },
     ['精英关基础收益降为 💎1'],
     ['目标 +10%'],
@@ -259,18 +270,24 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
   mainlineRun(
     17,
     '今日不顺',
-    normalBase(20, 1.07, { allowedSkillOrders: orders(9) }),
+    normalBase(20, 1.07, {
+      allowedSkillOrders: orders(9),
+      runEliteOnlyBannedHandTypes: ['straight', 'straight_flush', 'royal_flush'],
+    }),
     { targetMultiplier: 1.10 },
-    ['精英/Boss 禁顺子线'],
+    ['精英/Boss顺子不计分'],
     ['目标 +10%'],
   ),
 
   mainlineRun(
     18,
     '今日不花',
-    normalBase(20, 1.08, { allowedSkillOrders: orders(9) }),
+    normalBase(20, 1.08, {
+      allowedSkillOrders: orders(9),
+      runEliteOnlyBannedHandTypes: ['flush', 'straight_flush', 'royal_flush'],
+    }),
     { targetMultiplier: 1.10 },
-    ['精英/Boss 禁同花线'],
+    ['精英/Boss同花不计分'],
     ['目标 +10%'],
   ),
 
@@ -297,7 +314,7 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
     '小角色走开',
     normalBase(20, 1.10, { allowedSkillOrders: orders(11), runBannedRankMax: 6 }),
     { banJokersGlobal: true },
-    ['2-6 牌面分不计'],
+    ['2-6 牌不计分'],
     ['无 Joker'],
   ),
 
@@ -306,7 +323,7 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
     '大佬勿近',
     normalBase(20, 0.999, { allowedSkillOrders: orders(11), runBanFaceCardScore: true }),
     { targetMultiplier: 1.11, runBanFaceCardScore: true },
-    ['J/Q/K 牌面分不计', '目标 -10%'],
+    ['J/Q/K 不计分', '目标 -10%'],
     ['J/Q/K 牌面分不计'],
   ),
 
@@ -329,10 +346,10 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
     normalBase(20, 1.13, {
       allowedSkillOrders: orders(12),
       shopPremiumSlotCount: 2,
-      shopPremiumPriceMultiplier: 5,
+      shopPremiumFixedPrice: 10,
     }),
     { shopRefreshCostDelta: 3 },
-    ['随机 2 个商品 💎×5'],
+    ['随机两个高价商品'],
     ['商店刷新费用 +3'],
   ),
 
@@ -341,7 +358,7 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
     '短牌再袭',
     normalBase(20, 1.14, { allowedSkillOrders: orders(13), deckRule: 'six_to_a', holdDelta: -1 }),
     { targetMultiplier: 1.254 },
-    ['6-A 牌堆', 'Hold -1'],
+    ['仅出现 6-A 牌', 'Hold -1'],
     ['目标 +10%'],
   ),
 
@@ -354,7 +371,7 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
       handsDelta: -1,
     }),
     { targetMultiplier: 1.254 },
-    ['A-10 牌堆', '手数 -1'],
+    ['仅出现 A-10 牌', '手数 -1'],
     ['目标 +10%'],
   ),
 
@@ -364,10 +381,9 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
     normalBase(20, 1.15, {
       allowedSkillOrders: orders(14),
       shopUpgradeSlotBonus: 1,
-      shopPriceDelta: 2,
     }),
     { targetMultiplier: 1.265 },
-    ['升级牌占比 +1', '商店商品价格 +2'],
+    ['商店升级牌+1'],
     ['目标 +10%'],
   ),
 
@@ -376,7 +392,7 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
     '超级牌狂潮',
     normalBase(20, 1.16, { allowedSkillOrders: orders(14), shopAttributeSlotBonus: 1 }),
     { targetMultiplier: 1.276 },
-    ['超级牌占比 +1'],
+    ['商店超级牌+1'],
     ['目标 +10%'],
   ),
 
@@ -399,10 +415,10 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
     normalBase(20, 1.18, {
       allowedSkillOrders: orders(15),
       bossTargetMultiplier: 1.15,
-      runBannedHandTypePickCount: 3,
+      runBannedHandTypes: ['three_of_a_kind'],
     }),
     { targetMultiplier: 1.357 },
-    ['Boss 目标 +15%', '本局禁三条'],
+    ['Boss 目标 +15%', '三条不计分'],
     ['目标 +15%'],
   ),
 
@@ -424,7 +440,7 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
     '无人区',
     normalBase(20, 1.19, { allowedSkillOrders: orders(16), deckRule: 'a_to_10' }),
     { banJokersGlobal: true },
-    ['J/Q/K 不进牌堆', '数字牌主题'],
+    ['J/Q/K 不进牌堆'],
     ['无 Joker'],
   ),
 
@@ -476,7 +492,7 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
       shopPriceDelta: 2,
     }),
     { targetMultiplier: 1.3915 },
-    ['手数 -1', '商店商品价格 +2'],
+    ['手数 -1', '商品价格+2'],
     ['目标 +15%'],
   ),
 
@@ -502,7 +518,7 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
       shopPriceDelta: 2,
     }),
     { targetMultiplier: 1.403 },
-    ['商店刷新费用 +3', '商店商品价格 +2'],
+    ['商店刷新费用 +3', '商品价格+2'],
     ['目标 +15%'],
   ),
 
@@ -599,7 +615,7 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
       handsDelta: 1,
     }),
     { targetMultiplier: 1.472 },
-    ['6-A 牌堆', '无 Joker', '手数 +1'],
+    ['仅出现 6-A 牌', '无 Joker', '手数 +1'],
     ['目标 +15%'],
   ),
 
@@ -638,11 +654,9 @@ export const MAINLINE_RUNS: MainlineRunDef[] = [
       allowedSkillOrders: orders(24),
       shopRefreshCostDelta: 3,
       shopPriceDelta: 2,
-      shopPremiumSlotCount: 2,
-      shopPremiumPriceMultiplier: 5,
     }),
     { targetMultiplier: 1.56 },
-    ['刷新费 +3', '全店 +2💎', '随机 2 商品 💎×5'],
+    ['刷新费 +3', '全部商品售价+2'],
     ['目标 +20%'],
   ),
 
@@ -724,8 +738,12 @@ export function buildFreeplayConfig(): RunConfig {
     runBanFaceCardScore: false,
     runBannedHandTypePickCount: 0,
     runBannedHandTypes: [],
+    runEliteOnlyBannedHandTypes: [],
+    runEliteOnlyHandsDelta: 0,
+    runEliteStageBaseDiamond: 0,
     shopPremiumSlotCount: 0,
     shopPremiumPriceMultiplier: 5,
+    shopPremiumFixedPrice: 0,
     shopUpgradeSlotBonus: 0,
     shopAttributeSlotBonus: 0,
     banSkillShopEdges: false,

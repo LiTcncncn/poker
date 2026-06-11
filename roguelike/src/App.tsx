@@ -123,11 +123,19 @@ function AppInner() {
       : <StageView />;
 
   return (
-    <div className="relative isolate flex min-h-screen w-full flex-col bg-[#0a192e] text-slate-100">
-      {/* 上层：漂移光晕（与 VPoker 一致） */}
-      <div className="main-scene-bg-halo" aria-hidden>
-        <div className="main-scene-bg-halo__layer" />
-      </div>
+    <div
+      className={
+        showSkillFaceTest
+          ? 'relative isolate flex min-h-screen w-full flex-col bg-[#FFF8DF] text-slate-800'
+          : 'relative isolate flex min-h-screen w-full flex-col bg-[#0a192e] text-slate-100'
+      }
+    >
+      {/* 上层：漂移光晕（与 VPoker 一致）；牌面测试页用纯色底，不叠光晕 */}
+      {!showSkillFaceTest ? (
+        <div className="main-scene-bg-halo" aria-hidden>
+          <div className="main-scene-bg-halo__layer" />
+        </div>
+      ) : null}
 
       {/* 固定手机画布宽度：Mac 宽屏也与真机同一列逻辑宽，避免 vw / 视口差导致布局走样 */}
       <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[390px] flex-1 flex-col overflow-x-hidden">

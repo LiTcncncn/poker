@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { RunState, StageState, HandState, HandResult, RunIaaState } from '../types/run';
 import { RewardState, UpgradeOption } from '../types/reward';
 import { SkillDef, SkillEnhancement } from '../types/skill';
-import { Card } from '../shared/types/poker';
+import { Card, HandType } from '../shared/types/poker';
 import { RunConfig } from '../types/profile';
 import {
   initRun,
@@ -12,6 +12,7 @@ import {
   advanceToNextEndlessStage,
   enterEndlessMode,
   getEndlessStageIndex,
+  resolveRunStageCount,
   defeatRun,
   TOTAL_STAGES,
   countBlackEdgeSlots,
@@ -77,6 +78,7 @@ function withRunShopRules(reward: RewardState, run: RunState): RewardState {
     refreshCostDelta: run.runShopRefreshCostDelta ?? 0,
     premiumSlotCount: run.runShopPremiumSlotCount ?? 0,
     premiumPriceMultiplier: run.runShopPremiumPriceMultiplier ?? 5,
+    premiumFixedPrice: run.runShopPremiumFixedPrice ?? 0,
     priceDelta: run.runShopPriceDelta ?? 0,
   });
 }
@@ -462,7 +464,9 @@ function calcSkillSellValue(quality: SkillDef['quality'], enhancement: SkillEnha
 
 function calcStageDiamondReward(stage: StageState): number {
   if (stage.shopBaseDiamondRewardZero) return 0;
-  const base = stage.isElite || stage.isBoss ? 5 : 3;
+  const base = stage.stageBaseDiamondReward != null
+    ? stage.stageBaseDiamondReward
+    : (stage.isElite || stage.isBoss ? 5 : 3);
   const handsLeft = stage.totalHands - stage.usedHands;
   const handBonus = handsLeft >= 2 ? 2 : handsLeft === 1 ? 1 : 0;
   const holdLeft = stage.holdTotal - stage.holdUsed;
@@ -1468,7 +1472,25 @@ export const useRLStore = create<RLStore>()(
               runBanFaceCardScore: (p.run as RunState & { runBanFaceCardScore?: boolean }).runBanFaceCardScore ?? false,
               runShopPremiumSlotCount: (p.run as RunState & { runShopPremiumSlotCount?: number }).runShopPremiumSlotCount ?? 0,
               runShopPremiumPriceMultiplier: (p.run as RunState & { runShopPremiumPriceMultiplier?: number }).runShopPremiumPriceMultiplier ?? 5,
-              runStageCount: (p.run as RunState & { runStageCount?: number }).runStageCount ?? 20,
+              runShopPremiumFixedPrice: (p.run as RunState & { runShopPremiumFixedPrice?: number }).runShopPremiumFixedPrice ?? 0,
+              runBannedHandTypesWide: (p.run as RunState & { runBannedHandTypesWide?: HandType[] }).runBannedHandTypesWide ?? [],
+              runEliteOnlyBannedHandTypes: (p.run as RunState & { runEliteOnlyBannedHandTypes?: HandType[] }).runEliteOnlyBannedHandTypes ?? [],
+              runStageCount:
+                (p.run as RunState & { runStageCount?: number }).runStageCount
+                ?? ((p.run as RunState).runNo === 1 ? 10 : 20),
+            },
+          };
+        }
+        // v21: 局级精英手数 / 精英基础钻字段
+        if (version < 21 && p.run) {
+          p = {
+            ...p,
+            run: {
+              ...p.run,
+              runEliteOnlyHandsDelta:
+                (p.run as RunState & { runEliteOnlyHandsDelta?: number }).runEliteOnlyHandsDelta ?? 0,
+              runEliteStageBaseDiamond:
+                (p.run as RunState & { runEliteStageBaseDiamond?: number }).runEliteStageBaseDiamond ?? 0,
             },
           };
         }

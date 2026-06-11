@@ -12,7 +12,7 @@ import { UpgradeOption } from '../types/reward';
 import { Card as CardType } from '../shared/types/poker';
 import { getModifierById, canDraw, remainingHold, getEffectiveStage, isModifierSuppressed, getStageTargetGold, runScoringFromRun } from '../engine/stageEngine';
 import { evaluateHandWithSkills, getSkillsByIds } from '../engine/skillEngine';
-import { TOTAL_STAGES, getEffectiveSkillSlotCap } from '../engine/runEngine';
+import { TOTAL_STAGES, getEffectiveSkillSlotCap, resolveRunStageCount } from '../engine/runEngine';
 import type { HandResult } from '../types/run';
 import { getIaaStageKey } from '../utils/iaaStageKey';
 import {
@@ -213,7 +213,7 @@ export function StageView() {
   const showStageModifierStrip = (stage.isElite || stage.isBoss) && !!modifier;
 
   const displayStageNumber = run.isEndless
-    ? (run.runStageCount ?? TOTAL_STAGES) + 1 + run.endlessStagesCleared
+    ? resolveRunStageCount(run) + 1 + run.endlessStagesCleared
     : stage.stageIndex + 1;
   const stageTitle = (() => {
     const base = `第 ${displayStageNumber} 关`;

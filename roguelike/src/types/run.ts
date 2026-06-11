@@ -51,6 +51,16 @@ export interface RunState {
   runShopPremiumSlotCount: number;
   /** 溢价商品售价倍率 */
   runShopPremiumPriceMultiplier: number;
+  /** 随机溢价槽位固定售价（0 = 用倍率） */
+  runShopPremiumFixedPrice: number;
+  /** 开局解析后的整局禁计分牌型（含 pickCount 随机结果） */
+  runBannedHandTypesWide: HandType[];
+  /** 仅精英/Boss 关禁计分牌型 */
+  runEliteOnlyBannedHandTypes: HandType[];
+  /** 仅精英/Boss 关手数增量 */
+  runEliteOnlyHandsDelta: number;
+  /** 精英关通关基础 💎覆盖（0 = 默认 5） */
+  runEliteStageBaseDiamond: number;
   /** 本局主线关卡总数（10 或 20） */
   runStageCount: number;
   /** 技能附加属性：skillId -> normal/flash/gold/laser/black（黑边：总槽 = 基础 skillSlotCap + 黑边枚数；「+1」含该牌本身所占 1 格，可多张线性叠加） */
@@ -154,6 +164,8 @@ export interface StageState {
   handTypeLevelDownshift?: number;
   /** 词缀：本关通关结算的基础💎为 0 */
   shopBaseDiamondRewardZero?: boolean;
+  /** 局级：本关通关基础 💎（覆盖默认 3/5；剩手/剩补牌加成仍叠加） */
+  stageBaseDiamondReward?: number;
   status: 'pending' | 'active' | 'won' | 'lost';
 }
 

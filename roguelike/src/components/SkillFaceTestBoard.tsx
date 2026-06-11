@@ -153,19 +153,19 @@ export function SkillFaceTestBoard() {
   // 全局设置模块已移除：fit/opacity 固定为默认值（cover + 1）
 
   return (
-    <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[390px] flex-col gap-4 px-3 py-6 pb-16 text-slate-100">
-      <header className="border-b border-white/10 pb-4">
-        <h1 className="text-2xl font-black">技能牌牌面插画对比</h1>
+    <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[390px] flex-col gap-4 px-3 py-6 pb-16 text-slate-800">
+      <header className="rounded-xl bg-[#529F65] px-3 py-3">
+        <h1 className="text-2xl font-black text-white">技能牌牌面插画对比</h1>
       </header>
 
       {/* 3×2 商店尺度对比板 */}
       <section className="space-y-2">
-        <div className="text-sm font-black text-white">商店尺度（3×2）</div>
+        <div className="text-sm font-black text-slate-800">商店尺度（3×2）</div>
         <div className="flex justify-end">
           <button
             type="button"
             onClick={clearAll}
-            className="rounded-lg border border-white/10 bg-black/10 px-3 py-1.5 text-xs font-bold text-slate-200"
+            className="rounded-lg border border-slate-300/80 bg-white/60 px-3 py-1.5 text-xs font-bold text-slate-700"
           >
             全部清除
           </button>
@@ -183,7 +183,11 @@ export function SkillFaceTestBoard() {
                 aria-label={`查看 #${slot.slotId} ${slot.skill.name} 详情`}
               >
                 <div
-                  className="relative w-full overflow-visible rounded-[14px] border border-rl-border/50 bg-rl-bg/20 shadow-inner"
+                  className={
+                    slot.slotId === 1 || slot.slotId >= 3
+                      ? 'relative w-full overflow-visible rounded-[14px] border border-white bg-transparent'
+                      : 'relative w-full overflow-visible rounded-[14px] border border-rl-border/50 bg-transparent'
+                  }
                   style={{ aspectRatio: '2 / 3' }}
                 >
                   <SkillPlayingCard
@@ -194,13 +198,15 @@ export function SkillFaceTestBoard() {
                     faceImageOpacity={slot.opacity}
                     hideFaceText={Boolean(slot.imageUrl)}
                     disablePurpleShimmer={true}
+                    disableFaceImageDim={true}
+                    testWhiteEdge={slot.slotId === 1 || slot.slotId === 6}
                     className="absolute inset-0 h-full w-full min-h-0 !max-w-none hover:!translate-y-0 active:!scale-100"
                   />
                 </div>
               </button>
 
-              <div className="w-full text-center text-[10px] leading-tight text-slate-400">
-                <div className="font-bold text-slate-200">#{slot.slotId}</div>
+              <div className="w-full text-center text-[10px] leading-tight text-slate-500">
+                <div className="font-bold text-slate-700">#{slot.slotId}</div>
                 <div className="truncate">{slot.skill.name}</div>
               </div>
 
@@ -212,7 +218,7 @@ export function SkillFaceTestBoard() {
                   className="hidden"
                   onChange={(e) => onPickFile(slot.slotId, e.target.files?.[0] ?? null)}
                 />
-                <div className="w-full rounded-lg bg-rl-gold text-black text-[12px] font-black py-1.5 text-center">
+                <div className="w-full rounded-lg bg-[#23B1CB] text-white text-[12px] font-black py-1.5 text-center">
                   {slot.imageUrl ? '换图' : '选图'}
                 </div>
               </label>
@@ -220,7 +226,7 @@ export function SkillFaceTestBoard() {
               <button
                 type="button"
                 onClick={() => clearOne(slot.slotId)}
-                className="w-full rounded border border-white/10 bg-black/10 py-1 text-[10px] font-bold text-slate-200"
+                className="w-full rounded border border-slate-300/80 bg-white/60 py-1 text-[10px] font-bold text-slate-700"
               >
                 清除此卡
               </button>

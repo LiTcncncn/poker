@@ -7,6 +7,7 @@ import { FRAME_DEFS, FrameId } from '../types/profile';
 import type { SkillEnhancement } from '../types/skill';
 import { enhancementBonusLine } from '../utils/skillEnhancementDisplay';
 import { getMainlineVictoryUnlockLines } from '../utils/mainlineVictoryUnlocks';
+import { resolveRunStageCount } from '../engine/runEngine';
 import { SkillPlayingCardDetailShell } from './SkillPlayingCard';
 
 const FRAME_TO_SKILL_ENHANCEMENT: Partial<Record<FrameId, SkillEnhancement>> = {
@@ -35,7 +36,7 @@ export function EndlessChoiceModal({ open, onContinueEndless, onReturnToMenu }: 
   const difficulty = run?.difficulty ?? 'normal';
   const isHard = difficulty === 'hard';
 
-  const stageCount = run?.runStageCount ?? 20;
+  const stageCount = run ? resolveRunStageCount(run) : 20;
   const newlyUnlockedOrders =
     run && difficulty === 'normal'
       ? getUnlockedOrdersAfterNormalRun(runNo).filter(

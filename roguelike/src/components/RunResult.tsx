@@ -1,6 +1,6 @@
 import React from 'react';
 import { RunState } from '../types/run';
-import { TOTAL_STAGES } from '../engine/runEngine';
+import { resolveRunStageCount } from '../engine/runEngine';
 import { HAND_NAMES, handTypeCategoryLabel } from '../engine/handEngine';
 import { HandType } from '../shared/types/poker';
 import { getSkillsByIds } from '../engine/skillEngine';
@@ -20,7 +20,7 @@ export function RunResult({ run, onRestart, onContinueChallenge }: Props) {
   const isMainVictory = isVictory && !isEndless;   // 主线通关胜利，未进无限
   const isEndlessDefeat = run.status === 'defeat' && isEndless;
 
-  const runStageCount = run.runStageCount ?? TOTAL_STAGES;
+  const runStageCount = resolveRunStageCount(run);
   const mainStagesCleared = run.stages.filter(
     s => s.stageIndex < runStageCount && s.status === 'won',
   ).length;

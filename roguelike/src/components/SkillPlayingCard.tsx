@@ -209,6 +209,16 @@ function NormalQualityRing({ quality, outerRound, maskClass }: { quality: SkillQ
   );
 }
 
+/** 测试页：与无边同结构，5px 环带为纯白 */
+function WhiteEdgeRing({ outerRound, maskClass }: { outerRound: string; maskClass: string }) {
+  return (
+    <div
+      className={clsx('skill-edge-mask-ring absolute inset-0 bg-white', maskClass, outerRound)}
+      aria-hidden
+    />
+  );
+}
+
 /** 流光仅出现在距外缘 5px 的内环（mask），与无边牌共用同一外框与 inset-[5px] 正文区 */
 function EnhancementRing({
   variant,
@@ -261,23 +271,30 @@ function EdgeChrome({
   quality,
   children,
   faceScale = 1,
+  testWhiteEdge = false,
 }: {
   enhancement: SkillEnhancement;
   quality: SkillQuality;
   children: React.ReactNode;
   /** 详情弹层 ≈3×：圆角、mask 环宽、内嵌与 HUD 小牌一致按比例放大 */
   faceScale?: 1 | 3;
+  /** 仅测试页：无边位显示纯白 5px 附加边（替代品质色环） */
+  testWhiteEdge?: boolean;
 }) {
   const q = QUALITY_FACE[quality];
   const isNormal = enhancement === 'normal';
+  const showQualityNormalRing = isNormal && !testWhiteEdge;
+  const showWhiteEdgeRing = isNormal && testWhiteEdge;
   const outerRound = faceScale === 3 ? 'rounded-[42px]' : 'rounded-[14px]';
   const innerRound = faceScale === 3 ? 'rounded-[27px]' : 'rounded-[9px]';
   const inset = faceScale === 3 ? 'inset-[15px]' : 'inset-[5px]';
   const maskClass = faceScale === 3 ? 'skill-edge-mask-ring--x3' : '';
 
   return (
-    <div className={clsx('relative h-full w-full overflow-hidden', outerRound, isNormal && q.bg)}>
-      {isNormal ? (
+    <div className={clsx('relative h-full w-full overflow-hidden', outerRound, showQualityNormalRing && q.bg)}>
+      {showWhiteEdgeRing ? (
+        <WhiteEdgeRing outerRound={outerRound} maskClass={maskClass} />
+      ) : showQualityNormalRing ? (
         <NormalQualityRing quality={quality} outerRound={outerRound} maskClass={maskClass} />
       ) : (
         <>
@@ -355,6 +372,10 @@ export interface SkillPlayingCardProps {
   hideFaceText?: boolean;
   /** 仅测试用：禁用紫色品质牌面的锥彩 shimmer 层 */
   disablePurpleShimmer?: boolean;
+  /** 仅测试用：插画预览不叠 black/10 暗化层 */
+  disableFaceImageDim?: boolean;
+  /** 仅测试用：无边位显示纯白附加边（替代品质色环） */
+  testWhiteEdge?: boolean;
   /** `skillAccumulation[skill.id]`：累积类技能的当前池 */
   accumulated?: number;
   /** 本局超级牌张数；有「超级牌乘倍」且传入时才显示如 ×1.6 */
@@ -385,6 +406,8 @@ export function SkillPlayingCard({
   faceImageOpacity = 1,
   hideFaceText = false,
   disablePurpleShimmer = false,
+  disableFaceImageDim = false,
+  testWhiteEdge = false,
   accumulated,
   superCardCount,
   runDiamonds,
@@ -410,6 +433,7 @@ export function SkillPlayingCard({
   const isFlashEdge = enhancement === 'flash';
   const hasEdgeValue = Boolean(edgeParts && enhancement !== 'normal');
   const hideText = hideFaceText && Boolean(faceImageUrl);
+  const pureFaceImage = disableFaceImageDim && hideText;
 
   const isPurple = skill.quality === 'purple';
   const showPurpleShimmer = isPurple && !disablePurpleShimmer;
@@ -419,8 +443,8 @@ export function SkillPlayingCard({
       className={clsx(
         'relative flex h-full min-h-0 flex-col overflow-hidden text-center',
         hideText ? 'p-0' : hasEdgeValue ? 'pt-[max(0.75rem,10%)] pb-0' : 'pt-[max(0.9375rem,13%)] pb-[8%]',
-        q.bg,
-        q.ink,
+        pureFaceImage ? 'bg-transparent' : q.bg,
+        pureFaceImage ? '' : q.ink,
       )}
     >
       {faceImageUrl ? (
@@ -435,8 +459,9 @@ export function SkillPlayingCard({
             style={{ opacity: Math.max(0, Math.min(1, faceImageOpacity)) }}
             draggable={false}
           />
-          {/* 轻量暗化：提升标题/数值可读性（不改变品质底色逻辑）；需要更强控制可在测试页加参数 */}
-          <div className="absolute inset-0 bg-black/10" />
+          {!disableFaceImageDim ? (
+            <div className="absolute inset-0 bg-black/10" aria-hidden />
+          ) : null}
         </div>
       ) : null}
       {showPurpleShimmer ? <div className="skill-purple-face-shimmer-layer z-[1]" aria-hidden /> : null}
@@ -491,7 +516,7 @@ export function SkillPlayingCard({
   );
 
   const inner = (
-    <EdgeChrome enhancement={enhancement} quality={skill.quality}>
+    <EdgeChrome enhancement={enhancement} quality={skill.quality} testWhiteEdge={testWhiteEdge}>
       {face}
     </EdgeChrome>
   );

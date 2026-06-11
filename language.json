@@ -1,0 +1,4373 @@
+[
+  {
+    "key": "ui_unlock_condition_normal",
+    "value": [
+      {
+        "cn": "需要通关第{0}局",
+        "en": "Run {0} needs to be cleared"
+      }
+    ]
+  },
+  {
+    "key": "ui_unlock_condition_hard",
+    "value": [
+      {
+        "cn": "需要通关普通难度第{0}局",
+        "en": "Run {0} normal needs to be cleared"
+      }
+    ]
+  },
+  {
+    "key": "ui_tap_to_continue",
+    "value": [
+      {
+        "cn": "点击继续",
+        "en": "Tap to continue"
+      }
+    ]
+  },
+  {
+    "key": "ui_profile",
+    "value": [
+      {
+        "cn": "个人信息",
+        "en": "Profile"
+      }
+    ]
+  },
+  {
+    "key": "ui_nickname",
+    "value": [
+      {
+        "cn": "昵称",
+        "en": "Nickname"
+      }
+    ]
+  },
+  {
+    "key": "ui_avatar",
+    "value": [
+      {
+        "cn": "头像",
+        "en": "Avatar"
+      }
+    ]
+  },
+  {
+    "key": "ui_rank",
+    "value": [
+      {
+        "cn": "名次",
+        "en": "rank"
+      }
+    ]
+  },
+  {
+    "key": "ui_stage",
+    "value": [
+      {
+        "cn": "关卡",
+        "en": "stage"
+      }
+    ]
+  },
+  {
+    "key": "ui_normal",
+    "value": [
+      {
+        "cn": "普通",
+        "en": "Normal"
+      }
+    ]
+  },
+  {
+    "key": "ui_hard",
+    "value": [
+      {
+        "cn": "困难",
+        "en": "Hard"
+      }
+    ]
+  },
+  {
+    "key": "ui_return",
+    "value": [
+      {
+        "cn": "返回",
+        "en": "Return"
+      }
+    ]
+  },
+  {
+    "key": "ui_start",
+    "value": [
+      {
+        "cn": "开始挑战",
+        "en": "Start"
+      }
+    ]
+  },
+  {
+    "key": "ui_ranking",
+    "value": [
+      {
+        "cn": "冲关排名",
+        "en": "Ranking"
+      }
+    ]
+  },
+  {
+    "key": "ui_hand_upgrade",
+    "value": [
+      {
+        "cn": "牌型升级",
+        "en": "Hand Upgrade"
+      }
+    ]
+  },
+  {
+    "key": "ui_endless",
+    "value": [
+      {
+        "cn": "无尽模式",
+        "en": "EndlessMode"
+      }
+    ]
+  },
+  {
+    "key": "ui_stage_clear",
+    "value": [
+      {
+        "cn": "恭喜通关",
+        "en": "Stage Clear"
+      }
+    ]
+  },
+  {
+    "key": "ui_stage_failed",
+    "value": [
+      {
+        "cn": "未通关",
+        "en": "Stage Failed"
+      }
+    ]
+  },
+  {
+    "key": "ui_run_number",
+    "value": [
+      {
+        "cn": "第{0}局",
+        "en": "Run {0}"
+      }
+    ]
+  },
+  {
+    "key": "ui_run_stage_number",
+    "value": [
+      {
+        "cn": "第{0}局 第{1}关",
+        "en": "Run {0}, Stage {1}"
+      }
+    ]
+  },
+  {
+    "key": "ui_endless_finish",
+    "value": [
+      {
+        "cn": "本次挑战结束",
+        "en": "Challenge Finished"
+      }
+    ]
+  },
+  {
+    "key": "ui_endless_stage",
+    "value": [
+      {
+        "cn": "{0}关",
+        "en": "Stage {0}"
+      }
+    ]
+  },
+  {
+    "key": "ui_skill_card",
+    "value": [
+      {
+        "cn": "技能牌组",
+        "en": "Skill Cards"
+      }
+    ]
+  },
+  {
+    "key": "ui_best_hand",
+    "value": [
+      {
+        "cn": "单手最佳",
+        "en": "Best Hand"
+      }
+    ]
+  },
+  {
+    "key": "ui_store",
+    "value": [
+      {
+        "cn": "商店",
+        "en": "Store"
+      }
+    ]
+  },
+  {
+    "key": "ui_buy",
+    "value": [
+      {
+        "cn": "购买",
+        "en": "Buy"
+      }
+    ]
+  },
+  {
+    "key": "ui_sell",
+    "value": [
+      {
+        "cn": "出售",
+        "en": "Sell"
+      }
+    ]
+  },
+  {
+    "key": "ui_continue",
+    "value": [
+      {
+        "cn": "继续",
+        "en": "Continue"
+      }
+    ]
+  },
+  {
+    "key": "ui_hold",
+    "value": [
+      {
+        "cn": "保留",
+        "en": "Hold"
+      }
+    ]
+  },
+  {
+    "key": "ui_defeat",
+    "value": [
+      {
+        "cn": "结束",
+        "en": "Results"
+      }
+    ]
+  },
+  {
+    "key": "ui_revive",
+    "value": [
+      {
+        "cn": "复活",
+        "en": "Revive"
+      }
+    ]
+  },
+  {
+    "key": "ui_try_again",
+    "value": [
+      {
+        "cn": "再试一次",
+        "en": "Try Again"
+      }
+    ]
+  },
+  {
+    "key": "ui_refresh",
+    "value": [
+      {
+        "cn": "刷新",
+        "en": "Refresh"
+      }
+    ]
+  },
+  {
+    "key": "ui_refresh_free",
+    "value": [
+      {
+        "cn": "免费刷新",
+        "en": "Free Refresh"
+      }
+    ]
+  },
+  {
+    "key": "ui_goalscore",
+    "value": [
+      {
+        "cn": "目标分数",
+        "en": "Goal Score"
+      }
+    ]
+  },
+  {
+    "key": "ui_goalget",
+    "value": [
+      {
+        "cn": "目标达成!",
+        "en": "Target reached!"
+      }
+    ]
+  },
+  {
+    "key": "ui_draw",
+    "value": [
+      {
+        "cn": "补牌",
+        "en": "Draw"
+      }
+    ]
+  },
+  {
+    "key": "ui_next_hand",
+    "value": [
+      {
+        "cn": "下一手",
+        "en": "Next Deal"
+      }
+    ]
+  },
+  {
+    "key": "ui_next_stage",
+    "value": [
+      {
+        "cn": "下一关",
+        "en": "Next Stage"
+      }
+    ]
+  },
+  {
+    "key": "ui_collect",
+    "value": [
+      {
+        "cn": "结算",
+        "en": "Collect"
+      }
+    ]
+  },
+  {
+    "key": "ui_paytable",
+    "value": [
+      {
+        "cn": "赔率",
+        "en": "Pay Table"
+      }
+    ]
+  },
+  {
+    "key": "ui_supercard",
+    "value": [
+      {
+        "cn": "超级牌",
+        "en": "Super Card"
+      }
+    ]
+  },
+  {
+    "key": "ui_continue_challenge",
+    "value": [
+      {
+        "cn": "继续挑战",
+        "en": "Continue Challenge"
+      }
+    ]
+  },
+  {
+    "key": "ui_return_main",
+    "value": [
+      {
+        "cn": "返回主界面",
+        "en": "Return Back"
+      }
+    ]
+  },
+  {
+    "key": "ui_noskill",
+    "value": [
+      {
+        "cn": "技能牌稍后可在商店中购买",
+        "en": "You can buy skill cards later"
+      }
+    ]
+  },
+  {
+    "key": "ui_enhancementblackdesc",
+    "value": [
+      {
+        "cn": "此牌不占技能牌位",
+        "en": "This skill will not spend slot"
+      }
+    ]
+  },
+  {
+    "key": "ban_high_card_only_name",
+    "value": [
+      {
+        "cn": "禁高牌",
+        "en": "No High Card"
+      }
+    ]
+  },
+  {
+    "key": "ban_high_card_only_desc",
+    "value": [
+      {
+        "cn": "高牌不计分",
+        "en": "High Card no score"
+      }
+    ]
+  },
+  {
+    "key": "ban_two_pairs_name",
+    "value": [
+      {
+        "cn": "禁两对",
+        "en": "No Two Pairs"
+      }
+    ]
+  },
+  {
+    "key": "ban_two_pairs_desc",
+    "value": [
+      {
+        "cn": "两对不计分",
+        "en": "Two Pairs no score"
+      }
+    ]
+  },
+  {
+    "key": "reduce_hold_1_name",
+    "value": [
+      {
+        "cn": "短筹压力",
+        "en": "Short Supply"
+      }
+    ]
+  },
+  {
+    "key": "reduce_hold_1_desc",
+    "value": [
+      {
+        "cn": "补牌-1",
+        "en": "Draw -1"
+      }
+    ]
+  },
+  {
+    "key": "block_early_1_name",
+    "value": [
+      {
+        "cn": "前压干扰",
+        "en": "Early Lock"
+      }
+    ]
+  },
+  {
+    "key": "block_early_1_desc",
+    "value": [
+      {
+        "cn": "第1手不可补牌",
+        "en": "No draw hand 1"
+      }
+    ]
+  },
+  {
+    "key": "block_late_1_name",
+    "value": [
+      {
+        "cn": "尾段干扰",
+        "en": "Late Lock"
+      }
+    ]
+  },
+  {
+    "key": "block_late_1_desc",
+    "value": [
+      {
+        "cn": "末手不可补牌",
+        "en": "No draw last hand"
+      }
+    ]
+  },
+  {
+    "key": "reduce_hand_1_name",
+    "value": [
+      {
+        "cn": "手数削减",
+        "en": "Hand Cut"
+      }
+    ]
+  },
+  {
+    "key": "reduce_hand_1_desc",
+    "value": [
+      {
+        "cn": "手数-1",
+        "en": "Hands -1"
+      }
+    ]
+  },
+  {
+    "key": "ban_one_pair_name",
+    "value": [
+      {
+        "cn": "禁一对",
+        "en": "No Pair"
+      }
+    ]
+  },
+  {
+    "key": "ban_one_pair_desc",
+    "value": [
+      {
+        "cn": "一对不计分",
+        "en": "One Pair no score"
+      }
+    ]
+  },
+  {
+    "key": "ban_trips_name",
+    "value": [
+      {
+        "cn": "禁三条",
+        "en": "No Three of a Kind"
+      }
+    ]
+  },
+  {
+    "key": "ban_trips_desc",
+    "value": [
+      {
+        "cn": "三条不计分",
+        "en": "Trips no score"
+      }
+    ]
+  },
+  {
+    "key": "ban_straight_name",
+    "value": [
+      {
+        "cn": "禁顺子线",
+        "en": "No Straight Line"
+      }
+    ]
+  },
+  {
+    "key": "ban_straight_desc",
+    "value": [
+      {
+        "cn": "顺子不计分",
+        "en": "Straight no score"
+      }
+    ]
+  },
+  {
+    "key": "ban_flush_name",
+    "value": [
+      {
+        "cn": "禁同花线",
+        "en": "No Flush Line"
+      }
+    ]
+  },
+  {
+    "key": "ban_flush_desc",
+    "value": [
+      {
+        "cn": "同花不计分",
+        "en": "Flush no score"
+      }
+    ]
+  },
+  {
+    "key": "reduce_hold_2_name",
+    "value": [
+      {
+        "cn": "极限压缩",
+        "en": "Extreme Squeeze"
+      }
+    ]
+  },
+  {
+    "key": "reduce_hold_2_desc",
+    "value": [
+      {
+        "cn": "补牌-2",
+        "en": "Draw -2"
+      }
+    ]
+  },
+  {
+    "key": "block_early_2_name",
+    "value": [
+      {
+        "cn": "前段封锁",
+        "en": "Early Blockade"
+      }
+    ]
+  },
+  {
+    "key": "block_early_2_desc",
+    "value": [
+      {
+        "cn": "前2手不可补牌",
+        "en": "No draw first 2 hands"
+      }
+    ]
+  },
+  {
+    "key": "block_late_2_name",
+    "value": [
+      {
+        "cn": "后段封锁",
+        "en": "Late Blockade"
+      }
+    ]
+  },
+  {
+    "key": "block_late_2_desc",
+    "value": [
+      {
+        "cn": "后2手不可补牌",
+        "en": "No draw last 2 hands"
+      }
+    ]
+  },
+  {
+    "key": "ban_spades_name",
+    "value": [
+      {
+        "cn": "黑桃封印",
+        "en": "Spade Seal"
+      }
+    ]
+  },
+  {
+    "key": "ban_spades_desc",
+    "value": [
+      {
+        "cn": "黑桃牌不计分",
+        "en": "Spades no score"
+      }
+    ]
+  },
+  {
+    "key": "ban_hearts_name",
+    "value": [
+      {
+        "cn": "红心封印",
+        "en": "Heart Seal"
+      }
+    ]
+  },
+  {
+    "key": "ban_hearts_desc",
+    "value": [
+      {
+        "cn": "红桃牌不计分",
+        "en": "Hearts no score"
+      }
+    ]
+  },
+  {
+    "key": "ban_clubs_name",
+    "value": [
+      {
+        "cn": "梅花封印",
+        "en": "Club Seal"
+      }
+    ]
+  },
+  {
+    "key": "ban_clubs_desc",
+    "value": [
+      {
+        "cn": "草花牌不计分",
+        "en": "Clubs no score"
+      }
+    ]
+  },
+  {
+    "key": "ban_diamonds_name",
+    "value": [
+      {
+        "cn": "方块封印",
+        "en": "Diamond Seal"
+      }
+    ]
+  },
+  {
+    "key": "ban_diamonds_desc",
+    "value": [
+      {
+        "cn": "方块牌不计分",
+        "en": "Diamonds no score"
+      }
+    ]
+  },
+  {
+    "key": "ban_small_cards_name",
+    "value": [
+      {
+        "cn": "小牌无效",
+        "en": "Low Cards Void"
+      }
+    ]
+  },
+  {
+    "key": "ban_small_cards_desc",
+    "value": [
+      {
+        "cn": "2-6牌不计分",
+        "en": "2-6 no score"
+      }
+    ]
+  },
+  {
+    "key": "ban_jokers_name",
+    "value": [
+      {
+        "cn": "禁小丑",
+        "en": "No Jokers"
+      }
+    ]
+  },
+  {
+    "key": "ban_jokers_desc",
+    "value": [
+      {
+        "cn": "无Joker",
+        "en": "No Jokers"
+      }
+    ]
+  },
+  {
+    "key": "no_face_cards_score_name",
+    "value": [
+      {
+        "cn": "人头无效",
+        "en": "Face Cards Void"
+      }
+    ]
+  },
+  {
+    "key": "no_face_cards_score_desc",
+    "value": [
+      {
+        "cn": "J/Q/K不计分",
+        "en": "J/Q/K no score"
+      }
+    ]
+  },
+  {
+    "key": "downshift_hand_type_level_1_name",
+    "value": [
+      {
+        "cn": "牌型降级 I",
+        "en": "Hand Downgrade I"
+      }
+    ]
+  },
+  {
+    "key": "downshift_hand_type_level_1_desc",
+    "value": [
+      {
+        "cn": "牌型LV减1",
+        "en": "Hand Lv -1"
+      }
+    ]
+  },
+  {
+    "key": "high_target_12_name",
+    "value": [
+      {
+        "cn": "高阶目标 I",
+        "en": "High Target I"
+      }
+    ]
+  },
+  {
+    "key": "high_target_12_desc",
+    "value": [
+      {
+        "cn": "目标×1.2",
+        "en": "Target ×1.2"
+      }
+    ]
+  },
+  {
+    "key": "shop_diamond_income_0_name",
+    "value": [
+      {
+        "cn": "商店无收益",
+        "en": "No Shop Income"
+      }
+    ]
+  },
+  {
+    "key": "shop_diamond_income_0_desc",
+    "value": [
+      {
+        "cn": "钻石0奖励",
+        "en": "0 diamond reward"
+      }
+    ]
+  },
+  {
+    "key": "ban_high_and_pair_name",
+    "value": [
+      {
+        "cn": "禁低阶",
+        "en": "No Low Hands"
+      }
+    ]
+  },
+  {
+    "key": "ban_high_and_pair_desc",
+    "value": [
+      {
+        "cn": "高牌与一对不计分",
+        "en": "High Card & Pair no score"
+      }
+    ]
+  },
+  {
+    "key": "ban_full_house_name",
+    "value": [
+      {
+        "cn": "禁葫芦",
+        "en": "No Full House"
+      }
+    ]
+  },
+  {
+    "key": "ban_full_house_desc",
+    "value": [
+      {
+        "cn": "葫芦不计分",
+        "en": "Full House no score"
+      }
+    ]
+  },
+  {
+    "key": "reduce_hold_3_name",
+    "value": [
+      {
+        "cn": "重压削减",
+        "en": "Heavy Cuts"
+      }
+    ]
+  },
+  {
+    "key": "reduce_hold_3_desc",
+    "value": [
+      {
+        "cn": "补牌-3",
+        "en": "Draw -3"
+      }
+    ]
+  },
+  {
+    "key": "tactical_squeeze_name",
+    "value": [
+      {
+        "cn": "节奏压制",
+        "en": "Tactical Squeeze"
+      }
+    ]
+  },
+  {
+    "key": "tactical_squeeze_desc",
+    "value": [
+      {
+        "cn": "补牌-1，第1手不可补牌",
+        "en": "Draw -1, no draw hand 1"
+      }
+    ]
+  },
+  {
+    "key": "downshift_hand_type_level_2_name",
+    "value": [
+      {
+        "cn": "牌型降级 II",
+        "en": "Hand Downgrade II"
+      }
+    ]
+  },
+  {
+    "key": "downshift_hand_type_level_2_desc",
+    "value": [
+      {
+        "cn": "牌型LV减2",
+        "en": "Hand Lv -2"
+      }
+    ]
+  },
+  {
+    "key": "high_target_14_name",
+    "value": [
+      {
+        "cn": "高阶目标 II",
+        "en": "High Target II"
+      }
+    ]
+  },
+  {
+    "key": "high_target_14_desc",
+    "value": [
+      {
+        "cn": "目标×1.4",
+        "en": "Target ×1.4"
+      }
+    ]
+  },
+  {
+    "key": "high_card_all_name",
+    "value": [
+      {
+        "cn": "高牌全计分",
+        "en": "High Card All Score"
+      }
+    ]
+  },
+  {
+    "key": "high_card_all_desc",
+    "value": [
+      {
+        "cn": "高牌时所有 5 张牌均计分",
+        "en": "All 5 cards score on High Card"
+      }
+    ]
+  },
+  {
+    "key": "pair_all_name",
+    "value": [
+      {
+        "cn": "对子全计分",
+        "en": "Pair All Score"
+      }
+    ]
+  },
+  {
+    "key": "pair_all_desc",
+    "value": [
+      {
+        "cn": "对子时所有 5 张牌均计分",
+        "en": "All 5 cards score on One Pair"
+      }
+    ]
+  },
+  {
+    "key": "trips_all_name",
+    "value": [
+      {
+        "cn": "三条全计分",
+        "en": "Three of a Kind All Score"
+      }
+    ]
+  },
+  {
+    "key": "trips_all_desc",
+    "value": [
+      {
+        "cn": "三条时所有 5 张牌均计分",
+        "en": "All 5 cards score on Three of a Kind"
+      }
+    ]
+  },
+  {
+    "key": "ten_score_name",
+    "value": [
+      {
+        "cn": "逢10加注",
+        "en": "Ten Bonus"
+      }
+    ]
+  },
+  {
+    "key": "ten_score_desc",
+    "value": [
+      {
+        "cn": "计分时每张 10 额外 +$30",
+        "en": "+$30 per scoring 10"
+      }
+    ]
+  },
+  {
+    "key": "j_mult_name",
+    "value": [
+      {
+        "cn": "逢 J 加倍",
+        "en": "Jack Multiplier"
+      }
+    ]
+  },
+  {
+    "key": "j_mult_desc",
+    "value": [
+      {
+        "cn": "计分时每张 J 额外 +4 倍",
+        "en": "+4 mult per scoring J"
+      }
+    ]
+  },
+  {
+    "key": "q_score_name",
+    "value": [
+      {
+        "cn": "逢Q加注",
+        "en": "Queen Bonus"
+      }
+    ]
+  },
+  {
+    "key": "q_score_desc",
+    "value": [
+      {
+        "cn": "计分时每张 Q 额外 +$30",
+        "en": "+$30 per scoring Q"
+      }
+    ]
+  },
+  {
+    "key": "k_mult_name",
+    "value": [
+      {
+        "cn": "逢 K 加倍",
+        "en": "King Multiplier"
+      }
+    ]
+  },
+  {
+    "key": "k_mult_desc",
+    "value": [
+      {
+        "cn": "计分时每张 K 额外 +4 倍",
+        "en": "+4 mult per scoring K"
+      }
+    ]
+  },
+  {
+    "key": "small_cards_score_name",
+    "value": [
+      {
+        "cn": "小牌加注",
+        "en": "Low Cards Bonus"
+      }
+    ]
+  },
+  {
+    "key": "small_cards_score_desc",
+    "value": [
+      {
+        "cn": "计分时每张 2~6 额外 +$20",
+        "en": "+$20 per scoring 2~6"
+      }
+    ]
+  },
+  {
+    "key": "heart_mult_name",
+    "value": [
+      {
+        "cn": "红心牌加倍",
+        "en": "Heart Mult"
+      }
+    ]
+  },
+  {
+    "key": "heart_mult_desc",
+    "value": [
+      {
+        "cn": "计分时每张红心额外 +3 倍",
+        "en": "+3 mult per scoring heart"
+      }
+    ]
+  },
+  {
+    "key": "spade_mult_name",
+    "value": [
+      {
+        "cn": "黑桃牌加倍",
+        "en": "Spade Mult"
+      }
+    ]
+  },
+  {
+    "key": "spade_mult_desc",
+    "value": [
+      {
+        "cn": "计分时每张黑桃额外 +3 倍",
+        "en": "+3 mult per scoring spade"
+      }
+    ]
+  },
+  {
+    "key": "club_mult_name",
+    "value": [
+      {
+        "cn": "梅花牌加倍",
+        "en": "Club Mult"
+      }
+    ]
+  },
+  {
+    "key": "club_mult_desc",
+    "value": [
+      {
+        "cn": "计分时每张梅花额外 +3 倍",
+        "en": "+3 mult per scoring club"
+      }
+    ]
+  },
+  {
+    "key": "diamond_mult_name",
+    "value": [
+      {
+        "cn": "方块牌加倍",
+        "en": "Diamond Mult"
+      }
+    ]
+  },
+  {
+    "key": "diamond_mult_desc",
+    "value": [
+      {
+        "cn": "计分时每张方块额外 +3 倍",
+        "en": "+3 mult per scoring diamond"
+      }
+    ]
+  },
+  {
+    "key": "face_mult_name",
+    "value": [
+      {
+        "cn": "人头牌加倍",
+        "en": "Face Card Mult"
+      }
+    ]
+  },
+  {
+    "key": "face_mult_desc",
+    "value": [
+      {
+        "cn": "计分时每张人头牌（J/Q/K）额外 +3 倍",
+        "en": "+3 mult per scoring face card (J/Q/K)"
+      }
+    ]
+  },
+  {
+    "key": "unscored_bonus_name",
+    "value": [
+      {
+        "cn": "未计分牌加倍",
+        "en": "Unscored Mult"
+      }
+    ]
+  },
+  {
+    "key": "unscored_bonus_desc",
+    "value": [
+      {
+        "cn": "每手未计分牌每张贡献 +4 倍",
+        "en": "+4 mult per non-scoring card"
+      }
+    ]
+  },
+  {
+    "key": "flat_score_name",
+    "value": [
+      {
+        "cn": "额外加注",
+        "en": "Extra Bonus"
+      }
+    ]
+  },
+  {
+    "key": "flat_score_desc",
+    "value": [
+      {
+        "cn": "计分时额外 +$30",
+        "en": "+$30 when scoring"
+      }
+    ]
+  },
+  {
+    "key": "flat_mult_name",
+    "value": [
+      {
+        "cn": "额外加倍",
+        "en": "Extra Mult"
+      }
+    ]
+  },
+  {
+    "key": "flat_mult_desc",
+    "value": [
+      {
+        "cn": "计分时额外 +4 倍",
+        "en": "+4 mult when scoring"
+      }
+    ]
+  },
+  {
+    "key": "full_house_mult_bonus_name",
+    "value": [
+      {
+        "cn": "含葫芦加倍",
+        "en": "Full House Mult"
+      }
+    ]
+  },
+  {
+    "key": "full_house_mult_bonus_desc",
+    "value": [
+      {
+        "cn": "计分牌含葫芦时额外 +10 倍",
+        "en": "+10 mult when hand contains Full House"
+      }
+    ]
+  },
+  {
+    "key": "flush_mult_bonus_name",
+    "value": [
+      {
+        "cn": "含同花加倍",
+        "en": "Flush Mult"
+      }
+    ]
+  },
+  {
+    "key": "flush_mult_bonus_desc",
+    "value": [
+      {
+        "cn": "计分牌含同花时额外 +8 倍",
+        "en": "+8 mult when hand contains Flush"
+      }
+    ]
+  },
+  {
+    "key": "straight_mult_bonus_name",
+    "value": [
+      {
+        "cn": "含顺子加倍",
+        "en": "Straight Mult"
+      }
+    ]
+  },
+  {
+    "key": "straight_mult_bonus_desc",
+    "value": [
+      {
+        "cn": "计分牌含顺子时额外 +8 倍",
+        "en": "+8 mult when hand contains Straight"
+      }
+    ]
+  },
+  {
+    "key": "trips_mult_bonus_name",
+    "value": [
+      {
+        "cn": "含三条加倍",
+        "en": "Three of a Kind Mult"
+      }
+    ]
+  },
+  {
+    "key": "trips_mult_bonus_desc",
+    "value": [
+      {
+        "cn": "计分牌含三条时额外 +10 倍",
+        "en": "+10 mult when hand contains Three of a Kind"
+      }
+    ]
+  },
+  {
+    "key": "two_pairs_mult_bonus_name",
+    "value": [
+      {
+        "cn": "含两对加倍",
+        "en": "Two Pairs Mult"
+      }
+    ]
+  },
+  {
+    "key": "two_pairs_mult_bonus_desc",
+    "value": [
+      {
+        "cn": "计分牌含两对时额外 +8 倍",
+        "en": "+8 mult when hand contains Two Pairs"
+      }
+    ]
+  },
+  {
+    "key": "pair_mult_bonus_name",
+    "value": [
+      {
+        "cn": "含对子加倍",
+        "en": "Pair Mult"
+      }
+    ]
+  },
+  {
+    "key": "pair_mult_bonus_desc",
+    "value": [
+      {
+        "cn": "计分牌含对子时额外 +4 倍",
+        "en": "+4 mult when hand contains One Pair"
+      }
+    ]
+  },
+  {
+    "key": "joker_mult_name",
+    "value": [
+      {
+        "cn": "Joker加倍",
+        "en": "Joker Mult"
+      }
+    ]
+  },
+  {
+    "key": "joker_mult_desc",
+    "value": [
+      {
+        "cn": "计分时有 Joker 参与，额外 +5 倍",
+        "en": "+5 mult when Joker is in scoring hand"
+      }
+    ]
+  },
+  {
+    "key": "joker_score_name",
+    "value": [
+      {
+        "cn": "Joker加注",
+        "en": "Joker Bonus"
+      }
+    ]
+  },
+  {
+    "key": "joker_score_desc",
+    "value": [
+      {
+        "cn": "计分时有 Joker 参与，额外 +$40",
+        "en": "+$40 when Joker is in scoring hand"
+      }
+    ]
+  },
+  {
+    "key": "pair_score_30_name",
+    "value": [
+      {
+        "cn": "含对子加注",
+        "en": "Pair Bonus"
+      }
+    ]
+  },
+  {
+    "key": "pair_score_30_desc",
+    "value": [
+      {
+        "cn": "计分牌含对子时额外 +$30",
+        "en": "+$30 when hand contains One Pair"
+      }
+    ]
+  },
+  {
+    "key": "two_pairs_score_30_name",
+    "value": [
+      {
+        "cn": "含两对加注",
+        "en": "Two Pairs Bonus"
+      }
+    ]
+  },
+  {
+    "key": "two_pairs_score_30_desc",
+    "value": [
+      {
+        "cn": "计分牌含两对时额外 +$50",
+        "en": "+$50 when hand contains Two Pairs"
+      }
+    ]
+  },
+  {
+    "key": "trips_score_30_name",
+    "value": [
+      {
+        "cn": "含三条加注",
+        "en": "Three of a Kind Bonus"
+      }
+    ]
+  },
+  {
+    "key": "trips_score_30_desc",
+    "value": [
+      {
+        "cn": "计分牌含三条时额外 +$60",
+        "en": "+$60 when hand contains Three of a Kind"
+      }
+    ]
+  },
+  {
+    "key": "straight_score_60_name",
+    "value": [
+      {
+        "cn": "含顺子加注",
+        "en": "Straight Bonus"
+      }
+    ]
+  },
+  {
+    "key": "straight_score_60_desc",
+    "value": [
+      {
+        "cn": "计分牌含顺子时额外 +$60",
+        "en": "+$60 when hand contains Straight"
+      }
+    ]
+  },
+  {
+    "key": "flush_score_60_name",
+    "value": [
+      {
+        "cn": "含同花加注",
+        "en": "Flush Bonus"
+      }
+    ]
+  },
+  {
+    "key": "flush_score_60_desc",
+    "value": [
+      {
+        "cn": "计分牌含同花时额外 +$60",
+        "en": "+$60 when hand contains Flush"
+      }
+    ]
+  },
+  {
+    "key": "full_house_score_60_name",
+    "value": [
+      {
+        "cn": "含葫芦加注",
+        "en": "Full House Bonus"
+      }
+    ]
+  },
+  {
+    "key": "full_house_score_60_desc",
+    "value": [
+      {
+        "cn": "计分牌含葫芦时额外 +$80",
+        "en": "+$80 when hand contains Full House"
+      }
+    ]
+  },
+  {
+    "key": "face_score_name",
+    "value": [
+      {
+        "cn": "人头牌加注",
+        "en": "Face Card Bonus"
+      }
+    ]
+  },
+  {
+    "key": "face_score_desc",
+    "value": [
+      {
+        "cn": "计分时每张人头牌（J/Q/K）额外 +$30",
+        "en": "+$30 per scoring face card (J/Q/K)"
+      }
+    ]
+  },
+  {
+    "key": "odd_score_name",
+    "value": [
+      {
+        "cn": "奇数牌加注",
+        "en": "Odd Card Bonus"
+      }
+    ]
+  },
+  {
+    "key": "odd_score_desc",
+    "value": [
+      {
+        "cn": "计分时每张奇数点数牌额外 +$30",
+        "en": "+$30 per scoring odd card"
+      }
+    ]
+  },
+  {
+    "key": "even_score_name",
+    "value": [
+      {
+        "cn": "偶数牌加注",
+        "en": "Even Card Bonus"
+      }
+    ]
+  },
+  {
+    "key": "even_score_desc",
+    "value": [
+      {
+        "cn": "计分时每张偶数点数牌额外 +$30",
+        "en": "+$30 per scoring even card"
+      }
+    ]
+  },
+  {
+    "key": "ace_combo_name",
+    "value": [
+      {
+        "cn": "A加注加倍率",
+        "en": "Ace Combo"
+      }
+    ]
+  },
+  {
+    "key": "ace_combo_desc",
+    "value": [
+      {
+        "cn": "计分时每张 A 额外 +4 倍且 +$30",
+        "en": "+4 mult and +$30 per scoring A"
+      }
+    ]
+  },
+  {
+    "key": "joker_rate_name",
+    "value": [
+      {
+        "cn": "Joker几率+",
+        "en": "Joker Rate+"
+      }
+    ]
+  },
+  {
+    "key": "joker_rate_desc",
+    "value": [
+      {
+        "cn": "提升 JOKER 的出现几率。",
+        "en": "Increases Joker appearance rate."
+      }
+    ]
+  },
+  {
+    "key": "joker_double_name",
+    "value": [
+      {
+        "cn": "JOKER 成双",
+        "en": "Joker Double"
+      }
+    ]
+  },
+  {
+    "key": "joker_double_desc",
+    "value": [
+      {
+        "cn": "一手牌中可能出现两张 JOKER（计分与手牌上限逻辑不变）",
+        "en": "Two Jokers may appear in one hand (scoring & hand limit unchanged)"
+      }
+    ]
+  },
+  {
+    "key": "skill_count_mult_name",
+    "value": [
+      {
+        "cn": "技能数加倍",
+        "en": "Skill Count Mult"
+      }
+    ]
+  },
+  {
+    "key": "skill_count_mult_desc",
+    "value": [
+      {
+        "cn": "每拥有 1 个技能，额外 +3 倍。",
+        "en": "+3 mult per skill owned."
+      }
+    ]
+  },
+  {
+    "key": "pair_accum_name",
+    "value": [
+      {
+        "cn": "对子累积",
+        "en": "Pair Accumulate"
+      }
+    ]
+  },
+  {
+    "key": "pair_accum_desc",
+    "value": [
+      {
+        "cn": "每次结算对子，累积 +$10（上限 $200），并加入本次得分",
+        "en": "Each One Pair settlement: +$10 (cap $200), added to current score"
+      }
+    ]
+  },
+  {
+    "key": "trips_accum_name",
+    "value": [
+      {
+        "cn": "三条累积",
+        "en": "Three of a Kind Accumulate"
+      }
+    ]
+  },
+  {
+    "key": "trips_accum_desc",
+    "value": [
+      {
+        "cn": "每次结算三条，累积 +$20（上限 $200），并加入本次得分",
+        "en": "Each Three of a Kind settlement: +$20 (cap $200), added to current score"
+      }
+    ]
+  },
+  {
+    "key": "nine_accum_name",
+    "value": [
+      {
+        "cn": "逢9累积",
+        "en": "Nine Accumulate"
+      }
+    ]
+  },
+  {
+    "key": "nine_accum_desc",
+    "value": [
+      {
+        "cn": "每次结算含 9，每张 9 累积 +$20（上限 $200），并加入本次得分。",
+        "en": "Each scoring 9: +$20 (cap $200), added to current score."
+      }
+    ]
+  },
+  {
+    "key": "eight_hold_accum_name",
+    "value": [
+      {
+        "cn": "HOLD8积累",
+        "en": "Hold 8 Accumulate"
+      }
+    ]
+  },
+  {
+    "key": "eight_hold_accum_desc",
+    "value": [
+      {
+        "cn": "每 hold 1 张 8，该技能倍率 +2（上限 +20 倍）。",
+        "en": "+2 mult per held 8 (cap +20 mult)."
+      }
+    ]
+  },
+  {
+    "key": "three_hold_accum_name",
+    "value": [
+      {
+        "cn": "HOLD三张积累",
+        "en": "Hold 3 Accumulate"
+      }
+    ]
+  },
+  {
+    "key": "three_hold_accum_desc",
+    "value": [
+      {
+        "cn": "每次 hold 恰好 3 张，该技能倍率 +1（上限 +20 倍）。",
+        "en": "+1 mult when holding exactly 3 cards (cap +20 mult)."
+      }
+    ]
+  },
+  {
+    "key": "saved_hands_accum_name",
+    "value": [
+      {
+        "cn": "省手积累",
+        "en": "Saved Hands Accumulate"
+      }
+    ]
+  },
+  {
+    "key": "saved_hands_accum_desc",
+    "value": [
+      {
+        "cn": "过关时，每一个剩余的手数，累积 +$20（上限 $200）。",
+        "en": "On stage clear: +$20 per remaining hand (cap $200)."
+      }
+    ]
+  },
+  {
+    "key": "saved_hold_mult_name",
+    "value": [
+      {
+        "cn": "省 HOLD 积累",
+        "en": "Saved Hold Accumulate"
+      }
+    ]
+  },
+  {
+    "key": "saved_hold_mult_desc",
+    "value": [
+      {
+        "cn": "过关时，每一个剩余的 HOLD数，累积 +1 倍（上限 +20 倍）。",
+        "en": "On stage clear: +1 mult per remaining hold (cap +20 mult)."
+      }
+    ]
+  },
+  {
+    "key": "odd_straight_skill_name",
+    "value": [
+      {
+        "cn": "奇数成顺",
+        "en": "Odd Straight"
+      }
+    ]
+  },
+  {
+    "key": "odd_straight_skill_desc",
+    "value": [
+      {
+        "cn": "纯奇数牌（A/3/5/7/9）可成顺子；兼容同花顺。并且计分时额外 +10 倍",
+        "en": "Odd cards (A/3/5/7/9) form a straight; compatible with Straight Flush. +10 mult"
+      }
+    ]
+  },
+  {
+    "key": "even_straight_skill_name",
+    "value": [
+      {
+        "cn": "偶数成顺",
+        "en": "Even Straight"
+      }
+    ]
+  },
+  {
+    "key": "even_straight_skill_desc",
+    "value": [
+      {
+        "cn": "纯偶数牌（2/4/6/8/10）可成顺子；兼容同花顺。并且计分时额外 +10 倍",
+        "en": "Even cards (2/4/6/8/10) form a straight; compatible with Straight Flush. +10 mult"
+      }
+    ]
+  },
+  {
+    "key": "black_flush_name",
+    "value": [
+      {
+        "cn": "黑色成花",
+        "en": "Black Flush"
+      }
+    ]
+  },
+  {
+    "key": "black_flush_desc",
+    "value": [
+      {
+        "cn": "黑桃/梅花互相视为同花（须 5 张）；同花顺兼容",
+        "en": "Spades/Clubs count as same suit for Flush (need 5); compatible with Straight Flush"
+      }
+    ]
+  },
+  {
+    "key": "red_flush_name",
+    "value": [
+      {
+        "cn": "红色成花",
+        "en": "Red Flush"
+      }
+    ]
+  },
+  {
+    "key": "red_flush_desc",
+    "value": [
+      {
+        "cn": "红心/方块互相视为同花（须 5 张）；同花顺兼容",
+        "en": "Hearts/Diamonds count as same suit for Flush (need 5); compatible with Straight Flush"
+      }
+    ]
+  },
+  {
+    "key": "four_flush_name",
+    "value": [
+      {
+        "cn": "四张成花",
+        "en": "Four-Card Flush"
+      }
+    ]
+  },
+  {
+    "key": "four_flush_desc",
+    "value": [
+      {
+        "cn": "4 张同花即可按同花结算；不兼容同花顺",
+        "en": "4 cards of same suit count as Flush; not compatible with Straight Flush"
+      }
+    ]
+  },
+  {
+    "key": "four_straight_name",
+    "value": [
+      {
+        "cn": "四张成顺",
+        "en": "Four-Card Straight"
+      }
+    ]
+  },
+  {
+    "key": "four_straight_desc",
+    "value": [
+      {
+        "cn": "4 张连续即可按顺子结算；不兼容同花顺",
+        "en": "4 consecutive cards count as Straight; not compatible with Straight Flush"
+      }
+    ]
+  },
+  {
+    "key": "last_hand_double_name",
+    "value": [
+      {
+        "cn": "末手乘倍",
+        "en": "Last Hand Multiply"
+      }
+    ]
+  },
+  {
+    "key": "last_hand_double_desc",
+    "value": [
+      {
+        "cn": "本关最后一手结算时 ×2",
+        "en": "Last hand of the stage: ×2"
+      }
+    ]
+  },
+  {
+    "key": "no_hold_double_name",
+    "value": [
+      {
+        "cn": "开门红乘倍",
+        "en": "First Hand Multiply"
+      }
+    ]
+  },
+  {
+    "key": "no_hold_double_desc",
+    "value": [
+      {
+        "cn": "每关第一手且未使用额外 hold 时，结算 ×2.5",
+        "en": "First hand of the stage with no hold used: ×2.5"
+      }
+    ]
+  },
+  {
+    "key": "straight_x15_name",
+    "value": [
+      {
+        "cn": "顺子乘倍",
+        "en": "Straight Multiply"
+      }
+    ]
+  },
+  {
+    "key": "straight_x15_desc",
+    "value": [
+      {
+        "cn": "每手顺子，结算 ×1.5",
+        "en": "Each Straight: ×1.5"
+      }
+    ]
+  },
+  {
+    "key": "flush_x15_name",
+    "value": [
+      {
+        "cn": "同花乘倍",
+        "en": "Flush Multiply"
+      }
+    ]
+  },
+  {
+    "key": "flush_x15_desc",
+    "value": [
+      {
+        "cn": "每手同花，结算 ×1.5",
+        "en": "Each Flush: ×1.5"
+      }
+    ]
+  },
+  {
+    "key": "full_house_x15_name",
+    "value": [
+      {
+        "cn": "葫芦乘倍",
+        "en": "Full House Multiply"
+      }
+    ]
+  },
+  {
+    "key": "full_house_x15_desc",
+    "value": [
+      {
+        "cn": "每手葫芦，结算 ×2",
+        "en": "Each Full House: ×2"
+      }
+    ]
+  },
+  {
+    "key": "hearts_flush_x15_name",
+    "value": [
+      {
+        "cn": "红桃同花乘倍",
+        "en": "Heart Flush Multiply"
+      }
+    ]
+  },
+  {
+    "key": "hearts_flush_x15_desc",
+    "value": [
+      {
+        "cn": "红桃同花，结算 ×1.5。",
+        "en": "Heart Flush: ×1.5."
+      }
+    ]
+  },
+  {
+    "key": "straight_flush_x2_name",
+    "value": [
+      {
+        "cn": "同花顺乘倍",
+        "en": "Straight Flush Multiply"
+      }
+    ]
+  },
+  {
+    "key": "straight_flush_x2_desc",
+    "value": [
+      {
+        "cn": "每手同花顺，结算 ×2",
+        "en": "Each Straight Flush: ×2"
+      }
+    ]
+  },
+  {
+    "key": "universal_double_name",
+    "value": [
+      {
+        "cn": "通用乘倍",
+        "en": "Universal Multiply"
+      }
+    ]
+  },
+  {
+    "key": "universal_double_desc",
+    "value": [
+      {
+        "cn": "任何牌型结算时整体 ×1.2",
+        "en": "All hands: ×1.2"
+      }
+    ]
+  },
+  {
+    "key": "super_card_mult_name",
+    "value": [
+      {
+        "cn": "超级牌乘倍",
+        "en": "Super Card Multiply"
+      }
+    ]
+  },
+  {
+    "key": "super_card_mult_desc",
+    "value": [
+      {
+        "cn": "每拥有两张超级牌，结算独立乘区倍率 +0.1，上限 ×2.5。",
+        "en": "+0.1 independent multiply per 2 Super Cards (cap ×2.5)."
+      }
+    ]
+  },
+  {
+    "key": "rainbow_suits_x2_name",
+    "value": [
+      {
+        "cn": "四色同堂乘倍",
+        "en": "Rainbow Multiply"
+      }
+    ]
+  },
+  {
+    "key": "rainbow_suits_x2_desc",
+    "value": [
+      {
+        "cn": "计分牌含黑桃红心梅花方块时，结算 ×2。",
+        "en": "Scoring hand with all 4 suits: ×2."
+      }
+    ]
+  },
+  {
+    "key": "elite_unshackled_name",
+    "value": [
+      {
+        "cn": "精英关无限制",
+        "en": "Elite Unshackled"
+      }
+    ]
+  },
+  {
+    "key": "elite_unshackled_desc",
+    "value": [
+      {
+        "cn": "无视精英关限制 3 次。",
+        "en": "Ignore elite stage modifiers 3 times."
+      }
+    ]
+  },
+  {
+    "key": "super_credit_card_name",
+    "value": [
+      {
+        "cn": "超级信用卡",
+        "en": "Super Credit Card"
+      }
+    ]
+  },
+  {
+    "key": "super_credit_card_desc",
+    "value": [
+      {
+        "cn": "立即获得钻石20，卖出该技能时再 -钻石20。",
+        "en": "Gain 20 diamonds immediately; lose 20 diamonds when sold."
+      }
+    ]
+  },
+  {
+    "key": "diamond_tycoon_name",
+    "value": [
+      {
+        "cn": "钻石王老五",
+        "en": "Diamond Tycoon"
+      }
+    ]
+  },
+  {
+    "key": "diamond_tycoon_desc",
+    "value": [
+      {
+        "cn": "每次关卡胜利+钻石5。",
+        "en": "+5 diamonds per stage victory."
+      }
+    ]
+  },
+  {
+    "key": "sellers_market_name",
+    "value": [
+      {
+        "cn": "卖方市场",
+        "en": "Seller's Market"
+      }
+    ]
+  },
+  {
+    "key": "sellers_market_desc",
+    "value": [
+      {
+        "cn": "每次关卡胜利，已拥有技能的回收价 +1钻石，上限 钻石8。",
+        "en": "+1 diamond sell price per skill per stage victory (cap 8 diamonds)."
+      }
+    ]
+  },
+  {
+    "key": "diamond_score_per_gem_name",
+    "value": [
+      {
+        "cn": "钻石估值",
+        "en": "Diamond Score"
+      }
+    ]
+  },
+  {
+    "key": "diamond_score_per_gem_desc",
+    "value": [
+      {
+        "cn": "每持有 1钻石，本手 +$1。",
+        "en": "+$1 per diamond held."
+      }
+    ]
+  },
+  {
+    "key": "diamond_mult_per_gem_name",
+    "value": [
+      {
+        "cn": "钻石加倍",
+        "en": "Diamond Mult"
+      }
+    ]
+  },
+  {
+    "key": "diamond_mult_per_gem_desc",
+    "value": [
+      {
+        "cn": "每持有 3钻石，本手 +1 倍。",
+        "en": "+1 mult per 3 diamonds held."
+      }
+    ]
+  },
+  {
+    "key": "super_broke_name",
+    "value": [
+      {
+        "cn": "穷神附身",
+        "en": "Super Broke"
+      }
+    ]
+  },
+  {
+    "key": "super_broke_desc",
+    "value": [
+      {
+        "cn": "计分时若局内 钻石<=3，独立乘区 ×1.5。",
+        "en": "If run diamonds<=3 at scoring: independent ×1.5."
+      }
+    ]
+  },
+  {
+    "key": "second_hand_joker_x2_name",
+    "value": [
+      {
+        "cn": "次手Joker爆发",
+        "en": "2nd Hand Joker Burst"
+      }
+    ]
+  },
+  {
+    "key": "second_hand_joker_x2_desc",
+    "value": [
+      {
+        "cn": "本关第 2 手结算：若 Joker 参与计分，结算 ×2",
+        "en": "2nd hand of stage: if Joker scores, ×2"
+      }
+    ]
+  },
+  {
+    "key": "high_straight_x3_name",
+    "value": [
+      {
+        "cn": "高阶顺子乘倍",
+        "en": "High Straight Multiply"
+      }
+    ]
+  },
+  {
+    "key": "high_straight_x3_desc",
+    "value": [
+      {
+        "cn": "10JQKA 顺子（四张成顺时 JQKA），结算 ×3。",
+        "en": "10JQKA straight (or JQKA with 4-card straight): ×3."
+      }
+    ]
+  },
+  {
+    "key": "odd_pair_score_40_name",
+    "value": [
+      {
+        "cn": "奇数对子加注",
+        "en": "Odd Pair Bonus"
+      }
+    ]
+  },
+  {
+    "key": "odd_pair_score_40_desc",
+    "value": [
+      {
+        "cn": "结算时含奇数（A/3/5/7/9/J/K）对子，+$40。",
+        "en": "+$40 if scoring hand contains odd rank pair (A/3/5/7/9/J/K)."
+      }
+    ]
+  },
+  {
+    "key": "even_pair_mult_6_name",
+    "value": [
+      {
+        "cn": "偶数对子加倍",
+        "en": "Even Pair Mult"
+      }
+    ]
+  },
+  {
+    "key": "even_pair_mult_6_desc",
+    "value": [
+      {
+        "cn": "结算时含偶数（2/4/6/8/10/Q）对子，+5倍。",
+        "en": "+5 mult if scoring hand contains even rank pair (2/4/6/8/10/Q)."
+      }
+    ]
+  },
+  {
+    "key": "odd_trips_score_60_name",
+    "value": [
+      {
+        "cn": "奇数三条加注",
+        "en": "Odd Trips Bonus"
+      }
+    ]
+  },
+  {
+    "key": "odd_trips_score_60_desc",
+    "value": [
+      {
+        "cn": "结算时含奇数（A/3/5/7/9/J/K）三条，+$60。",
+        "en": "+$60 if scoring hand contains odd rank trips (A/3/5/7/9/J/K)."
+      }
+    ]
+  },
+  {
+    "key": "even_trips_mult_8_name",
+    "value": [
+      {
+        "cn": "偶数三条加倍",
+        "en": "Even Trips Mult"
+      }
+    ]
+  },
+  {
+    "key": "even_trips_mult_8_desc",
+    "value": [
+      {
+        "cn": "结算时含偶数（2/4/6/8/10/Q）三条，+8倍。",
+        "en": "+8 mult if scoring hand contains even rank trips (2/4/6/8/10/Q)."
+      }
+    ]
+  },
+  {
+    "key": "seven_cycle_x4_name",
+    "value": [
+      {
+        "cn": "7 日轮回",
+        "en": "7-Day Cycle"
+      }
+    ]
+  },
+  {
+    "key": "seven_cycle_x4_desc",
+    "value": [
+      {
+        "cn": "获取后：本局第 1、7、14、21… 手结算时 ×4",
+        "en": "After acquiring: hands 1, 7, 14, 21… ×4"
+      }
+    ]
+  },
+  {
+    "key": "random_double_hand_name",
+    "value": [
+      {
+        "cn": "随机加倍",
+        "en": "Random Mult"
+      }
+    ]
+  },
+  {
+    "key": "random_double_hand_desc",
+    "value": [
+      {
+        "cn": "每手结算时随机 +2～15 倍。",
+        "en": "+2~15 random mult per hand."
+      }
+    ]
+  },
+  {
+    "key": "remaining_hands_mult_name",
+    "value": [
+      {
+        "cn": "剩手加倍",
+        "en": "Remaining Hands Mult"
+      }
+    ]
+  },
+  {
+    "key": "remaining_hands_mult_desc",
+    "value": [
+      {
+        "cn": "结算时获得本关剩余手数 x2 的加倍。",
+        "en": "+2 mult per remaining hand."
+      }
+    ]
+  },
+  {
+    "key": "diminishing_effect_name",
+    "value": [
+      {
+        "cn": "递减效应",
+        "en": "Diminishing Effect"
+      }
+    ]
+  },
+  {
+    "key": "diminishing_effect_desc",
+    "value": [
+      {
+        "cn": "装备后首关每手+20 倍，第 2 关每手+16 倍…每关 −4 倍，直到 +0倍该技能自动销毁。",
+        "en": "+20 mult per hand in 1st stage, +16 in 2nd… −4 per stage. Self-destructs at +0."
+      }
+    ]
+  },
+  {
+    "key": "refresh_shop_mult_name",
+    "value": [
+      {
+        "cn": "刷新商店乘倍",
+        "en": "Refresh Shop Multiply"
+      }
+    ]
+  },
+  {
+    "key": "refresh_shop_mult_desc",
+    "value": [
+      {
+        "cn": "每次使用 钻石 刷新商店，乘倍+0.2，上限 x2。",
+        "en": "+0.2 independent multiply per diamond shop refresh (cap ×2)."
+      }
+    ]
+  },
+  {
+    "key": "fading_boost_name",
+    "value": [
+      {
+        "cn": "后劲不足",
+        "en": "Fading Boost"
+      }
+    ]
+  },
+  {
+    "key": "fading_boost_desc",
+    "value": [
+      {
+        "cn": "装备后：第 1 手 +$100，第 2 手 +$95，第 3 手 +$90……每手 −$5，直到 +0 后该技能自动销毁。",
+        "en": "+$100 on 1st hand, +$95 on 2nd… −$5 per hand. Self-destructs at +$0."
+      }
+    ]
+  },
+  {
+    "key": "forward_rush_name",
+    "value": [
+      {
+        "cn": "勇往直前",
+        "en": "Forward Rush"
+      }
+    ]
+  },
+  {
+    "key": "forward_rush_desc",
+    "value": [
+      {
+        "cn": "每关总手数 +2，同时本关补牌总量 −1。",
+        "en": "+2 hands and −1 hold per stage."
+      }
+    ]
+  },
+  {
+    "key": "upgrade_high_card_name",
+    "value": [
+      {
+        "cn": "高牌升级卡",
+        "en": "High Card Upgrade"
+      }
+    ]
+  },
+  {
+    "key": "upgrade_one_pair_name",
+    "value": [
+      {
+        "cn": "一对升级卡",
+        "en": "One Pair Upgrade"
+      }
+    ]
+  },
+  {
+    "key": "upgrade_two_pairs_name",
+    "value": [
+      {
+        "cn": "两对升级卡",
+        "en": "Two Pairs Upgrade"
+      }
+    ]
+  },
+  {
+    "key": "upgrade_three_of_a_kind_name",
+    "value": [
+      {
+        "cn": "三条升级卡",
+        "en": "Three of a Kind Upgrade"
+      }
+    ]
+  },
+  {
+    "key": "upgrade_straight_name",
+    "value": [
+      {
+        "cn": "顺子升级卡",
+        "en": "Straight Upgrade"
+      }
+    ]
+  },
+  {
+    "key": "upgrade_flush_name",
+    "value": [
+      {
+        "cn": "同花升级卡",
+        "en": "Flush Upgrade"
+      }
+    ]
+  },
+  {
+    "key": "upgrade_full_house_name",
+    "value": [
+      {
+        "cn": "葫芦升级卡",
+        "en": "Full House Upgrade"
+      }
+    ]
+  },
+  {
+    "key": "upgrade_four_of_a_kind_name",
+    "value": [
+      {
+        "cn": "四条升级卡",
+        "en": "Four of a Kind Upgrade"
+      }
+    ]
+  },
+  {
+    "key": "upgrade_five_of_a_kind_name",
+    "value": [
+      {
+        "cn": "五条升级卡",
+        "en": "Five of a Kind Upgrade"
+      }
+    ]
+  },
+  {
+    "key": "upgrade_straight_flush_name",
+    "value": [
+      {
+        "cn": "同花顺升级卡",
+        "en": "Straight Flush Upgrade"
+      }
+    ]
+  },
+  {
+    "key": "handtype_high_card",
+    "value": [
+      {
+        "cn": "高牌",
+        "en": "High Card"
+      }
+    ]
+  },
+  {
+    "key": "handtype_one_pair",
+    "value": [
+      {
+        "cn": "一对",
+        "en": "One Pair"
+      }
+    ]
+  },
+  {
+    "key": "handtype_two_pairs",
+    "value": [
+      {
+        "cn": "两对",
+        "en": "Two Pairs"
+      }
+    ]
+  },
+  {
+    "key": "handtype_three_of_a_kind",
+    "value": [
+      {
+        "cn": "三条",
+        "en": "Three of a Kind"
+      }
+    ]
+  },
+  {
+    "key": "handtype_straight",
+    "value": [
+      {
+        "cn": "顺子",
+        "en": "Straight"
+      }
+    ]
+  },
+  {
+    "key": "handtype_flush",
+    "value": [
+      {
+        "cn": "同花",
+        "en": "Flush"
+      }
+    ]
+  },
+  {
+    "key": "handtype_full_house",
+    "value": [
+      {
+        "cn": "葫芦",
+        "en": "Full House"
+      }
+    ]
+  },
+  {
+    "key": "handtype_four_of_a_kind",
+    "value": [
+      {
+        "cn": "四条",
+        "en": "Four of a Kind"
+      }
+    ]
+  },
+  {
+    "key": "handtype_five_of_a_kind",
+    "value": [
+      {
+        "cn": "五条",
+        "en": "Five of a Kind"
+      }
+    ]
+  },
+  {
+    "key": "handtype_straight_flush",
+    "value": [
+      {
+        "cn": "同花顺",
+        "en": "Straight Flush"
+      }
+    ]
+  },
+  {
+    "key": "handtype_six_of_a_kind",
+    "value": [
+      {
+        "cn": "六条",
+        "en": "Six of a Kind"
+      }
+    ]
+  },
+  {
+    "key": "handtype_seven_of_a_kind",
+    "value": [
+      {
+        "cn": "七条",
+        "en": "Seven of a Kind"
+      }
+    ]
+  },
+  {
+    "key": "handtype_royal_flush",
+    "value": [
+      {
+        "cn": "皇家同花顺",
+        "en": "Royal Flush"
+      }
+    ]
+  },
+  {
+    "key": "run_title_1",
+    "value": [
+      {
+        "cn": "新手局!",
+        "en": "First Blood"
+      }
+    ]
+  },
+  {
+    "key": "run_title_2",
+    "value": [
+      {
+        "cn": "出征!",
+        "en": "Set Out"
+      }
+    ]
+  },
+  {
+    "key": "run_title_3",
+    "value": [
+      {
+        "cn": "HOLD不住!",
+        "en": "Hold No More"
+      }
+    ]
+  },
+  {
+    "key": "run_title_4",
+    "value": [
+      {
+        "cn": "难上加难!",
+        "en": "Harder Still"
+      }
+    ]
+  },
+  {
+    "key": "run_title_5",
+    "value": [
+      {
+        "cn": "无小丑夜",
+        "en": "Jokerless Night"
+      }
+    ]
+  },
+  {
+    "key": "run_title_6",
+    "value": [
+      {
+        "cn": "牌型陷阱",
+        "en": "Hand Trap"
+      }
+    ]
+  },
+  {
+    "key": "run_title_7",
+    "value": [
+      {
+        "cn": "命犯桃花",
+        "en": "Heart Trouble"
+      }
+    ]
+  },
+  {
+    "key": "run_title_8",
+    "value": [
+      {
+        "cn": "十面埋伏",
+        "en": "Ambushed"
+      }
+    ]
+  },
+  {
+    "key": "run_title_9",
+    "value": [
+      {
+        "cn": "短牌试炼",
+        "en": "Short Deck Trial"
+      }
+    ]
+  },
+  {
+    "key": "run_title_10",
+    "value": [
+      {
+        "cn": "无小丑恶梦",
+        "en": "Jokerless Nightmare"
+      }
+    ]
+  },
+  {
+    "key": "run_title_11",
+    "value": [
+      {
+        "cn": "富矿开局",
+        "en": "Rich Start"
+      }
+    ]
+  },
+  {
+    "key": "run_title_12",
+    "value": [
+      {
+        "cn": "技多不压身",
+        "en": "More Skills"
+      }
+    ]
+  },
+  {
+    "key": "run_title_13",
+    "value": [
+      {
+        "cn": "高级牛马",
+        "en": "Elite Grind"
+      }
+    ]
+  },
+  {
+    "key": "run_title_14",
+    "value": [
+      {
+        "cn": "钱难赚！",
+        "en": "Hard Money"
+      }
+    ]
+  },
+  {
+    "key": "run_title_15",
+    "value": [
+      {
+        "cn": "强人所难",
+        "en": "Forced Hand"
+      }
+    ]
+  },
+  {
+    "key": "run_title_16",
+    "value": [
+      {
+        "cn": "小丑再失踪",
+        "en": "Joker Gone Again"
+      }
+    ]
+  },
+  {
+    "key": "run_title_17",
+    "value": [
+      {
+        "cn": "今日不顺",
+        "en": "No Straights"
+      }
+    ]
+  },
+  {
+    "key": "run_title_18",
+    "value": [
+      {
+        "cn": "今日不花",
+        "en": "No Flushes"
+      }
+    ]
+  },
+  {
+    "key": "run_title_19",
+    "value": [
+      {
+        "cn": "望牌兴叹",
+        "en": "Out of Reach"
+      }
+    ]
+  },
+  {
+    "key": "run_title_20",
+    "value": [
+      {
+        "cn": "笑到最后",
+        "en": "Last Laugh"
+      }
+    ]
+  },
+  {
+    "key": "run_title_21",
+    "value": [
+      {
+        "cn": "小角色走开",
+        "en": "No Small Fry"
+      }
+    ]
+  },
+  {
+    "key": "run_title_22",
+    "value": [
+      {
+        "cn": "大佬勿近",
+        "en": "No Big Shots"
+      }
+    ]
+  },
+  {
+    "key": "run_title_23",
+    "value": [
+      {
+        "cn": "黑色幽默",
+        "en": "Dark Humor"
+      }
+    ]
+  },
+  {
+    "key": "run_title_24",
+    "value": [
+      {
+        "cn": "非卖品！",
+        "en": "Not for Sale"
+      }
+    ]
+  },
+  {
+    "key": "run_title_25",
+    "value": [
+      {
+        "cn": "短牌再袭",
+        "en": "Short Deck Returns"
+      }
+    ]
+  },
+  {
+    "key": "run_title_26",
+    "value": [
+      {
+        "cn": "我要逆袭！",
+        "en": "Comeback Time"
+      }
+    ]
+  },
+  {
+    "key": "run_title_27",
+    "value": [
+      {
+        "cn": "升级狂潮",
+        "en": "Upgrade Rush"
+      }
+    ]
+  },
+  {
+    "key": "run_title_28",
+    "value": [
+      {
+        "cn": "超级牌狂潮",
+        "en": "Supercard Rush"
+      }
+    ]
+  },
+  {
+    "key": "run_title_29",
+    "value": [
+      {
+        "cn": "真难受！",
+        "en": "Pain Train"
+      }
+    ]
+  },
+  {
+    "key": "run_title_30",
+    "value": [
+      {
+        "cn": "压力山大",
+        "en": "Heavy Pressure"
+      }
+    ]
+  },
+  {
+    "key": "run_title_31",
+    "value": [
+      {
+        "cn": "又是同花局",
+        "en": "Flush Again"
+      }
+    ]
+  },
+  {
+    "key": "run_title_32",
+    "value": [
+      {
+        "cn": "无人区",
+        "en": "No Face Zone"
+      }
+    ]
+  },
+  {
+    "key": "run_title_33",
+    "value": [
+      {
+        "cn": "奇数枷锁",
+        "en": "Odd Shackles"
+      }
+    ]
+  },
+  {
+    "key": "run_title_34",
+    "value": [
+      {
+        "cn": "技能过载",
+        "en": "Skill Overload"
+      }
+    ]
+  },
+  {
+    "key": "run_title_35",
+    "value": [
+      {
+        "cn": "血色浪漫",
+        "en": "Red Romance"
+      }
+    ]
+  },
+  {
+    "key": "run_title_36",
+    "value": [
+      {
+        "cn": "步数陷阱",
+        "en": "Step Trap"
+      }
+    ]
+  },
+  {
+    "key": "run_title_37",
+    "value": [
+      {
+        "cn": "我最头铁！",
+        "en": "Iron Head"
+      }
+    ]
+  },
+  {
+    "key": "run_title_38",
+    "value": [
+      {
+        "cn": "黑心商店",
+        "en": "Greedy Shop"
+      }
+    ]
+  },
+  {
+    "key": "run_title_39",
+    "value": [
+      {
+        "cn": "偶数枷锁",
+        "en": "Even Shackles"
+      }
+    ]
+  },
+  {
+    "key": "run_title_40",
+    "value": [
+      {
+        "cn": "冲刺阶段！",
+        "en": "Final Sprint"
+      }
+    ]
+  },
+  {
+    "key": "run_title_41",
+    "value": [
+      {
+        "cn": "卧薪尝胆",
+        "en": "Bide and Strike"
+      }
+    ]
+  },
+  {
+    "key": "run_title_42",
+    "value": [
+      {
+        "cn": "小丑去死！",
+        "en": "Kill the Joker"
+      }
+    ]
+  },
+  {
+    "key": "run_title_43",
+    "value": [
+      {
+        "cn": "无边之战！",
+        "en": "No-Edge War"
+      }
+    ]
+  },
+  {
+    "key": "run_title_44",
+    "value": [
+      {
+        "cn": "对子陷阱",
+        "en": "Pair Trap"
+      }
+    ]
+  },
+  {
+    "key": "run_title_45",
+    "value": [
+      {
+        "cn": "短牌终章",
+        "en": "Short Deck Finale"
+      }
+    ]
+  },
+  {
+    "key": "run_title_46",
+    "value": [
+      {
+        "cn": "高牌歧视！",
+        "en": "High Card Bias"
+      }
+    ]
+  },
+  {
+    "key": "run_title_47",
+    "value": [
+      {
+        "cn": "逆袭！",
+        "en": "Reversal"
+      }
+    ]
+  },
+  {
+    "key": "run_title_48",
+    "value": [
+      {
+        "cn": "黑店！",
+        "en": "Rip-Off Shop"
+      }
+    ]
+  },
+  {
+    "key": "run_title_49",
+    "value": [
+      {
+        "cn": "终局彩排",
+        "en": "Final Rehearsal"
+      }
+    ]
+  },
+  {
+    "key": "run_title_50",
+    "value": [
+      {
+        "cn": "野人王座",
+        "en": "Savage Throne"
+      }
+    ]
+  },
+  {
+    "key": "tutorial_welcome_1",
+    "value": [
+      {
+        "cn": "嘿，朋友！这里是——\n难-上-加-难的<color=#CF7825><b>野人牌！</b></color>",
+        "en": "Hey, friend! Welcome to —\nthe brutally hard <color=#CF7825><b>Wild Card!</b></color>"
+      }
+    ]
+  },
+  {
+    "key": "tutorial_welcome_2",
+    "value": [
+      {
+        "cn": "我来告诉你基础规则\n注意：我只说一遍！",
+        "en": "Let me teach you the basics.\nPay attention: I only say it once!"
+      }
+    ]
+  },
+  {
+    "key": "tutorial_hand_intro_1",
+    "value": [
+      {
+        "cn": "5 张牌，按照牌型不同的倍率/分值，结算分数。",
+        "en": "5 cards — score based on the multiplier/value of your hand type."
+      }
+    ]
+  },
+  {
+    "key": "tutorial_hand_intro_2",
+    "value": [
+      {
+        "cn": "对子、两对、三条、顺子……你懂的。",
+        "en": "Pair, Two Pairs, Three of a Kind, Straight… you know the drill."
+      }
+    ]
+  },
+  {
+    "key": "tutorial_hand_intro_3",
+    "value": [
+      {
+        "cn": "你可以保留若干张，替换掉其他牌，追求更大的牌型。",
+        "en": "You can hold some cards and swap the rest to chase a bigger hand."
+      }
+    ]
+  },
+  {
+    "key": "tutorial_stage_clear",
+    "value": [
+      {
+        "cn": "本关目标达成，获得 {0} <img src='diamond' width=35 height=35 align=top offset=5/>！",
+        "en": "Stage target reached! Earned {0} <img src='diamond' width=35 height=35 align=top offset=5/>!"
+      }
+    ]
+  },
+  {
+    "key": "tutorial_shop_intro",
+    "value": [
+      {
+        "cn": "用你的 <img src='diamond' width=35 height=35 align=top offset=5/> 购买 <img src='skill' width=35 height=35 align=top offset=5/> 技能牌/ <img src='upgrade' width=35 height=40 align=top offset=5/> 升级牌/ <img src='supercard' width=35 height=40 align=top offset=5/> 超级牌，让你的牌型更强！",
+        "en": "Spend <img src='diamond' width=35 height=35 align=top offset=5/> on <img src='skill' width=35 height=35 align=top offset=5/> skill cards, <img src='upgrade' width=35 height=40 align=top offset=5/> upgrades, and <img src='supercard' width=35 height=40 align=top offset=5/> super cards to power up!"
+      }
+    ]
+  },
+  {
+    "key": "tutorial_rules_extra_2",
+    "value": [
+      {
+        "cn": "记住：保留/替换是关键，每手牌都可以使用不止一次。",
+        "en": "Remember: hold/discard wisely — you can use it more than once per hand."
+      }
+    ]
+  },
+  {
+    "key": "tutorial_rules_extra_3",
+    "value": [
+      {
+        "cn": "提醒：用好商店，胜利离你不会远。",
+        "en": "Tip: use the shop well and victory won't be far away."
+      }
+    ]
+  },
+  {
+    "key": "run_tag_1_n_0",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_1_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_1_h_0",
+    "value": [
+      { "cn": "无 Joker", "en": "No Joker" }
+    ]
+  },
+  {
+    "key": "run_tag_1_h_1",
+    "value": [
+      { "cn": "目标略升", "en": "Target +slight" }
+    ]
+  },
+  {
+    "key": "run_tag_2_n_0",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_2_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_2_h_0",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_2_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_3_n_0",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_3_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_3_h_0",
+    "value": [
+      { "cn": "Hold -2", "en": "Hold -2" }
+    ]
+  },
+  {
+    "key": "run_tag_3_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_4_n_0",
+    "value": [
+      { "cn": "精英/Boss 手数 -1", "en": "Elite hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_4_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_4_h_0",
+    "value": [
+      { "cn": "手数-1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_4_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_5_n_0",
+    "value": [
+      { "cn": "无 Joker", "en": "No Joker" }
+    ]
+  },
+  {
+    "key": "run_tag_5_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_5_h_0",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_5_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_6_n_0",
+    "value": [
+      { "cn": "三条不计分", "en": "Trips no score" }
+    ]
+  },
+  {
+    "key": "run_tag_6_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_6_h_0",
+    "value": [
+      { "cn": "目标+8%", "en": "Target +8%" }
+    ]
+  },
+  {
+    "key": "run_tag_6_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_7_n_0",
+    "value": [
+      { "cn": "只包含红桃/黑桃", "en": "Hearts/Spades only" }
+    ]
+  },
+  {
+    "key": "run_tag_7_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_7_h_0",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_7_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_8_n_0",
+    "value": [
+      { "cn": "仅出现 A-10 牌", "en": "A-10 only" }
+    ]
+  },
+  {
+    "key": "run_tag_8_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_8_h_0",
+    "value": [
+      { "cn": "无 Joker", "en": "No Joker" }
+    ]
+  },
+  {
+    "key": "run_tag_8_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_9_n_0",
+    "value": [
+      { "cn": "仅出现 6-A 牌", "en": "6-A only" }
+    ]
+  },
+  {
+    "key": "run_tag_9_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_9_h_0",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_9_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_10_n_0",
+    "value": [
+      { "cn": "无 Joker", "en": "No Joker" }
+    ]
+  },
+  {
+    "key": "run_tag_10_n_1",
+    "value": [
+      { "cn": "Boss 目标 +10%", "en": "Boss +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_10_h_0",
+    "value": [
+      { "cn": "手数 -1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_10_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_11_n_0",
+    "value": [
+      { "cn": "开局钻石 = 10", "en": "Start +10" }
+    ]
+  },
+  {
+    "key": "run_tag_11_n_1",
+    "value": [
+      { "cn": "目标 +8%", "en": "Target +8%" }
+    ]
+  },
+  {
+    "key": "run_tag_11_h_0",
+    "value": [
+      { "cn": "商店刷新费用 +3", "en": "Refresh +3" }
+    ]
+  },
+  {
+    "key": "run_tag_11_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_12_n_0",
+    "value": [
+      { "cn": "技能槽 +1", "en": "Skill +1" }
+    ]
+  },
+  {
+    "key": "run_tag_12_n_1",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_12_h_0",
+    "value": [
+      { "cn": "商店商品价格 +2", "en": "Items +2" }
+    ]
+  },
+  {
+    "key": "run_tag_12_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_13_n_0",
+    "value": [
+      { "cn": "所有牌型 Lv.2", "en": "All hands Lv.2" }
+    ]
+  },
+  {
+    "key": "run_tag_13_n_1",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_13_h_0",
+    "value": [
+      { "cn": "无 Joker", "en": "No Joker" }
+    ]
+  },
+  {
+    "key": "run_tag_13_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_14_n_0",
+    "value": [
+      { "cn": "精英关基础收益降为 1 钻石", "en": "Elite reward: 1" }
+    ]
+  },
+  {
+    "key": "run_tag_14_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_14_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_14_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_15_n_0",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_15_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_15_h_0",
+    "value": [
+      { "cn": "Hold -2", "en": "Hold -2" }
+    ]
+  },
+  {
+    "key": "run_tag_15_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_16_n_0",
+    "value": [
+      { "cn": "无 Joker", "en": "No Joker" }
+    ]
+  },
+  {
+    "key": "run_tag_16_n_1",
+    "value": [
+      { "cn": "Hold +1", "en": "Hold +1" }
+    ]
+  },
+  {
+    "key": "run_tag_16_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_16_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_17_n_0",
+    "value": [
+      { "cn": "精英/Boss顺子不计分", "en": "Elite: no Straight" }
+    ]
+  },
+  {
+    "key": "run_tag_17_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_17_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_17_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_18_n_0",
+    "value": [
+      { "cn": "精英/Boss同花不计分", "en": "Elite: no Flush" }
+    ]
+  },
+  {
+    "key": "run_tag_18_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_18_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_18_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_19_n_0",
+    "value": [
+      { "cn": "目标 +9%", "en": "Target +9%" }
+    ]
+  },
+  {
+    "key": "run_tag_19_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_19_h_0",
+    "value": [
+      { "cn": "手数 -1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_19_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_20_n_0",
+    "value": [
+      { "cn": "Boss 关目标 +30%", "en": "Boss +30%" }
+    ]
+  },
+  {
+    "key": "run_tag_20_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_20_h_0",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_20_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_21_n_0",
+    "value": [
+      { "cn": "2-6 牌不计分", "en": "2-6 no score" }
+    ]
+  },
+  {
+    "key": "run_tag_21_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_21_h_0",
+    "value": [
+      { "cn": "无 Joker", "en": "No Joker" }
+    ]
+  },
+  {
+    "key": "run_tag_21_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_22_n_0",
+    "value": [
+      { "cn": "J/Q/K 不计分", "en": "J/Q/K no score" }
+    ]
+  },
+  {
+    "key": "run_tag_22_n_1",
+    "value": [
+      { "cn": "目标 -10%", "en": "Target -10%" }
+    ]
+  },
+  {
+    "key": "run_tag_22_h_0",
+    "value": [
+      { "cn": "J/Q/K 牌面分不计", "en": "J/Q/K no score" }
+    ]
+  },
+  {
+    "key": "run_tag_22_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_23_n_0",
+    "value": [
+      { "cn": "只包含黑桃/梅花", "en": "Spades/Clubs only" }
+    ]
+  },
+  {
+    "key": "run_tag_23_n_1",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_23_h_0",
+    "value": [
+      { "cn": "目标 +20%", "en": "Target +20%" }
+    ]
+  },
+  {
+    "key": "run_tag_23_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_24_n_0",
+    "value": [
+      { "cn": "随机两个高价商品", "en": "2 premium @10" }
+    ]
+  },
+  {
+    "key": "run_tag_24_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_24_h_0",
+    "value": [
+      { "cn": "商店刷新费用 +3", "en": "Refresh +3" }
+    ]
+  },
+  {
+    "key": "run_tag_24_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_25_n_0",
+    "value": [
+      { "cn": "仅出现 6-A 牌", "en": "6-A only" }
+    ]
+  },
+  {
+    "key": "run_tag_25_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_25_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_25_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_26_n_0",
+    "value": [
+      { "cn": "仅出现 A-10 牌", "en": "A-10 only" }
+    ]
+  },
+  {
+    "key": "run_tag_26_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_26_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_26_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_27_n_0",
+    "value": [
+      { "cn": "商店升级牌+1", "en": "Upgrade +1" }
+    ]
+  },
+  {
+    "key": "run_tag_27_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_27_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_27_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_28_n_0",
+    "value": [
+      { "cn": "商店超级牌+1", "en": "Super card +1" }
+    ]
+  },
+  {
+    "key": "run_tag_28_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_28_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_28_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_29_n_0",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_29_n_1",
+    "value": [
+      { "cn": "手数 -1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_29_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_29_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_30_n_0",
+    "value": [
+      { "cn": "Boss 目标 +15%", "en": "Boss +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_30_n_1",
+    "value": [
+      { "cn": "三条不计分", "en": "Trips no score" }
+    ]
+  },
+  {
+    "key": "run_tag_30_h_0",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_30_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_31_n_0",
+    "value": [
+      { "cn": "只包含红桃/黑桃", "en": "Hearts/Spades only" }
+    ]
+  },
+  {
+    "key": "run_tag_31_n_1",
+    "value": [
+      { "cn": "手数 -1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_31_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_31_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_32_n_0",
+    "value": [
+      { "cn": "J/Q/K 不进牌堆", "en": "No J/Q/K" }
+    ]
+  },
+  {
+    "key": "run_tag_32_n_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_32_h_0",
+    "value": [
+      { "cn": "无 Joker", "en": "No Joker" }
+    ]
+  },
+  {
+    "key": "run_tag_32_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_33_n_0",
+    "value": [
+      { "cn": "只保留奇数牌", "en": "Odd cards only" }
+    ]
+  },
+  {
+    "key": "run_tag_33_n_1",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_33_h_0",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_33_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_34_n_0",
+    "value": [
+      { "cn": "技能槽 +1", "en": "Skill +1" }
+    ]
+  },
+  {
+    "key": "run_tag_34_n_1",
+    "value": [
+      { "cn": "手数 -1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_34_h_0",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_34_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_35_n_0",
+    "value": [
+      { "cn": "只包含红桃/方块", "en": "Hearts/Diamonds only" }
+    ]
+  },
+  {
+    "key": "run_tag_35_n_1",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_35_h_0",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_35_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_36_n_0",
+    "value": [
+      { "cn": "手数 -1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_36_n_1",
+    "value": [
+      { "cn": "商品价格+2", "en": "All items +2" }
+    ]
+  },
+  {
+    "key": "run_tag_36_h_0",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_36_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_37_n_0",
+    "value": [
+      { "cn": "Hold -2", "en": "Hold -2" }
+    ]
+  },
+  {
+    "key": "run_tag_37_n_1",
+    "value": [
+      { "cn": "开局钻石 = 10", "en": "Start +10" }
+    ]
+  },
+  {
+    "key": "run_tag_37_h_0",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_37_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_38_n_0",
+    "value": [
+      { "cn": "商店刷新费用 +3", "en": "Refresh +3" }
+    ]
+  },
+  {
+    "key": "run_tag_38_n_1",
+    "value": [
+      { "cn": "商品价格+2", "en": "All items +2" }
+    ]
+  },
+  {
+    "key": "run_tag_38_h_0",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_38_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_39_n_0",
+    "value": [
+      { "cn": "只保留偶数牌", "en": "Even cards only" }
+    ]
+  },
+  {
+    "key": "run_tag_39_n_1",
+    "value": [
+      { "cn": "手数 -1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_39_h_0",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_39_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_40_n_0",
+    "value": [
+      { "cn": "Boss 目标 +40%", "en": "Boss +40%" }
+    ]
+  },
+  {
+    "key": "run_tag_40_n_1",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_40_n_2",
+    "value": [
+      { "cn": "开局钻石 = 10", "en": "Start +10" }
+    ]
+  },
+  {
+    "key": "run_tag_40_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_40_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_41_n_0",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_41_n_1",
+    "value": [
+      { "cn": "手数 -1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_41_n_2",
+    "value": [
+      { "cn": "技能槽 +1", "en": "Skill +1" }
+    ]
+  },
+  {
+    "key": "run_tag_41_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_41_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_42_n_0",
+    "value": [
+      { "cn": "无 Joker", "en": "No Joker" }
+    ]
+  },
+  {
+    "key": "run_tag_42_n_1",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_42_n_2",
+    "value": [
+      { "cn": "所有牌型 Lv.2", "en": "All hands Lv.2" }
+    ]
+  },
+  {
+    "key": "run_tag_42_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_42_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_43_n_0",
+    "value": [
+      { "cn": "手数 -1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_43_n_1",
+    "value": [
+      { "cn": "刷新费 +3", "en": "Refresh +3" }
+    ]
+  },
+  {
+    "key": "run_tag_43_n_2",
+    "value": [
+      { "cn": "商店无带边技能", "en": "No edged skills" }
+    ]
+  },
+  {
+    "key": "run_tag_43_h_0",
+    "value": [
+      { "cn": "目标 +10%", "en": "Target +10%" }
+    ]
+  },
+  {
+    "key": "run_tag_43_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_44_n_0",
+    "value": [
+      { "cn": "一对不计分", "en": "Pair no score" }
+    ]
+  },
+  {
+    "key": "run_tag_44_n_1",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_44_n_2",
+    "value": [
+      { "cn": "开局钻石 = 10", "en": "Start +10" }
+    ]
+  },
+  {
+    "key": "run_tag_44_h_0",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_44_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_45_n_0",
+    "value": [
+      { "cn": "仅出现 6-A 牌", "en": "6-A only" }
+    ]
+  },
+  {
+    "key": "run_tag_45_n_1",
+    "value": [
+      { "cn": "无 Joker", "en": "No Joker" }
+    ]
+  },
+  {
+    "key": "run_tag_45_n_2",
+    "value": [
+      { "cn": "手数 +1", "en": "Hands +1" }
+    ]
+  },
+  {
+    "key": "run_tag_45_h_0",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_45_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_46_n_0",
+    "value": [
+      { "cn": "高牌不计分", "en": "High Card no score" }
+    ]
+  },
+  {
+    "key": "run_tag_46_n_1",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_46_n_2",
+    "value": [
+      { "cn": "开局钻石 = 10", "en": "Start +10" }
+    ]
+  },
+  {
+    "key": "run_tag_46_h_0",
+    "value": [
+      { "cn": "目标 +15%", "en": "Target +15%" }
+    ]
+  },
+  {
+    "key": "run_tag_46_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_47_n_0",
+    "value": [
+      { "cn": "Hold -2", "en": "Hold -2" }
+    ]
+  },
+  {
+    "key": "run_tag_47_n_1",
+    "value": [
+      { "cn": "手数 -1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_47_n_2",
+    "value": [
+      { "cn": "技能槽 +1", "en": "Skill +1" }
+    ]
+  },
+  {
+    "key": "run_tag_47_h_0",
+    "value": [
+      { "cn": "目标 +20%", "en": "Target +20%" }
+    ]
+  },
+  {
+    "key": "run_tag_47_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_48_n_0",
+    "value": [
+      { "cn": "刷新费 +3", "en": "Refresh +3" }
+    ]
+  },
+  {
+    "key": "run_tag_48_n_1",
+    "value": [
+      { "cn": "全部商品售价+2", "en": "All items +2" }
+    ]
+  },
+  {
+    "key": "run_tag_48_n_2",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_48_h_0",
+    "value": [
+      { "cn": "目标 +20%", "en": "Target +20%" }
+    ]
+  },
+  {
+    "key": "run_tag_48_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_49_n_0",
+    "value": [
+      { "cn": "无 Joker", "en": "No Joker" }
+    ]
+  },
+  {
+    "key": "run_tag_49_n_1",
+    "value": [
+      { "cn": "手数 -1", "en": "Hands -1" }
+    ]
+  },
+  {
+    "key": "run_tag_49_n_2",
+    "value": [
+      { "cn": "所有牌型 Lv.2", "en": "All hands Lv.2" }
+    ]
+  },
+  {
+    "key": "run_tag_49_h_0",
+    "value": [
+      { "cn": "目标 +20%", "en": "Target +20%" }
+    ]
+  },
+  {
+    "key": "run_tag_49_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  },
+  {
+    "key": "run_tag_50_n_0",
+    "value": [
+      { "cn": "Boss 目标 +100%", "en": "Boss +100%" }
+    ]
+  },
+  {
+    "key": "run_tag_50_n_1",
+    "value": [
+      { "cn": "Hold -1", "en": "Hold -1" }
+    ]
+  },
+  {
+    "key": "run_tag_50_n_2",
+    "value": [
+      { "cn": "开局钻石 = 10", "en": "Start +10" }
+    ]
+  },
+  {
+    "key": "run_tag_50_h_0",
+    "value": [
+      { "cn": "目标 +20%", "en": "Target +20%" }
+    ]
+  },
+  {
+    "key": "run_tag_50_h_1",
+    "value": [
+      { "cn": "", "en": "" }
+    ]
+  }
+]

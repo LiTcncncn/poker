@@ -74,10 +74,18 @@ export interface RunConfig {
   runBannedHandTypePickCount: number;
   /** 整局固定禁计分牌型（与 pickCount 合并去重） */
   runBannedHandTypes: HandType[];
+  /** 仅精英/Boss 关禁计分牌型（与关内随机词缀叠加） */
+  runEliteOnlyBannedHandTypes: HandType[];
+  /** 仅精英/Boss 关手数增量（叠在 handsDelta 之后，0 = 不启用） */
+  runEliteOnlyHandsDelta: number;
+  /** 精英关通关基础 💎（0 = 默认 5；仅 isElite 关生效，Boss 同为精英关） */
+  runEliteStageBaseDiamond: number;
   /** 每次商店随机 N 个商品售价 × premiumPriceMultiplier（0 = 不启用） */
   shopPremiumSlotCount: number;
-  /** 非卖品溢价倍率（默认 5） */
+  /** 非卖品溢价倍率（默认 5；与 shopPremiumFixedPrice 二选一） */
   shopPremiumPriceMultiplier: number;
+  /** 随机溢价槽位固定售价（💎）；设置时优先于倍率 */
+  shopPremiumFixedPrice: number;
 }
 
 // ─── 主线局定义 ───────────────────────────────────────────────

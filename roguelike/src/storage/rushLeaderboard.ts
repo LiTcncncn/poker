@@ -1,7 +1,7 @@
 import type { HandType } from '../shared/types/poker';
 import type { RunState } from '../types/run';
 import { RUSH_LEADERBOARD_STORAGE_KEY } from '../config/storageNamespace';
-import { TOTAL_STAGES } from '../engine/runEngine';
+import { resolveRunStageCount } from '../engine/runEngine';
 import { handTypeCategoryLabel } from '../engine/handEngine';
 
 const STORAGE_KEY = RUSH_LEADERBOARD_STORAGE_KEY;
@@ -17,7 +17,7 @@ export interface RushLeaderboardEntry {
 }
 
 export function clearedStagesTotal(run: RunState): number {
-  const mainStageCount = run.runStageCount ?? TOTAL_STAGES;
+  const mainStageCount = resolveRunStageCount(run);
   const mainWon = run.stages.filter(
     s => s.stageIndex < mainStageCount && s.status === 'won',
   ).length;

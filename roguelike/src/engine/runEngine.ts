@@ -1,6 +1,6 @@
 import { RunState, StageState, HandTypeUpgradeMap } from '../types/run';
 import { SkillDef, SkillEnhancement } from '../types/skill';
-import { Card } from '../shared/types/poker';
+import { Card, HandType } from '../shared/types/poker';
 import { RunConfig } from '../types/profile';
 import { initStage, pickModifierForStageIndex, initEndlessStage, pickEndlessModifier, pickRunWideBannedHandTypes } from './stageEngine';
 import stageTemplates from '../config/runStageTemplates.json';
@@ -92,6 +92,51 @@ export function clampSkillSellExtraDiamonds(raw: unknown): number {
   return Math.min(SKILL_SELL_BONUS_CAP, Math.floor(v));
 }
 
+/** 局级手数增量：全关 handsDelta + 精英/Boss 专属增量 */
+function resolveStageHandsDelta(
+  tpl: Pick<StageTpl, 'isElite' | 'isBoss'>,
+  globalHandsDelta: number,
+  eliteOnlyHandsDelta: number,
+): number {
+  let delta = globalHandsDelta;
+  if ((tpl.isElite || tpl.isBoss) && eliteOnlyHandsDelta !== 0) {
+    delta += eliteOnlyHandsDelta;
+  }
+  return delta;
+}
+
+/** 合并局级禁牌型、精英基础钻等到关卡状态 */
+export function applyRunLevelStageRules(
+  stage: StageState,
+  tpl: Pick<StageTpl, 'isElite' | 'isBoss'>,
+  runWideBannedHandTypes: HandType[],
+  runEliteOnlyBannedHandTypes: HandType[],
+  runEliteStageBaseDiamond: number,
+): StageState {
+  let next = mergeRunLevelStageBans(stage, tpl, runWideBannedHandTypes, runEliteOnlyBannedHandTypes);
+  if (tpl.isElite && runEliteStageBaseDiamond > 0) {
+    next = { ...next, stageBaseDiamondReward: runEliteStageBaseDiamond };
+  }
+  return next;
+}
+
+/** 合并局级禁牌型（全关 + 仅精英/Boss）到关卡状态 */
+export function mergeRunLevelStageBans(
+  stage: StageState,
+  tpl: Pick<StageTpl, 'isElite' | 'isBoss'>,
+  runWideBannedHandTypes: HandType[],
+  runEliteOnlyBannedHandTypes: HandType[],
+): StageState {
+  let bannedHandTypes = [...(stage.bannedHandTypes ?? [])];
+  if (runWideBannedHandTypes.length > 0) {
+    bannedHandTypes = [...new Set([...bannedHandTypes, ...runWideBannedHandTypes])];
+  }
+  if ((tpl.isElite || tpl.isBoss) && runEliteOnlyBannedHandTypes.length > 0) {
+    bannedHandTypes = [...new Set([...bannedHandTypes, ...runEliteOnlyBannedHandTypes])];
+  }
+  return { ...stage, bannedHandTypes };
+}
+
 /** 初始化一局新 Run，自动为精英/Boss 关分配词缀 */
 export function initRun(config?: RunConfig): RunState {
   const isNewbie = config?.stageCount === 10;
@@ -111,6 +156,9 @@ export function initRun(config?: RunConfig): RunState {
       ...runBannedHandTypesFixed,
     ]),
   ];
+  const runEliteOnlyBannedHandTypes = config?.runEliteOnlyBannedHandTypes ?? [];
+  const runEliteOnlyHandsDelta = config?.runEliteOnlyHandsDelta ?? 0;
+  const runEliteStageBaseDiamond = config?.runEliteStageBaseDiamond ?? 0;
   const startDiamonds = config?.startingDiamonds ?? 3;
 
   // 先为精英/Boss 关卡分配词缀 ID
@@ -126,18 +174,18 @@ export function initRun(config?: RunConfig): RunState {
     const stage = initStage(i, modId, {
       targetGoldOverride: stageTargetGoldOverride(t, targetMult, bossTargetMult),
       holdDelta,
-      handsDelta,
+      handsDelta: resolveStageHandsDelta(t, handsDelta, runEliteOnlyHandsDelta),
       runBannedRankMax,
       runBanFaceCardScore,
     }, tplList);
-    const withRunBans =
-      runWideBannedHandTypes.length > 0
-        ? {
-            ...stage,
-            bannedHandTypes: [...new Set([...(stage.bannedHandTypes ?? []), ...runWideBannedHandTypes])],
-          }
-        : stage;
-    return { ...withRunBans, status: i === 0 ? 'active' : 'pending' } as StageState;
+    const withRunRules = applyRunLevelStageRules(
+      stage,
+      t,
+      runWideBannedHandTypes,
+      runEliteOnlyBannedHandTypes,
+      runEliteStageBaseDiamond,
+    );
+    return { ...withRunRules, status: i === 0 ? 'active' : 'pending' } as StageState;
   });
 
   // 所有牌型 Lv.2 起步
@@ -199,6 +247,11 @@ export function initRun(config?: RunConfig): RunState {
     runBanFaceCardScore,
     runShopPremiumSlotCount: config?.shopPremiumSlotCount ?? 0,
     runShopPremiumPriceMultiplier: config?.shopPremiumPriceMultiplier ?? 5,
+    runShopPremiumFixedPrice: config?.shopPremiumFixedPrice ?? 0,
+    runBannedHandTypesWide: runWideBannedHandTypes,
+    runEliteOnlyBannedHandTypes,
+    runEliteOnlyHandsDelta,
+    runEliteStageBaseDiamond,
     runStageCount: stageCount,
   };
 }
@@ -223,7 +276,7 @@ export function advanceToNextStage(
   const mergedAttrCards = [...run.attributeCards, ...newAttributeCards];
 
   // 使用 RunState 存储的局级参数
-  const stageCount = run.runStageCount ?? STANDARD_TOTAL_STAGES;
+  const stageCount = run.runStageCount ?? resolveRunStageCount(run);
   const tplList = stageCount === 10 ? newbieTplList : stageTplList;
   const targetMult = run.runTargetMultiplier ?? 1.0;
   const bossTargetMult = run.runBossTargetMultiplier ?? 1;
@@ -241,20 +294,22 @@ export function advanceToNextStage(
   }
 
   const modId = run.stageModifiers[next];
+  const tpl = tplList[next] ?? { targetGold: 0, isElite: false, isBoss: false, handCount: 6, holdCount: 6 };
+  const runWideBans = run.runBannedHandTypesWide ?? [];
+  const eliteOnlyBans = run.runEliteOnlyBannedHandTypes ?? [];
+  const eliteOnlyHandsDelta = run.runEliteOnlyHandsDelta ?? 0;
+  const eliteStageBaseDiamond = run.runEliteStageBaseDiamond ?? 0;
   const stages = run.stages.map((s, i) => {
     if (i === next) {
+      const stage = initStage(i, modId, {
+        targetGoldOverride: stageTargetGoldOverride(tpl, targetMult, bossTargetMult),
+        holdDelta: run.runHoldDelta ?? 0,
+        handsDelta: resolveStageHandsDelta(tpl, run.runHandsDelta ?? 0, eliteOnlyHandsDelta),
+        runBannedRankMax,
+        runBanFaceCardScore,
+      }, tplList);
       return {
-        ...initStage(i, modId, {
-          targetGoldOverride: stageTargetGoldOverride(
-            tplList[i] ?? { targetGold: 0, isElite: false, isBoss: false, handCount: 6, holdCount: 6 },
-            targetMult,
-            bossTargetMult,
-          ),
-          holdDelta: run.runHoldDelta ?? 0,
-          handsDelta: run.runHandsDelta ?? 0,
-          runBannedRankMax,
-          runBanFaceCardScore,
-        }, tplList),
+        ...applyRunLevelStageRules(stage, tpl, runWideBans, eliteOnlyBans, eliteStageBaseDiamond),
         status: 'active' as const,
       };
     }
@@ -280,31 +335,60 @@ export function defeatRun(run: RunState): RunState {
 
 /**
  * 计算无限挑战第 endlessIdx 关（0-based）的目标金币。
- * 从主线末关 `targetGold`（`ENDLESS_SEED_GOLD`，与 `runStageTemplates.json` 最后一行同步）起算；
- * 每关在上关基础上乘 NORMAL_RATE，精英关（无尽内第 3、6、9… 关，即 (endlessIdx+1)%3===0）再乘 ELITE_BONUS；
- * 结果四舍五入到千位，且相对上一关单调不减（例：种子 40000 时前几关约 43k→46k→51k…）。
+ * - 短主线（如新手 10 关）：显示关 11～20 对齐 `runStageTemplates.json` 第 11～20 关曲线（含局目标倍率）；
+ *   显示关 21 起与标准 20 关主线相同，从末关 40000 递推到约 44000，再按无尽公式继续。
+ * - 标准 20 关主线：显示关 21 起沿用无尽递推。
  */
-function calcEndlessTargetGold(endlessIdx: number, mainStageCount = TOTAL_STAGES): number {
+function calcEndlessTargetGold(
+  endlessIdx: number,
+  mainStageCount = TOTAL_STAGES,
+  targetMult = 1.0,
+  bossTargetMult = 1,
+): number {
+  const displayK = mainStageCount + endlessIdx + 1;
+
+  if (displayK <= STANDARD_TOTAL_STAGES) {
+    const tpl = stageTplList[displayK - 1];
+    if (tpl) {
+      return stageTargetGoldOverride(tpl, targetMult, bossTargetMult);
+    }
+  }
+
   let gold = ENDLESS_SEED_GOLD;
-  for (let i = 0; i <= endlessIdx; i++) {
-    const displayK = mainStageCount + i + 1; // 标准局 21,22,23...；新手局 11,12,13...
+  const bridgeStageCount = Math.max(0, STANDARD_TOTAL_STAGES - mainStageCount);
+  const trueEndlessIdx = endlessIdx - bridgeStageCount;
+
+  for (let i = 0; i <= trueEndlessIdx; i++) {
+    const k = STANDARD_TOTAL_STAGES + i + 1;
     const isThisElite = (i + 1) % 3 === 0;
-    const raw = gold * endlessNormalRate(displayK) * (isThisElite ? endlessEliteBonus(displayK) : 1);
+    const raw = gold * endlessNormalRate(k) * (isThisElite ? endlessEliteBonus(k) : 1);
     const rounded = roundEndlessGold(raw);
     gold = Math.max(gold, rounded);
   }
   return gold;
 }
 
+/** 当前 run 的主线关数（新手局 10，标准局 20；老存档缺字段时按 runNo 推断） */
+export function resolveRunStageCount(run: Pick<RunState, 'runStageCount' | 'runNo'>): number {
+  if (run.runNo === 1) return 10;
+  if (run.runStageCount != null && run.runStageCount > 0) return run.runStageCount;
+  return TOTAL_STAGES;
+}
+
 /** 当前 run 的无尽关固定槽位：等于本局主线关数（新手局 10，标准局 20） */
-export function getEndlessStageIndex(run: Pick<RunState, 'runStageCount'>): number {
-  return run.runStageCount ?? TOTAL_STAGES;
+export function getEndlessStageIndex(run: Pick<RunState, 'runStageCount' | 'runNo'>): number {
+  return resolveRunStageCount(run);
 }
 
 /** 生成无限阶段的第 endlessIdx 关（0-based） */
-function buildEndlessStage(endlessIdx: number, mainStageCount = TOTAL_STAGES): StageState {
+function buildEndlessStage(
+  endlessIdx: number,
+  mainStageCount = TOTAL_STAGES,
+  targetMult = 1.0,
+  bossTargetMult = 1,
+): StageState {
   const isElite   = (endlessIdx + 1) % 3 === 0;
-  const targetGold = calcEndlessTargetGold(endlessIdx, mainStageCount);
+  const targetGold = calcEndlessTargetGold(endlessIdx, mainStageCount, targetMult, bossTargetMult);
   // endlessEliteIdx：当前是第几个精英关
   const endlessEliteIdx = Math.floor(endlessIdx / 3);
   const modId = isElite ? pickEndlessModifier(endlessEliteIdx) : undefined;
@@ -316,8 +400,11 @@ function buildEndlessStage(endlessIdx: number, mainStageCount = TOTAL_STAGES): S
  * 立即生成第一个无限关（index = runStageCount），status 回到 'running'。
  */
 export function enterEndlessMode(run: RunState): RunState {
+  const mainStageCount = resolveRunStageCount(run);
   const endlessStageIndex = getEndlessStageIndex(run);
-  const firstEndlessStage = buildEndlessStage(0, endlessStageIndex);
+  const targetMult = run.runTargetMultiplier ?? 1.0;
+  const bossTargetMult = run.runBossTargetMultiplier ?? 1;
+  const firstEndlessStage = buildEndlessStage(0, mainStageCount, targetMult, bossTargetMult);
   const stages = [...run.stages];
   stages[endlessStageIndex] = firstEndlessStage;
   return {
@@ -342,8 +429,11 @@ export function advanceToNextEndlessStage(
   newAttributeCards: Card[] = [],
 ): RunState {
   const newEndlessCount = run.endlessStagesCleared + 1;
+  const mainStageCount = resolveRunStageCount(run);
   const endlessStageIndex = getEndlessStageIndex(run);
-  const nextStage = buildEndlessStage(newEndlessCount, endlessStageIndex);
+  const targetMult = run.runTargetMultiplier ?? 1.0;
+  const bossTargetMult = run.runBossTargetMultiplier ?? 1;
+  const nextStage = buildEndlessStage(newEndlessCount, mainStageCount, targetMult, bossTargetMult);
 
   const updatedStages = [...run.stages];
   updatedStages[endlessStageIndex] = nextStage; // 覆写无限关槽位

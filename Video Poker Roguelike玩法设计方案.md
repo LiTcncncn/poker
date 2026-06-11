@@ -241,12 +241,12 @@
 
 | 词缀 ID | 名称 | 效果 |
 |---------|------|------|
-| `ban_high_card_only` | 禁高牌 | 本关高牌不计分 |
-| `ban_two_pairs` | 禁两对 | 本关两对不计分 |
-| `reduce_hold_1` | 短筹压力 | 本关补牌总量 -1（6→5）|
-| `block_early_1` | 前压干扰 | 前 1 手不可补牌 |
-| `block_late_1` | 尾段干扰 | 后 1 手不可补牌 |
-| `reduce_hand_1` | 手数削减 | 本关手数 -1（6→5）|
+| `ban_high_card_only` | 禁高牌 | 高牌不计分 |
+| `ban_two_pairs` | 禁两对 | 两对不计分 |
+| `reduce_hold_1` | 短筹压力 | 补牌-1 |
+| `block_early_1` | 前压干扰 | 第1手不可补牌 |
+| `block_late_1` | 尾段干扰 | 末手不可补牌 |
+| `reduce_hand_1` | 手数削减 | 手数-1 |
 
 ---
 
@@ -256,22 +256,23 @@
 
 | 词缀 ID | 名称 | 效果 |
 |---------|------|------|
-| `ban_one_pair` | 禁一对 | 本关一对不计分 |
-| `ban_trips` | 禁三条 | 本关三条不计分 |
-| `ban_straight` | 禁顺子线 | 本关顺子与同花顺不计分 |
-| `ban_flush` | 禁同花线 | 本关同花与同花顺不计分 |
-| `reduce_hold_2` | 极限压缩 | 本关补牌总量 -2（6→4）|
-| `block_early_2` | 前段封锁 | 前 2 手不可补牌 |
-| `block_late_2` | 后段封锁 | 后 2 手不可补牌 |
-| `ban_spades` | 黑桃封印 | 本关 ♠️ 牌面分不计入 |
-| `ban_hearts` | 红心封印 | 本关 ♥️ 牌面分不计入 |
-| `ban_clubs` | 梅花封印 | 本关 ♣️ 牌面分不计入 |
-| `ban_diamonds` | 方块封印 | 本关 ♦️ 牌面分不计入 |
-| `ban_small_cards` | 小牌无效 | 本关 2-6 点牌牌面分不计入 |
-| `no_face_cards_score` | 人头无效 | 本关 J/Q/K 的牌面分不计入（牌型仍正常判断） |
-| `downshift_hand_type_level_1` | 牌型降级 I | 本关结算时，打出牌型的“等级”视为 -1（两档之一；具体口径见 §5.4.1 待定） |
-| `high_target_12` | 高阶目标 I | 本关目标金币 ×1.2（两档之一；具体口径见 §5.4.2 待定） |
-| `shop_diamond_income_0` | 商店无收益 | 本关通关后商店相关的 💎 收益为 0（具体口径见 §5.4.4 待定） |
+| `ban_one_pair` | 禁一对 | 一对不计分 |
+| `ban_trips` | 禁三条 | 三条不计分 |
+| `ban_straight` | 禁顺子线 | 顺子不计分 |
+| `ban_flush` | 禁同花线 | 同花不计分 |
+| `reduce_hold_2` | 极限压缩 | 补牌-2 |
+| `block_early_2` | 前段封锁 | 前2手不可补牌 |
+| `block_late_2` | 后段封锁 | 后2手不可补牌 |
+| `ban_spades` | 黑桃封印 | 黑桃牌不计分 |
+| `ban_hearts` | 红心封印 | 红桃牌不计分 |
+| `ban_clubs` | 梅花封印 | 草花牌不计分 |
+| `ban_diamonds` | 方块封印 | 方块牌不计分 |
+| `ban_small_cards` | 小牌无效 | 2-6牌不计分 |
+| `ban_jokers` | 禁小丑 | 无Joker |
+| `no_face_cards_score` | 人头无效 | J/Q/K不计分 |
+| `downshift_hand_type_level_1` | 牌型降级 I | 牌型LV减1 |
+| `high_target_12` | 高阶目标 I | 目标×1.2 |
+| `shop_diamond_income_0` | 商店无收益 | 钻石0奖励 |
 
 > 花色/点数封印词缀：被封印牌的牌面分值（baseValue）不参与计算，但牌型本身仍正常判断和计分。
 > 例如"黑桃封印"下，5 张黑桃仍可形成同花，但 5 张牌的牌面分贡献均为 0。
@@ -284,12 +285,12 @@
 
 | 词缀 ID | 名称 | 效果 |
 |---------|------|------|
-| `ban_high_and_pair` | 禁低阶 | 本关高牌与一对均不计分 |
-| `ban_full_house` | 禁葫芦 | 本关葫芦不计分 |
-| `reduce_hold_3` | 重压削减 | 本关补牌总量 -3（6→3）|
-| `tactical_squeeze` | 节奏压制 | 补牌 -1 且前 1 手不可补牌（双效果组合）|
-| `downshift_hand_type_level_2` | 牌型降级 II | 本关结算时，打出牌型的“等级”视为 -2（两档之一；具体口径见 §5.4.1 待定） |
-| `high_target_14` | 高阶目标 II | 本关目标金币 ×1.4（两档之一；具体口径见 §5.4.2 待定） |
+| `ban_high_and_pair` | 禁低阶 | 高牌与一对不计分 |
+| `ban_full_house` | 禁葫芦 | 葫芦不计分 |
+| `reduce_hold_3` | 重压削减 | 补牌-3 |
+| `tactical_squeeze` | 节奏压制 | 补牌-1，第1手不可补牌 |
+| `downshift_hand_type_level_2` | 牌型降级 II | 牌型LV减2 |
+| `high_target_14` | 高阶目标 II | 目标×1.4 |
 
 ---
 
