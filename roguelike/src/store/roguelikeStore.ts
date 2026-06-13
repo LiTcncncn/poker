@@ -21,6 +21,11 @@ import {
   SKILL_SELL_BONUS_CAP,
 } from '../engine/runEngine';
 import { applyHandGold, consumeDraw, canDraw, getEffectiveStage, getStageTargetGold, remainingHold, runScoringFromRun } from '../engine/stageEngine';
+import {
+  buildStageDiamondBreakdown,
+  calcStageDiamondReward,
+  type StageDiamondBreakdown,
+} from '../engine/stageDiamondEngine';
 import { buildDeckForRule, injectJokers, shuffle, dealCards, replaceUnheld, capJokersInHand } from '../engine/deckEngine';
 import { applyRunShopRules, applyUpgrade, generateRewardForStage, getDefaultDiamondRefreshCost, regenerateShopOptionsForStep } from '../engine/rewardEngine';
 import { getAllowedSkillIds, getUnlockedOrdersAfterNormalRun } from '../config/skillUnlockOrders';
@@ -195,6 +200,7 @@ type RLPartial = {
   handState: HandState | null;
   reward: RewardState | null;
   gameToast: string | null;
+  pendingStageDiamondBreakdown: StageDiamondBreakdown | null;
 };
 type SetFn = (partial: Partial<RLPartial>) => void;
 
@@ -304,10 +310,17 @@ function _commitScore(
   }
 
   const newStage = applyHandGold(stage, evalResult.finalGold);
-  newRun = updateStageInRun(newRun, newStage);
+  const stageWithDiamondCards =
+    handDiamond > 0
+      ? {
+          ...newStage,
+          diamondCardEarnedThisStage: (stage.diamondCardEarnedThisStage ?? 0) + handDiamond,
+        }
+      : newStage;
+  newRun = updateStageInRun(newRun, stageWithDiamondCards);
 
   if (
-    (newStage.status === 'won' || newStage.status === 'lost') &&
+    (stageWithDiamondCards.status === 'won' || stageWithDiamondCards.status === 'lost') &&
     (stage.isElite || stage.isBoss) &&
     newRun.acquiredSkillIds.includes(SKILL_ELITE_UNSHACKLED) &&
     (newRun.skillAccumulation?.[SKILL_ELITE_UNSHACKLED] ?? 3) === 0
@@ -315,8 +328,9 @@ function _commitScore(
     newRun = stripEliteUnshackledIfDepleted(newRun);
   }
 
-  if (newStage.status === 'won') {
-    const diamondsGained = calcStageDiamondReward(newStage);
+  if (stageWithDiamondCards.status === 'won') {
+    const iaaPerStage = newRun.iaa?.perStage[stageWithDiamondCards.stageIndex];
+    const diamondsGained = calcStageDiamondReward(stageWithDiamondCards, iaaPerStage);
     if (newRun.isTutorialRun && stage.stageIndex === 0) {
       useTutorialStore.getState().setLastStageDiamondReward(diamondsGained);
       // 引导：过关提示文案用“浮层提示”展示，但按钮步骤直接进入 next_stage，保证「下一关」可点
@@ -328,8 +342,11 @@ function _commitScore(
       diamondsEarnedTotal: newRun.diamondsEarnedTotal + diamondsGained,
     };
     // 更新最高单关目标记录
-    newRun = { ...newRun, highestSingleStageTarget: Math.max(newRun.highestSingleStageTarget, newStage.targetGold) };
+    newRun = { ...newRun, highestSingleStageTarget: Math.max(newRun.highestSingleStageTarget, stageWithDiamondCards.targetGold) };
     newRun = applyStageWinEconomy(newRun);
+
+    const skipDiamondBoard = newRun.isTutorialRun && stage.stageIndex === 0;
+    let pendingStageDiamondBreakdown: StageDiamondBreakdown | null = null;
 
     // 计算本局允许的技能池（主线模式时过滤解锁顺序）
     const allowedSkillIds =
@@ -363,14 +380,14 @@ function _commitScore(
         shopUpgradeBonus,
         shopAttributeBonus,
       );
-      set({ run: newRun, handState: newHandState, reward: withRunShopRules(rewardState, newRun) });
+      set({ run: newRun, handState: newHandState, reward: withRunShopRules(rewardState, newRun), pendingStageDiamondBreakdown: skipDiamondBoard ? null : buildStageDiamondBreakdown(stageWithDiamondCards, newRun, iaaPerStage) });
     } else {
       const stageCount = newRun.runStageCount ?? TOTAL_STAGES;
-      const isLastStage = stage.stageIndex + 1 >= stageCount;
+      const isLastStage = stageWithDiamondCards.stageIndex + 1 >= stageCount;
       if (isLastStage) {
         // 主线最后一关通关 → 进入胜利画面，用户选择是否继续挑战
         const victoryRun: RunState = { ...newRun, status: 'victory' };
-        set({ run: victoryRun, handState: newHandState, reward: null });
+        set({ run: victoryRun, handState: newHandState, reward: null, pendingStageDiamondBreakdown: null });
       } else {
         const rewardState = generateRewardForStage(
           stage.stageIndex,
@@ -397,13 +414,16 @@ function _commitScore(
           finalReward = patchTutorialFirstShop(finalReward);
           // 注意：不要在此处推进到 shop_intro，否则会覆盖「下一关」引导态，导致按钮无响应。
         }
-        set({ run: newRun, handState: newHandState, reward: finalReward });
+        if (!skipDiamondBoard) {
+          pendingStageDiamondBreakdown = buildStageDiamondBreakdown(stageWithDiamondCards, newRun, iaaPerStage);
+        }
+        set({ run: newRun, handState: newHandState, reward: finalReward, pendingStageDiamondBreakdown });
       }
     }
-  } else if (newStage.status === 'lost') {
-    set({ run: defeatRun(newRun), handState: newHandState, reward: null });
+  } else if (stageWithDiamondCards.status === 'lost') {
+    set({ run: defeatRun(newRun), handState: newHandState, reward: null, pendingStageDiamondBreakdown: null });
   } else {
-    set({ run: newRun, handState: newHandState, reward: null });
+    set({ run: newRun, handState: newHandState, reward: null, pendingStageDiamondBreakdown: null });
   }
 }
 
@@ -411,6 +431,8 @@ interface RLStore {
   run: RunState | null;
   handState: HandState | null;
   reward: RewardState | null;
+  /** 关后钻石结算板明细（不持久化） */
+  pendingStageDiamondBreakdown: StageDiamondBreakdown | null;
   /** 局内轻提示（IAA 等），不持久化 */
   gameToast: string | null;
 
@@ -462,18 +484,6 @@ function calcSkillSellValue(quality: SkillDef['quality'], enhancement: SkillEnha
   return qualityVal[quality] + enhancementVal[enhancement];
 }
 
-function calcStageDiamondReward(stage: StageState): number {
-  if (stage.shopBaseDiamondRewardZero) return 0;
-  const base = stage.stageBaseDiamondReward != null
-    ? stage.stageBaseDiamondReward
-    : (stage.isElite || stage.isBoss ? 5 : 3);
-  const handsLeft = stage.totalHands - stage.usedHands;
-  const handBonus = handsLeft >= 2 ? 2 : handsLeft === 1 ? 1 : 0;
-  const holdLeft = stage.holdTotal - stage.holdUsed;
-  const holdBonus = holdLeft >= 1 ? 1 : 0;
-  return base + handBonus + holdBonus;
-}
-
 // ─── (buildDeck 已废弃，改用 buildDeckForRule) ───────────────────
 
 export const useRLStore = create<RLStore>()(
@@ -483,6 +493,7 @@ export const useRLStore = create<RLStore>()(
       handState: null,
       reward: null,
       gameToast: null,
+      pendingStageDiamondBreakdown: null,
 
       showGameToast: (message) => scheduleGameToast(set, message),
       clearGameToast: () => {
@@ -515,6 +526,7 @@ export const useRLStore = create<RLStore>()(
             run,
             reward: null,
             handState: hs,
+            pendingStageDiamondBreakdown: null,
           });
           scheduleAutoFlip(run, hs, get().flipCards);
           return;
@@ -533,6 +545,7 @@ export const useRLStore = create<RLStore>()(
           run,
           reward: null,
           handState: hs,
+          pendingStageDiamondBreakdown: null,
         });
         scheduleAutoFlip(run, hs, get().flipCards);
       },
@@ -543,7 +556,7 @@ export const useRLStore = create<RLStore>()(
         if (run?.isTutorialRun) {
           useTutorialStore.getState().resetHomeTutorial();
         }
-        set({ run: null, handState: null, reward: null });
+        set({ run: null, handState: null, reward: null, pendingStageDiamondBreakdown: null });
       },
 
       // ─── 进入无限挑战模式 ──────────────────────────────────────
@@ -559,7 +572,7 @@ export const useRLStore = create<RLStore>()(
               }
             : run;
         const endlessRun = enterEndlessMode(runWithFreshUnlocks);
-        set({ run: endlessRun, reward: null });
+        set({ run: endlessRun, reward: null, pendingStageDiamondBreakdown: null });
         get().dealInitialHand();
       },
 
@@ -601,6 +614,7 @@ export const useRLStore = create<RLStore>()(
           run: nextRun,
           handState: hs,
           reward: null,
+          pendingStageDiamondBreakdown: null,
         });
         scheduleAutoFlip(nextRun, hs, get().flipCards);
       },
@@ -1056,7 +1070,7 @@ export const useRLStore = create<RLStore>()(
             };
           }
         }
-        set({ run: advanced, reward: null });
+        set({ run: advanced, reward: null, pendingStageDiamondBreakdown: null });
         if (advanced.status === 'running') {
           get().dealInitialHand();
           if (advanced.isTutorialRun && advanced.currentStageIndex === 1) {
@@ -1320,7 +1334,7 @@ export const useRLStore = create<RLStore>()(
         const isLastStage = stageIdx + 1 >= stageCount && !newRun.isEndless;
 
         if (isLastStage) {
-          set({ run: { ...newRun, status: 'victory' }, handState, reward: null });
+          set({ run: { ...newRun, status: 'victory' }, handState, reward: null, pendingStageDiamondBreakdown: null });
           return;
         }
 
@@ -1348,7 +1362,7 @@ export const useRLStore = create<RLStore>()(
           shopUpgradeBonus,
           shopAttributeBonus,
         );
-        set({ run: newRun, handState, reward: withRunShopRules(rewardState, newRun) });
+        set({ run: newRun, handState, reward: withRunShopRules(rewardState, newRun), pendingStageDiamondBreakdown: null });
       },
 
       // ─── 获取当前关卡 ─────────────────────────────────────────

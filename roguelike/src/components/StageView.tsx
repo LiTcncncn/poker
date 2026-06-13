@@ -6,6 +6,7 @@ import { TUTORIAL_HOLD_INDICES } from '../tutorial/tutorialConfig';
 import { TutorialOverlay, tutorialHighlightClass } from './TutorialOverlay';
 import { HandView, SettlementBlock } from './HandView';
 import { RewardModal } from './RewardModal';
+import { StageDiamondSettlement } from './StageDiamondSettlement';
 import { RunResult } from './RunResult';
 import InfoTabs from './InfoTabs';
 import { UpgradeOption } from '../types/reward';
@@ -55,7 +56,7 @@ function SettlementIdlePlaceholder() {
 
 export function StageView() {
   const {
-    run, handState, reward,
+    run, handState, reward, pendingStageDiamondBreakdown,
     flipCards, toggleHold, drawCards, scoreHand,
     chooseSkill, chooseUpgrade,
     chooseAttributeCard,
@@ -231,10 +232,30 @@ export function StageView() {
   /** 与顶部「剩余 X 手」一致：未打完的本关手数 / 本关总手数 */
   const handsRemainLabel = `（${handsLeft}/${effectiveStage.totalHands}）`;
 
+  const showDiamondSettlement =
+    isResult &&
+    stage.status === 'won' &&
+    pendingStageDiamondBreakdown != null;
+
+  useEffect(() => {
+    if (!reward || !isResult || stage.status !== 'won') return;
+    if (pendingStageDiamondBreakdown) return;
+    if (isTutorial && stage.stageIndex === 0) return;
+    setRewardVisible(true);
+  }, [
+    reward,
+    isResult,
+    stage.status,
+    stage.stageIndex,
+    pendingStageDiamondBreakdown,
+    isTutorial,
+  ]);
+
   function handleNext() {
     if (isTutorial && runStep !== 'next_stage' && stage!.status === 'won') return;
 
     if (reward && stage!.status === 'won') {
+      if (pendingStageDiamondBreakdown) return;
       if (isTutorial && stage!.stageIndex === 0) {
         // 只有点击「下一关」后才进入商店引导文案
         useTutorialStore.getState().setRunStep('shop_intro');
@@ -327,6 +348,9 @@ export function StageView() {
           ? (run!.isEndless ? '挑战结束 →' : '本局失败 →')
           : `下一手 →${handsRemainLabel}`;
       const highlightNext = isTutorial && isWon && runStep === 'next_stage';
+      if (isWon && pendingStageDiamondBreakdown) {
+        return null;
+      }
       const primaryCls = isWon
         ? `w-full bg-rl-gold hover:bg-yellow-300 text-black font-black py-3 rounded-xl transition-colors ${highlightNext ? 'relative z-[170] rl-tutorial-focus-orange' : ''}`
         : 'w-full bg-rl-green/20 border border-rl-green text-rl-green hover:bg-rl-green hover:text-black font-black py-3 rounded-xl transition-colors';
@@ -440,6 +464,13 @@ export function StageView() {
 
   return (
     <>
+      {showDiamondSettlement && pendingStageDiamondBreakdown && (
+        <StageDiamondSettlement
+          breakdown={pendingStageDiamondBreakdown}
+          onContinue={() => setRewardVisible(true)}
+        />
+      )}
+
       {showRunTutorialOverlay && (
         <TutorialOverlay
           runStep={runStep}

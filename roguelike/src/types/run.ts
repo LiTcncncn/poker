@@ -166,6 +166,8 @@ export interface StageState {
   shopBaseDiamondRewardZero?: boolean;
   /** 局级：本关通关基础 💎（覆盖默认 3/5；剩手/剩补牌加成仍叠加） */
   stageBaseDiamondReward?: number;
+  /** 本关内超级钻牌参与计分累计 💎（关后结算板展示） */
+  diamondCardEarnedThisStage?: number;
   status: 'pending' | 'active' | 'won' | 'lost';
 }
 
