@@ -459,6 +459,8 @@ interface RLStore {
   chooseAttributeCard:  (card: Card) => void;
   refreshRewardWithDiamonds: () => void;
   proceedRewardStep:    () => void;
+  /** 关后钻石结算板点「继续」后关闭（不持久化） */
+  dismissStageDiamondSettlement: () => void;
 
   // ── IAA ───────────────────────────────────
   /** IAA 刷新商店（每关限 1 次，与💎刷新独立） */
@@ -977,6 +979,10 @@ export const useRLStore = create<RLStore>()(
           })(),
           reward: nextReward,
         });
+      },
+
+      dismissStageDiamondSettlement: () => {
+        set({ pendingStageDiamondBreakdown: null });
       },
 
       // ─── 继续奖励下一步 / 下一关 ──────────────────────────────

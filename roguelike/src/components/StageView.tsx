@@ -60,7 +60,7 @@ export function StageView() {
     flipCards, toggleHold, drawCards, scoreHand,
     chooseSkill, chooseUpgrade,
     chooseAttributeCard,
-    refreshRewardWithDiamonds, proceedRewardStep, sellSkill,
+    refreshRewardWithDiamonds, proceedRewardStep, dismissStageDiamondSettlement, sellSkill,
     abandonRun, dealInitialHand, currentStage,
     enterEndlessMode,
     iaaRefreshReward, iaaClaimDiamonds, iaaBuyItem,
@@ -467,7 +467,10 @@ export function StageView() {
       {showDiamondSettlement && pendingStageDiamondBreakdown && (
         <StageDiamondSettlement
           breakdown={pendingStageDiamondBreakdown}
-          onContinue={() => setRewardVisible(true)}
+          onContinue={() => {
+            dismissStageDiamondSettlement();
+            setRewardVisible(true);
+          }}
         />
       )}
 
