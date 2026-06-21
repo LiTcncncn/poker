@@ -10,6 +10,10 @@
 export const SKILL_UNLOCK_ORDER_RAINBOW_DEFERRED = 28;
 export const SKILL_UNLOCK_ORDER_FORWARD_DEFERRED = 29;
 
+/** 7 日轮回（顺序 27）：第 12 局普通通关解锁；该局不解锁边、也不解锁其它技能顺序批次 */
+export const SEVEN_CYCLE_UNLOCK_RUN_NO = 12;
+export const SEVEN_CYCLE_UNLOCK_ORDER = 27;
+
 export const SKILL_UNLOCK_ORDER_MAP: Record<number, string[]> = {
   1: [
     'high_card_all',
@@ -102,10 +106,13 @@ export function getUnlockedOrdersAfterNormalRun(highestNormalCleared: number): n
   if (highestNormalCleared >= 14) orders.push(SKILL_UNLOCK_ORDER_RAINBOW_DEFERRED);
   if (highestNormalCleared >= 16) orders.push(SKILL_UNLOCK_ORDER_FORWARD_DEFERRED);
   // 之后基本每隔 2 局解锁一次（顺序 5 对应第 7 局，6 对应第 9 局...）
-  // 通用公式：解锁顺序 k（k >= 5）= 第 (5 + (k - 5) * 2 + 2) 局 = 第 (2k - 3) 局
-  for (let k = 5; k <= 27; k++) {
+  // 通用公式：解锁顺序 k（5 <= k <= 26）= 第 (2k - 3) 局；顺序 27 见 SEVEN_CYCLE_UNLOCK_RUN_NO
+  for (let k = 5; k <= 26; k++) {
     const requiredRun = 2 * k - 3;
     if (highestNormalCleared >= requiredRun) orders.push(k);
+  }
+  if (highestNormalCleared >= SEVEN_CYCLE_UNLOCK_RUN_NO) {
+    orders.push(SEVEN_CYCLE_UNLOCK_ORDER);
   }
   return orders;
 }

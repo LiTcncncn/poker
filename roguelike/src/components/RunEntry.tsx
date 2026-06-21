@@ -7,6 +7,7 @@ import { RushLeaderboardModal } from './RushLeaderboardModal';
 import { TutorialOverlay, tutorialHighlightClass } from './TutorialOverlay';
 import { HOME_TUTORIAL_LINES } from '../tutorial/tutorialConfig';
 import { clearRoguelikeSave } from '../utils/clearRoguelikeSave';
+import { SkillCodexView } from './SkillCodexView';
 
 // ─── 限制条件 Chip ─────────────────────────────────────────────
 function RuleChip({ label, variant = 'debuff' }: { label: string; variant?: 'debuff' | 'buff' | 'special' }) {
@@ -51,6 +52,7 @@ export function RunEntry() {
   );
   const [difficulty, setDifficulty] = useState<'normal' | 'hard'>('normal');
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [skillCodexOpen, setSkillCodexOpen] = useState(false);
   const { startNewRun } = useRLStore();
   // 引导：挑战按钮 ref，供手势箭头定位
   const challengeBtnRef = useRef<HTMLButtonElement>(null);
@@ -113,6 +115,10 @@ export function RunEntry() {
 
   const isHard = difficulty === 'hard';
 
+  if (skillCodexOpen) {
+    return <SkillCodexView onBack={() => setSkillCodexOpen(false)} />;
+  }
+
   return (
     <div className={`relative flex flex-col min-h-screen ${isHard ? 'bg-[#1a0a0a]' : 'bg-transparent'}`}>
 
@@ -128,30 +134,45 @@ export function RunEntry() {
 
       <div className="flex flex-col flex-1 items-center px-5 pt-4 pb-8 gap-6">
 
-        {!inHomeTutorial && (
-          <div className="flex rounded-full bg-white/8 border border-white/10 p-0.5 gap-0.5">
-            <button
-              onClick={() => setDifficulty('normal')}
-              className={`px-5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                difficulty === 'normal'
-                  ? 'bg-yellow-400 text-black shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              普通
-            </button>
-            <button
-              onClick={() => setDifficulty('hard')}
-              className={`px-5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                difficulty === 'hard'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              困难
-            </button>
-          </div>
-        )}
+        <div className="flex w-full items-center justify-between gap-2">
+          {!inHomeTutorial ? (
+            <div className="flex rounded-full bg-white/8 border border-white/10 p-0.5 gap-0.5">
+              <button
+                onClick={() => setDifficulty('normal')}
+                className={`px-5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  difficulty === 'normal'
+                    ? 'bg-yellow-400 text-black shadow-sm'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                普通
+              </button>
+              <button
+                onClick={() => setDifficulty('hard')}
+                className={`px-5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  difficulty === 'hard'
+                    ? 'bg-red-600 text-white shadow-sm'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                困难
+              </button>
+            </div>
+          ) : (
+            <div className="flex rounded-full bg-white/8 border border-white/10 p-0.5">
+              <span className="px-5 py-1.5 rounded-full text-xs font-bold bg-yellow-400 text-black shadow-sm">
+                普通
+              </span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setSkillCodexOpen(true)}
+            className="shrink-0 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold text-gray-200 transition-colors hover:bg-white/10 hover:text-white touch-manipulation"
+          >
+            技能
+          </button>
+        </div>
 
         <div className="flex flex-col items-center justify-center gap-5 w-full" style={{ height: '260px', flexShrink: 0, paddingTop: '120px' }}>
           <h1 className={`text-center font-black leading-snug text-2xl ${isHard ? 'text-red-400' : 'text-yellow-400'}`}>

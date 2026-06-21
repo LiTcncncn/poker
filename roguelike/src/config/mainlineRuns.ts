@@ -1,6 +1,8 @@
 import {
   SKILL_UNLOCK_ORDER_FORWARD_DEFERRED,
   SKILL_UNLOCK_ORDER_RAINBOW_DEFERRED,
+  SEVEN_CYCLE_UNLOCK_ORDER,
+  SEVEN_CYCLE_UNLOCK_RUN_NO,
 } from './skillUnlockOrders';
 import { FRAME_DEFS, MainlineRunDef, RunConfig } from '../types/profile';
 import type { SkillEnhancement } from '../types/skill';
@@ -74,10 +76,13 @@ export function hardFromNormal(
   return { ...normal, ...extra };
 }
 
-/** 第 14 / 16 局通关解锁的延后技能顺序，自第 15 / 17 局起进入当局商店池 */
+/** 延后进入当局商店池的技能顺序（通关后下一局起可用） */
 function withDeferredSkillOrders(runNo: number, allowed: number[] | undefined): number[] {
   if (!allowed?.length) return allowed ?? [];
   const list = [...allowed];
+  if (runNo >= SEVEN_CYCLE_UNLOCK_RUN_NO + 1 && !list.includes(SEVEN_CYCLE_UNLOCK_ORDER)) {
+    list.push(SEVEN_CYCLE_UNLOCK_ORDER);
+  }
   if (runNo >= 15 && !list.includes(SKILL_UNLOCK_ORDER_RAINBOW_DEFERRED)) {
     list.push(SKILL_UNLOCK_ORDER_RAINBOW_DEFERRED);
   }
